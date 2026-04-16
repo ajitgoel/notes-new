@@ -429,16 +429,96 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "patanjali/0202206-claude-code-Patanjali USA Financial Model - Everett, Washington.md",
+                "file": "patanjali/patanjali-analysis.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "0202206-claude-code-Patanjali USA Financial Model - Everett, Washington"
+              "title": "patanjali-analysis"
+            }
+          },
+          {
+            "id": "50ebb802dc23721d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "maskcut/prd.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "prd"
+            }
+          },
+          {
+            "id": "5ba0cf06352d5c8d",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.12.4"
+              },
+              "icon": "lucide-book-up",
+              "title": "Release Notes 1.12.4"
+            }
+          },
+          {
+            "id": "b16c53122104c16b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "machine-learning/made-with-ml-mlops-course.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "made-with-ml-mlops-course"
+            }
+          },
+          {
+            "id": "c7221781393a3285",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "claude-code/10x Your Skills With Claude Code.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "10x Your Skills With Claude Code"
+            }
+          },
+          {
+            "id": "b9b5ea6511a19752",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "rework-resume/google-aistudio.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "google-aistudio"
+            }
+          },
+          {
+            "id": "d550a4c0f6b61cca",
+            "type": "leaf",
+            "state": {
+              "type": "pdf",
+              "state": {
+                "file": "empower-pharmacy/system-design/system-design-2024-byte-byte-go.pdf"
+              },
+              "icon": "lucide-file-text",
+              "title": "system-design-2024-byte-byte-go"
             }
           }
         ],
-        "currentTab": 30
+        "currentTab": 36
       }
     ],
     "direction": "vertical"
@@ -495,7 +575,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 600.5
+    "width": 341.5
   },
   "right": {
     "id": "fea5941d42178d50",
@@ -577,19 +657,9 @@
               "icon": "smart-connections",
               "title": "Smart Connections"
             }
-          },
-          {
-            "id": "c0d79e08225a4232",
-            "type": "leaf",
-            "state": {
-              "type": "mermaid-toolbar-view",
-              "state": {},
-              "icon": "trident-custom",
-              "title": "Mermaid Toolbar"
-            }
           }
         ],
-        "currentTab": 5
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
@@ -609,49 +679,48 @@
       "smart-connections:Open: Smart Chat": false,
       "smart-connections:Smart Connections: Open connections view": false,
       "smart-connections:Smart Connections: Open random connection": true,
-      "mermaid-tools:Open Mermaid Toolbar": false,
       "obsidian-excalidraw-plugin:New drawing": false
     }
   },
   "active": "0046d8039adb461a",
   "lastOpenFiles": [
-    "patanjali/0-Patanjali Ecommerce Growth Strategy & 90-Day Action Plan.md",
-    "patanjali/shipping-pallets.md",
-    "patanjali/02022026-google-aistudio-products-to-sell-biggest-bang-for-buck.md",
-    "patanjali/02022026-pitch-to-costco.md",
-    "patanjali/1.1.2-aistudio-google-PATANJALI US GROWTH PLAN-$50K INVENTORY + 2-PERSON TEAM.md",
-    "patanjali/1.4-Comprehensive Patanjali Amazon.com Launch Analysis and 90-Day Plan.md",
-    "patanjali/1.3-Top 10 Priority SKUs for Amazon.com Launch.md",
-    "patanjali/0202206-claude-code-Patanjali USA Financial Model - Everett, Washington.md",
-    "aadat-resturant/aadat_growth-strategy-claude-1.md",
-    "aadat-resturant/aadat_growth-strategy-google-aistudio-2.md",
-    "aadat-resturant/aadat-growth-strategy-google-aistudio-1.md",
-    "aadat-resturant/aadat_growth-strategy-claude-2.md",
-    "aadat-resturant",
-    "patanjali/1.0-PATANJALI US GROWTH PLAN-$50K INVENTORY + 2-PERSON TEAM.md",
-    "patanjali/1.1.1-dia-PATANJALI US GROWTH PLAN-$50K INVENTORY + 2-PERSON TEAM.md",
-    "patanjali/1.2-PATANJALI US GROWTH PLAN-$50K INVENTORY + 2-PERSON TEAM 1.md",
-    "patanjali/patanjali-analysis.md",
-    "patanjali/amazon-best-selling-patanjali-products.md",
-    "artha-indian-restuarant",
-    "way-west-redevelopment/way-west-feasibility-analysis-claude-code.md",
-    "way-west-redevelopment/way-west-feasibility-analysis-google-ai-studio.md",
-    "Excalidraw/Drawing 2026-01-22 22.04.07.excalidraw.md",
-    "way-west-redevelopment",
-    "interview/0-things-to-do-based-on-resume.md",
-    "aws-associate-architect-exam/database-selection-framework.md",
-    "aws-associate-architect-exam/Tutorials-Dojo-Study-Guide-and-Cheat-Sheets-AWS-Certified-Solutions-Architect-Associate.pdf",
-    "aws-associate-architect-exam/topic-based/RDS (SA-Associate).md",
-    "Excalidraw",
-    "aws-associate-architect-exam/acronyms-notes.md",
-    "aws-associate-architect-exam/topic-based/DynamoDB (SA-Associate).md",
-    "aws-associate-architect-exam/topic-based",
-    "aws-associate-architect-exam/SAA-C03-Tutorials-Dojo-Study-Guide-and-Cheat-Sheets-AWS-Certified-Solutions-Architect-Associate-2025-03-10-nlzspa.pdf",
-    "interview/1-Data partitioning (table or index partitioning with sliding window and partition switching).md",
-    "aws-associate-architect-exam",
+    "empower-pharmacy/senior-software-engineer-full-stack.md",
+    "empower-pharmacy/priority-list.md",
+    "empower-pharmacy/event-driven-architecture-message-brokers.md",
+    "empower-pharmacy/areas-to-cover.md",
+    "empower-pharmacy/system-design/1-booking-seat-for-event-in-concert-focusing-on-payment-using-external-booking-api-and-booking-seat-part.md",
+    "empower-pharmacy/system-design/0-system-design.md",
+    "empower-pharmacy/system-design",
+    "empower-pharmacy/kafka-fundamentals.md",
+    "empower-pharmacy/how-authentication-works.md",
+    "starter-story/stoppr-app-interview.md",
+    "empower-pharmacy/agentic-ai.md",
+    "0-agentic-llm/production-agentic-llm-feature-design.md",
+    "kubernetes-refresh-mini-learning-path.md",
+    "Untitled 2.base",
+    "Untitled 1.base",
+    "Untitled.base",
+    "saas-market-research/SaaS Opportunity Market Research — v2.md",
+    "saas-market-research/saas-market-research-claude-code.md",
+    "saas-market-research",
+    "empower-pharmacy",
+    "0-kubernetes/concepts.md",
+    "0-kubernetes",
+    "rework-resume/claude-code.md",
+    "rework-resume/google-aistudio.md",
+    "claude-code/10x Your Skills With Claude Code.md",
+    "rework-resume",
+    "claude-code/summary-get-better-at-using-AI-for-programming.md",
     "Pasted image 20251127204314.png",
-    "returns-router-saas-application",
-    "to-do.md.crswap",
+    "empower-pharmacy/system-design/system-design-2024-byte-byte-go.pdf",
+    "strength-training/nutrition-plan-for-50+-male.md",
+    "spec-kit/consistent-ui-styling-and-controls-in-application.md.md",
+    "0-tasks.md",
+    "strength-training/aistudio-Fitness & Nutrition Plan.md",
+    "0-agentic-llm/production-agentic-llm-feature-design.pdf",
+    "agentic-llm/production-agentic-llm-feature-design.md",
+    "production-agentic-llm-feature-design/production-agentic-llm-feature-design.md",
+    "production-agentic-llm-feature-design/a.md",
     "Pasted image 20251208200325.png",
     "Untitled.canvas"
   ]

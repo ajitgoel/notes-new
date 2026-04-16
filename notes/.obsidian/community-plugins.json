@@ -1,13 +1,12 @@
 [
-  "mcp-tools",
   "obsidian-local-rest-api",
   "templater-obsidian",
   "smart-connections",
   "highlightr-plugin",
-  "mermaid-tools",
   "editing-toolbar",
   "cmenu-plugin",
   "dynamic-outline",
   "code-styler",
-  "obsidian-excalidraw-plugin"
+  "obsidian-excalidraw-plugin",
+  "mermaid-popup"
 ]
