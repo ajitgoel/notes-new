@@ -1,3 +1,128 @@
+##### **Topics & Partitions** 
+==**Topics** are named channels (or categories) that organize messages in Kafka.== Think of a topic as a logical feed — e.g., `order-events`, `health-recommendations`, `fee-billing-records`.
+==**Partitions** are how Kafka splits a topic into parallel lanes for throughput and ordering.==
+**How it works** 
+A topic like `order-events` might have 12 partitions. When a producer sends a message, Kafka uses a **partition key** (e.g., `userId` or `orderId`) to deterministically route it to a specific partition. All messages with the same key land in the same partition, which guarantees **ordering per key**.
+
+**Example from your experience** 
+In your **Safeway personalization platform** processing 10 TB of health data for 1.8M users, imagine a topic called `user-health-profiles`:
+
+```
+Topic: user-health-profiles  (6 partitions)
+
+Partition 0:  user-1001 → profile update, user-1001 → purchase event, user-1007 → ...
+Partition 1:  user-1002 → profile update, user-1002 → widget config change, ...
+Partition 2:  user-1003 → ...
+...
+```
+
+- **Partition key =** `userId` ensures all events for a given user are processed in order (critical when composing homepage widgets from health profiles + purchase history).
+- **6 partitions** means up to 6 consumer instances can read in parallel from one consumer group — scaling throughput horizontally.
+- ==If you need more throughput, you increase partitions (but you can never decrease them).==
+
+**Key tradeoff:** More partitions = more parallelism, but also more overhead (file handles, rebalancing time). And ordering is only guaranteed _within_ a partition, not across them.
+##### **At-Least-Once vs. Exactly-Once Semantics** 
+These describe **delivery guarantees** — what happens when failures occur.
+###### **At-Least-Once** 
+The producer retries on failure, so every message is delivered **at least once** — but duplicates are possible.
+**Example from your JPMorgan Fee Billing platform (44M records/month, $1.6B revenue):**
+```
+Producer sends: FeeRecord-7829 → Kafka
+Kafka ACK is lost due to network blip
+Producer retries: FeeRecord-7829 → Kafka (again)
+
+Result: FeeRecord-7829 now exists TWICE in the topic
+```
+
+This is why your resume mentions **idempotent batch processing** — your consumer must handle duplicates gracefully. A common pattern:
+```java
+// Idempotent consumer — checks before processing
+if (!processedRecords.contains(record.getId())) {
+    processFee(record);
+    processedRecords.add(record.getId());  // mark as done
+    consumer.commitOffset();
+}
+```
+If the consumer crashes _after_ processing but _before_ committing the offset, Kafka will redeliver that record on restart. Without idempotency, you’d bill someone twice — catastrophic in a $1.6B revenue system.
+###### **Exactly-Once Semantics (EOS)** 
+The system guarantees each message is processed **exactly once** — no duplicates, no loss. Kafka achieves this by combining three mechanisms:
+1. **Idempotent producer** (`enable.idempotence=true`) — Kafka deduplicates retries using a producer ID + sequence number.
+2. **Transactions** — the producer wraps “read input + write output + commit offset” in a single atomic transaction.
+3. `read_committed` **consumers** — consumers only see messages from committed transactions.
+
+```
+    BEGIN TRANSACTION
+      1. Read FeeRecord-7829 from input-topic
+      2. Compute fee → write result to output-topic
+      3. Commit consumer offset for input-topic
+    COMMIT TRANSACTION
+```
+
+If any step fails, the entire transaction rolls back. No partial state.
+**The practical tradeoff:** EOS adds latency and reduces throughput (due to transaction coordination). Most systems — including what you’ve built — use **at-least-once + idempotent consumers**, which is simpler and faster. Exactly-once is worth it when correctness is non-negotiable and the performance cost is acceptable (e.g., financial ledger entries).
+##### **Schema Evolution** 
+==Schema evolution is about changing the structure of your messages (adding fields, removing fields, changing types) **without breaking existing producers and consumers**.==
+
+**Why it matters** 
+In a distributed system, you can’t upgrade every service simultaneously. When your Safeway personalization platform sends a `UserHealthProfile` event, the producer and multiple consumers may be deployed at different times. You need old consumers to keep working when the schema changes.
+
+**How it works (with Avro + Schema Registry)** 
+Kafka messages are typically serialized using **Avro**, **Protobuf**, or **JSON Schema**, with a **Schema Registry** that enforces compatibility rules.
+
+**Example:** Your `UserHealthProfile` schema evolves over time:
+
+```
+// Version 1 (original)
+{
+  "userId": "string",
+  "healthScore": "int",
+  "purchaseHistory": ["string"]
+}
+
+// Version 2 — BACKWARD COMPATIBLE (added field with default)
+{
+  "userId": "string",
+  "healthScore": "int",
+  "purchaseHistory": ["string"],
+  "dietaryPreferences": ["string"]   // NEW — default: []
+}
+
+// Version 3 — BREAKING CHANGE (renamed field — don't do this)
+{
+  "userId": "string",
+  "wellnessScore": "int",   // was "healthScore" — old consumers break!
+  "purchaseHistory": ["string"],
+  "dietaryPreferences": ["string"]
+}
+```
+**Compatibility modes** 
+
+| Mode         | Rule                         | Use case                            |
+| ------------ | ---------------------------- | ----------------------------------- |
+| **BACKWARD** | New schema can read old data | Safe to upgrade consumers first     |
+| **FORWARD**  | Old schema can read new data | Safe to upgrade producers first     |
+| **FULL**     | Both directions work         | Safest — the default recommendation |
+**Safe evolution patterns** 
+- **Add a field** with a default value → always safe
+- **Remove a field** that had a default → safe under forward compatibility
+- **Rename a field** → breaking, avoid it
+- **Change a field type** (int → string) → breaking, avoid it
+
+**Connection to your experience** 
+Your resume mentions **Protobuf.NET** at RealPage, where you replaced legacy serialization formats. Protobuf has schema evolution built in — fields are identified by number, not name, so you can add new fields (with new numbers) without breaking existing consumers. This is the same principle at work in Kafka schema evolution.
+
+**Quick summary table** 
+
+|Concept|One-liner|Your resume connection|
+|---|---|---|
+|**Topics/Partitions**|Topics organize messages; partitions parallelize them with per-key ordering|Safeway: partitioning by userId for 1.8M users|
+|**At-Least-Once**|Messages may be delivered more than once; consumers must be idempotent|JPMorgan: idempotent batch processing for 44M records/month|
+|**Exactly-Once**|Atomic transactions ensure no duplicates or loss; higher latency cost|Financial systems where double-billing is unacceptable|
+|**Schema Evolution**|Changing message structure without breaking existing services|RealPage: Protobuf.NET migration; Safeway: evolving health profile events|
+
+---------
+
+
 Kafka is a distributed log where producers append messages and consumers read them in order; Java is the “native” client.
 I’ll keep this at a clear, fundamentals level and tie each idea to Java code so it sticks.
 **Core Kafka concepts (in plain language)** 

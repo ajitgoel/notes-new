@@ -423,3 +423,44 @@ class ErrorBoundary extends React.Component {
 |Render Props|Custom hooks|Know it, but use hooks|
 |Error Boundaries|None (class only)|Yes, no hook replacement|
 |Strict Mode|—|Yes, know what it does|
+
+---------------
+==A **Pure Component** in React is a component that only re-renders when its **props or state actually change**== (via a shallow comparison).
+**Class Components:** `React.PureComponent` 
+```jsx
+class MyComponent extends React.PureComponent {
+  render() {
+    return <div>{this.props.name}</div>;
+  }
+}
+```
+`PureComponent` automatically implements `shouldComponentUpdate` with a **shallow comparison** of props and state. If nothing changed, it skips the render.
+**Function Components:** `React.memo` 
+The equivalent for function components is `React.memo`:
+```jsx
+const MyComponent = React.memo(function MyComponent({ name }) {
+  return <div>{name}</div>;
+});
+```
+
+  
+
+==**What “shallow comparison” means**== 
+==It checks reference equality (`===`) for each prop/state value:==
+- ==**Primitives** (string, number, boolean) — compared by value ✓==
+- ==**Objects/arrays** — compared by reference, not contents.== So `{ a: 1 } !== { a: 1 }` (different references), which would trigger a re-render even if the data is the same.
+
+**When to use them** 
+- **Good for:** Components that render the same output for the same props — lists, display-only components, expensive renders.
+- **Watch out for:** Passing new object/array/function references on every render (e.g., inline arrow functions or object literals as props), which defeats the optimization.
+
+**Quick example of the pitfall** 
+```jsx
+// ❌ Bad — new object every render, memo is useless
+<MyPureChild style={{ color: 'red' }} />
+
+// ✅ Good — stable reference
+const style = useMemo(() => ({ color: 'red' }), []);
+<MyPureChild style={style} />
+```
+In short: ==pure components are a **performance optimization** that prevents unnecessary re-renders by skipping rendering when inputs haven’t changed.==

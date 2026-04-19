@@ -7,15 +7,12 @@ Think of three main pieces:
 - **Auth provider**: Okta, Google, etc. (an OpenID Connect / OAuth 2.0 provider).
 
 **1. How the bearer (access) token is generated** 
-
 The normal modern pattern is the **Authorization Code flow with PKCE**:
-
 1. The client app sends the user to Okta/Google’s hosted login page.
 2. User logs in there (credentials never touch your backend).
 3. Okta/Google redirects back to your app with a **short‑lived authorization code**.
 4. Your Spring Boot backend takes that auth code (plus client credentials/PKCE verifier) and calls the provider’s **token endpoint**.
 5. The provider returns:
-
 - **Access token** (the “Bearer” token, usually a JWT)
 - **Refresh token** (longer‑lived, not sent on every request)
 - Optionally, an **ID token** describing the user.
