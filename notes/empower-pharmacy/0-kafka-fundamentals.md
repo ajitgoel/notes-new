@@ -1,4 +1,4 @@
-##### **Topics & Partitions** 
+#### **Topics & Partitions** 
 ==**Topics** are named channels (or categories) that organize messages in Kafka.== Think of a topic as a logical feed — e.g., `order-events`, `health-recommendations`, `fee-billing-records`.
 ==**Partitions** are how Kafka splits a topic into parallel lanes for throughput and ordering.==
 **How it works** 
@@ -21,21 +21,20 @@ Partition 2:  user-1003 → ...
 - ==If you need more throughput, you increase partitions (but you can never decrease them).==
 
 **Key tradeoff:** More partitions = more parallelism, but also more overhead (file handles, rebalancing time). And ordering is only guaranteed _within_ a partition, not across them.
-##### **At-Least-Once vs. Exactly-Once Semantics** 
+#### **At-Least-Once vs. Exactly-Once Semantics** 
 These describe **delivery guarantees** — what happens when failures occur.
 ###### **At-Least-Once** 
-The producer retries on failure, so every message is delivered **at least once** — but duplicates are possible.
+==The producer retries on failure, so every message is delivered **at least once** — but duplicates are possible.==
 **Example from your JPMorgan Fee Billing platform (44M records/month, $1.6B revenue):**
 ```
 Producer sends: FeeRecord-7829 → Kafka
 Kafka ACK is lost due to network blip
 Producer retries: FeeRecord-7829 → Kafka (again)
-
 Result: FeeRecord-7829 now exists TWICE in the topic
 ```
 
 This is why your resume mentions **idempotent batch processing** — your consumer must handle duplicates gracefully. A common pattern:
-```java
+```java hl:2
 // Idempotent consumer — checks before processing
 if (!processedRecords.contains(record.getId())) {
     processFee(record);
@@ -43,8 +42,57 @@ if (!processedRecords.contains(record.getId())) {
     consumer.commitOffset();
 }
 ```
-If the consumer crashes _after_ processing but _before_ committing the offset, Kafka will redeliver that record on restart. Without idempotency, you’d bill someone twice — catastrophic in a $1.6B revenue system.
-###### **Exactly-Once Semantics (EOS)** 
+==If the consumer crashes _after_ processing but _before_ committing the offset, Kafka will redeliver that record on restart.== Without idempotency, you’d bill someone twice — catastrophic in a $1.6B revenue system.
+
+**How You Handle It — Idempotent Consumer Patterns** 
+There are three common approaches, from simplest to most robust:
+###### **Pattern 1: Deduplication Table (what your JPMorgan system likely used)** 
+
+```java
+// A "processed_records" table in your database tracks what's been handled
+@Transactional  // single DB transaction wraps both operations
+public void consume(FeeRecord record) {
+
+    // Check: have we already processed this?
+    if (processedRecordRepo.existsById(record.getId())) {
+        log.info("Skipping duplicate: {}", record.getId());
+        consumer.commitSync();  // just advance the offset
+        return;
+    }
+    // Process: compute and persist the fee
+    Fee fee = computeFee(record);
+    feeRepo.save(fee);
+    // Mark as processed (same DB transaction as the fee write)
+    processedRecordRepo.save(new ProcessedRecord(record.getId()));
+    // NOW commit the offset — after everything is safely persisted
+    consumer.commitSync();
+}
+```
+
+- Before the DB transaction commits → nothing was saved, reprocessing is safe
+- After the DB transaction commits but before `commitSync()` → record is redelivered, but the `existsById` check catches it   
+###### **Pattern 3: Store Offset in the Database (strongest guarantee)** 
+
+```java
+// Store the Kafka offset alongside your business data, in ONE transaction
+@Transactional
+public void consume(ConsumerRecord<String, FeeRecord> kafkaRecord) {
+    long offset = kafkaRecord.offset();
+    int partition = kafkaRecord.partition();
+    // Check if we've already processed past this offset
+    if (offsetStore.getCommittedOffset(partition) >= offset) {
+        return;  // already processed
+    }
+    Fee fee = computeFee(kafkaRecord.value());
+    feeRepo.save(fee);
+    // Save offset in the SAME database transaction
+    offsetStore.saveOffset(partition, offset);
+}
+// No consumer.commitSync() needed — the DB is the source of truth for offsets
+```
+
+**This is the tightest at-least-once implementation** because the offset and the business data are committed atomically in the same database transaction. There’s no gap between “processed” and “committed.”
+##### **Exactly-Once Semantics (EOS)** 
 The system guarantees each message is processed **exactly once** — no duplicates, no loss. Kafka achieves this by combining three mechanisms:
 1. **Idempotent producer** (`enable.idempotence=true`) — Kafka deduplicates retries using a producer ID + sequence number.
 2. **Transactions** — the producer wraps “read input + write output + commit offset” in a single atomic transaction.
@@ -60,7 +108,7 @@ The system guarantees each message is processed **exactly once** — no duplicat
 
 If any step fails, the entire transaction rolls back. No partial state.
 **The practical tradeoff:** EOS adds latency and reduces throughput (due to transaction coordination). Most systems — including what you’ve built — use **at-least-once + idempotent consumers**, which is simpler and faster. Exactly-once is worth it when correctness is non-negotiable and the performance cost is acceptable (e.g., financial ledger entries).
-##### **Schema Evolution** 
+#### **Schema Evolution** 
 ==Schema evolution is about changing the structure of your messages (adding fields, removing fields, changing types) **without breaking existing producers and consumers**.==
 
 **Why it matters** 

@@ -1,4 +1,4 @@
-**1. Components** 
+###### **1. Components** 
 The building blocks of React. Two ways to write them:
 ```jsx hl:2-4
 // Function component (modern, preferred)
@@ -16,7 +16,7 @@ class Greeting extends React.Component {
 }
 ```
 
-  **2. JSX** 
+  ###### **2. JSX** 
 JSX is syntactic sugar for `React.createElement()`. It looks like HTML but it’s JavaScript.
 ```jsx
 function UserCard({ user }) {
@@ -38,8 +38,8 @@ function UserCard({ user }) {
 - `htmlFor` instead of `for`
 - All tags must be closed
 
-**3. Props** 
-Data passed **down** from parent to child. Props are read-only.
+###### **3. Props** 
+==Data passed **down** from parent to child. Props are read-only.==
 ```jsx hl:3,6
 // Parent passes data
 function App() {
@@ -64,8 +64,8 @@ function Button({ variant = "primary", children }) {
 <Button variant="danger">Delete Account</Button>
 ```
 
-**4. State with** `useState` 
-State is data that **changes over time** and triggers re-renders.
+###### **4. State with** `useState` 
+==State is data that **changes over time** and triggers re-renders.==
 ```jsx hl:2,6
 function Counter() {
   const [count, setCount] = useState(0);
@@ -99,7 +99,7 @@ function ProfileForm() {
 }
 ```
 
-**5.** `useEffect` **— Side Effects** 
+###### **5.** `useEffect` **— Side Effects** 
 For anything outside the render cycle: API calls, subscriptions, timers, DOM manipulation.
 
 ```jsx

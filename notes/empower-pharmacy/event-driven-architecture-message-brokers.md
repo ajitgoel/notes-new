@@ -97,28 +97,21 @@ flowchart TD
 ---
 
 ## 4. Addressing Staff-Level Architectural Concepts
-
 This system specifically addresses the advanced system design patterns highlighted in your architectural review:
-
 ### A. Decoupling Systems (Pub/Sub)
 Instead of the Order Service making a synchronous `RestTemplate` or `FeignClient` call to the Payment Service (which blocks threads and causes cascading failures if the Payment Service is down), we use the **Publish/Subscribe** pattern. The Order Service simply broadcasts a fact ("An order was created") and has no knowledge of who consumes it. 
-
 ### B. Handling Backpressure
-If a massive traffic spike occurs (e.g., Black Friday), the Order Service can publish 10,000 events/second. The Payment Service might only be able to process 500 payments/second. 
-*   **How it's handled:** Kafka acts as a buffer. The Payment Service pulls messages at its own pace. In Spring Boot, we configure `ConcurrentKafkaListenerContainerFactory` to set a maximum concurrency and batch size, naturally establishing backpressure without dropping requests or crashing the Payment Service.
-
+==If a massive traffic spike occurs (e.g., Black Friday), the Order Service can publish 10,000 events/second. The Payment Service might only be able to process 500 payments/second.== 
+*   ==**How it's handled:** Kafka acts as a buffer. The Payment Service pulls messages at its own pace. In Spring Boot, we configure `ConcurrentKafkaListenerContainerFactory` to set a maximum concurrency and batch size, naturally establishing backpressure without dropping requests or crashing the Payment Service.==
 ### C. Dead-Letter Queues (DLQ)
 What happens if the Payment Service encounters a bug or a malformed message (e.g., a missing JSON field) that cannot be parsed? Without intervention, it will infinitely retry and block the queue ("poison pill").
 *   **How it's handled:** We implement a DLQ. Using Spring Kafka's `DeadLetterPublishingRecoverer` and `DefaultErrorHandler`, we configure the system to retry processing a message 3 times. If it still fails, Spring automatically routes the message to `payment-events-dlq` for manual engineering inspection, allowing the main queue to continue processing healthy messages.
-
 ### D. Eventual Consistency
 Because the systems are decoupled, the database states are not updated in a single ACID transaction. 
 *   **How it's handled:** We embrace **Eventual Consistency**. The user's screen says "Processing Order." A few seconds later, once the Order Service consumes the `PaymentSuccessEvent` from Kafka, it updates the database status from `PENDING` to `CONFIRMED`. If the user queries their order in the interim, they see the `PENDING` state.
 
 ---
-
 ## 5. Staff-Level Enhancement: Read Replicas & Projections
-
 In a mature architecture, the relationship between CQRS, Event Sourcing, and Read Replicas is essential for scaling. This project implements the **Projection Pattern**, which is the advanced evolution of standard database read replicas.
 
 | Pattern | Implementation in this System |
