@@ -510,3 +510,73 @@ public class PremiumPricing : IPricingStrategy
     public decimal Calculate(decimal basePrice) => basePrice * 0.8m;
 }
 ```
+
+--------
+==A `record` is a special type of class designed for **holding data**. It gives you a bunch of useful behavior for free that you’d otherwise have to write yourself.==
+
+**Regular class vs record** 
+```csharp
+// CLASS — you write all of this yourself
+public class CreateRxDto
+{
+    public int PatientId { get; init; }
+    public string MedicationName { get; init; }
+    // You'd need to manually write:
+    // - Equals() and GetHashCode()
+    // - ToString()
+    // - Deconstruction
+    // - Copy with modifications
+}
+// RECORD — one line, you get all of that for free
+public record CreateRxDto(int PatientId, string MedicationName);
+```
+
+**What you get for free** 
+**1. Value-based equality** 
+```csharp hl:6-8
+// Classes compare by REFERENCE (are these the same object?)
+var a = new PatientClass { Name = "Alice" };
+var b = new PatientClass { Name = "Alice" };
+a == b  // FALSE — different objects in memory
+// Records compare by VALUE (do the properties match?)
+var a = new PatientRecord("Alice");
+var b = new PatientRecord("Alice");
+a == b  // TRUE — same data
+```
+**2. Nice ToString()** 
+```csharp hl:3
+var rx = new CreateRxDto(42, "Lisinopril");
+// Class:  "CreateRxDto"  (useless)
+// Record: "CreateRxDto { PatientId = 42, MedicationName = Lisinopril }"
+```
+**3. Easy copying with** `with` 
+```csharp hl:3,4
+var original = new CreateRxDto(42, "Lisinopril");
+// Create a copy with one property changed
+var modified = original with { MedicationName = "Metformin" };
+// original is unchanged — records are immutable by default
+```
+**When to use what** 
+
+| Use a…     | When…                                                                         |
+| ---------- | ----------------------------------------------------------------------------- |
+| **record** | Data carriers — DTOs, API requests/responses, value objects                   |
+| **class**  | Things with behavior, mutable state, or complex logic (services, controllers) |
+| **struct** | Small, lightweight value types (coordinates, money amounts)                   |
+
+**The syntax options** 
+```csharp hl:2,5-8,12
+// Positional — most concise (properties are init-only)
+public record CreateRxDto(int PatientId, string MedicationName);
+
+// With body — when you need extra members
+public record OrderDto(int Id, decimal Total)
+{
+    public string FormattedTotal => $"${Total:F2}";
+}
+
+// Record class vs record struct (C# 10+)
+public record class  OrderDto(int Id);  // reference type (default)
+public record struct Point(double X, double Y);  // value type
+```
+That’s why you see `record` used for DTOs throughout the interview prep code — it’s less boilerplate for objects that just carry data around.
