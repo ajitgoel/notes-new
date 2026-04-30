@@ -91,7 +91,7 @@ FROM Pharmacists;
 ```sql hl:3-4
 -- "Rank each pharmacist's orders within their own state"
 SELECT Name, State, TotalOrders,
-    ROW_NUMBER() OVER (PARTITION BY State        -- restart numbering per state
+    ROW_NUMBER() OVER (PARTITION BY State-- restart numbering per state
         ORDER BY TotalOrders DESC) AS RankInState
 FROM Pharmacists;
 

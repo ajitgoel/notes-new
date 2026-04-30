@@ -18,9 +18,9 @@
 ---
 ## 1. Read Uncommitted
 **Rating: Never Use**
-A transaction can read rows modified by other transactions **that haven't committed yet**. If that other transaction rolls back, you've acted on data that never existed.
+==A transaction can read rows modified by other transactions **that haven't committed yet**.== If that other transaction rolls back, you've acted on data that never existed.
 ### SQL Example
-```sql
+```sql hl:8
 -- Transaction A: pharmacist starts receiving a shipment
 BEGIN;
 UPDATE inventory_lots SET qty_on_hand = qty_on_hand + 500

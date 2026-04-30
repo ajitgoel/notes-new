@@ -7,7 +7,6 @@
 > DI is the backbone of every modern .NET app. At Empower, services talk to multiple data stores, external APIs, and compliance layers. Proper DI makes all of that testable and swappable.
 
 DI means a class **receives** its dependencies from the outside rather than creating them itself.
-
 ### The Problem — Tightly Coupled Code
 
 ```csharp
