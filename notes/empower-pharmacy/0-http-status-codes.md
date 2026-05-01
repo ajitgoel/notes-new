@@ -8,13 +8,13 @@
 | 103  | Early Hints         | Server sends preliminary headers (e.g., `Link` for preloading resources)   |
 **2xx — Success** 
 
-| Code | Name            | Meaning                                                                        |
-| ---- | --------------- | ------------------------------------------------------------------------------ |
-| ==200==  | ==OK==              | ==Standard success. Response body contains the result==                            |
-| ==201==  | ==Created==         | ==A new resource was created (return it + `Location` header)==                     |
-| ==202==  | ==Accepted==        | ==Request received but processing hasn’t completed (async jobs)==                  |
-| ==204==  | ==No Content==      | ==Success but nothing to return (common for DELETE)==                              |
-| 206  | Partial Content | Server is returning part of a resource (range requests, e.g., video streaming) |
+| Code    | Name            | Meaning                                                                        |
+| ------- | --------------- | ------------------------------------------------------------------------------ |
+| ==200== | ==OK==          | ==Standard success. Response body contains the result==                        |
+| ==201== | ==Created==     | ==A new resource was created (return it + `Location` header)==                 |
+| 202     | Accepted        | Request received but processing hasn’t completed (async jobs)                  |
+| ==204== | ==No Content==  | ==Success but nothing to return (common for DELETE)==                          |
+| 206     | Partial Content | Server is returning part of a resource (range requests, e.g., video streaming) |
 **3xx — Redirection** 
 
 | Code | Name               | Meaning                                                                      |
