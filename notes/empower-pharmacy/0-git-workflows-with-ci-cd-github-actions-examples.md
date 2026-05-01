@@ -49,7 +49,7 @@ jobs:
 
 ###### **3. Running Unit Tests with Coverage** 
 
-```yaml
+```yaml hl:10-15
 # Job that runs unit tests and uploads coverage reports
 unit-tests:
   runs-on: ubuntu-latest
@@ -227,8 +227,6 @@ sonar-self-hosted:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
-
-  
 
 ###### **6. Code Formatting & Linting** 
 

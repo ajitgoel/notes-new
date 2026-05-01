@@ -198,6 +198,15 @@ public void Process<T>(T item)
 Func<int, int, int> add = (a, b) => a + b;       // returns a value
 Action<string> log = msg => Console.WriteLine(msg); // returns void
 Predicate<int> isEven = n => n % 2 == 0;           // returns bool
+
+----------
+// Invocation
+int result = add(10, 5);
+log("Processing started..."); // Output: Processing started...
+var numbers = new List<int> { 1, 2, 3, 4, 5 };
+var evenNumbers = numbers.FindAll(isEven); // Passes the predicate to filter the list
+----------
+
 // Events
 public class Button
 {
@@ -472,7 +481,7 @@ if (attr != null)
     Console.WriteLine($"Cache for {attr.DurationSeconds}s");
 ```
 ###### **20. Common Design Patterns** 
-```csharp
+```csharp hl:41-56
 // Builder pattern
 var query = new QueryBuilder()
     .Select("Name", "Age")
@@ -509,6 +518,25 @@ public class PremiumPricing : IPricingStrategy
 {
     public decimal Calculate(decimal basePrice) => basePrice * 0.8m;
 }
+
+-----
+### Factory/Registry Approach (Dynamic Selection)
+If you need to choose the strategy based on user type at runtime:
+public class PricingFactory
+{
+    public IPricingStrategy GetStrategy(string customerType)
+    {
+        return customerType switch
+        {
+            "Premium" => new PremiumPricing(),
+            _ => new RegularPricing()
+        };
+    }
+}
+// --- Usage ---
+var factory = new PricingFactory();
+var strategy = factory.GetStrategy("Premium");
+decimal finalPrice = strategy.Calculate(100m);
 ```
 
 --------

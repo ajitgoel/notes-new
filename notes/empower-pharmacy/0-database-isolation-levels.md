@@ -70,13 +70,13 @@ COMMIT;
 > [!danger] Empower Pharmacy Problem
 > Two pharmacists process orders for the same active ingredient simultaneously. Both read 200g available. Both reserve. Total reserved: 330g against 200g actual. The second compounding run pulls from a jar that's already empty. **This is exactly why Read Committed alone isn't enough — you need SELECT FOR UPDATE to close this gap.**
 
-> [!success] When It's Fine
-> Read Committed **+ explicit row locks** (`SELECT ... FOR UPDATE`) is the sweet spot for Empower. The lock closes the read-then-write gap. Without it, Read Committed is appropriate for read-only dashboards, inventory reports, and queries where stale-by-one-transaction is acceptable.
+When It's Fine
+==Read Committed **+ explicit row locks** (`SELECT ... FOR UPDATE`) is the sweet spot for Empower. The lock closes the read-then-write gap. Without it, Read Committed is appropriate for read-only dashboards, inventory reports, and queries where stale-by-one-transaction is acceptable.==
 
 ---
-## 3. Repeatable Read
+## 3. ==Repeatable Read==
 **Rating: Snapshot Safety**
-The transaction sees a **snapshot** taken at the start of the transaction. All reads return data as of that snapshot, regardless of what other transactions commit in between. In PostgreSQL, this also prevents phantoms (new rows inserted by others don't appear).
+==The transaction sees a **snapshot** taken at the start of the transaction.== All reads return data as of that snapshot, regardless of what other transactions commit in between. In PostgreSQL, this also prevents phantoms (new rows inserted by others don't appear).
 ### SQL Example
 ```sql
 -- Transaction A: generating an end-of-day inventory report
