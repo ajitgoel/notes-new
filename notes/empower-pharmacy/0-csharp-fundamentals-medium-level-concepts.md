@@ -38,7 +38,7 @@ string status = age >= 18 ? "Adult" : "Minor";
 ```
 
   ###### **3. Methods & Parameters** 
-```csharp hl:3
+```csharp hl:2-3
 // Named and optional parameters
 void CreateUser(string name, int age = 25, 
 string role = "User")
@@ -119,7 +119,7 @@ public class Circle : Shape, IRepository<Circle>
 ```
 
 ###### **6. Records & Structs** 
-```csharp
+```csharp hl:1-2,5,10-11
 // Record — immutable reference type with value equality (C# 9+)
 public record Person(string Name, int Age);
 var p1 = new Person("Alice", 30);
@@ -193,7 +193,7 @@ public void Process<T>(T item)
 }
 ```
 ###### **9. Delegates, Events & Lambdas** 
-```csharp
+```csharp hl:1-4
 // Built-in delegate types
 Func<int, int, int> add = (a, b) => a + b;       // returns a value
 Action<string> log = msg => Console.WriteLine(msg); // returns void
@@ -340,7 +340,7 @@ conn2.Open();
 // disposed when the enclosing scope exits
 ```
 ###### **14. Extension Methods** 
-```csharp hl:1,3,8,13
+```csharp hl:1,3,13
 public static class StringExtensions
 {
     public static string Truncate(this string value, int maxLength)
@@ -356,7 +356,7 @@ string title = "A very long title that needs truncating";
 Console.WriteLine(title.Truncate(20)); // "A very long title th..."
 ```
 ###### **15. Dependency Injection (Built-in)** 
-```csharp
+```csharp hl:14-15
 // Define service
 public interface IEmailService
 {

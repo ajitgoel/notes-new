@@ -160,7 +160,7 @@ artifacts:
     ```
 **Rollback**: If CloudWatch alarms fire during deployment, AppConfig automatically rolls back to the previous config version.
 ##### **AWS CDK (Cloud Development Kit)** 
-CDK lets you define infrastructure using TypeScript, Python, Java, Go, or C#. It synthesizes your code into CloudFormation templates.  
+==CDK lets you define infrastructure using TypeScript, Python, Java, Go, or C#. It synthesizes your code into CloudFormation templates.==  
 **Why CDK over raw CloudFormation**: Real programming constructs — loops, conditionals, composition, type checking. CloudFormation YAML is painful at scale.  
 **Core concepts**:
 - **App**: The root of your CDK application
