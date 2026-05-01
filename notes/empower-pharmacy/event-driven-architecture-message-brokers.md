@@ -1,6 +1,3 @@
-
-
-
 Here is a complete Product Requirements Document (`prd.md`) for a sample application that demonstrates the event-driven concepts (Pub/Sub, Decoupling, Backpressure, Dead-Letter Queues, and Eventual Consistency) required for a Staff/Architect level interview. 
 
 This sample uses an **E-Commerce Order Fulfillment System** built with **Java Spring Boot** and **Apache Kafka**.

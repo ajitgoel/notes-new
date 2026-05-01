@@ -92,7 +92,7 @@ app.UseMiddleware<RequestTimingMiddleware>();
 
 ### Controller-Based (traditional, used at Empower)
 
-```csharp
+```csharp hl:1,2,10,17
 [ApiController]
 [Route("api/[controller]")]
 public class PrescriptionsController : ControllerBase
