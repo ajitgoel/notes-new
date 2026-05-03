@@ -159,10 +159,82 @@ public User user(@Argument String id,
 
 ---
 
-## Interview Questions
+## Interview Questions & Answers
 
-1. What is a DataFetcher and how does the engine decide which one to call?
-2. How does `@BatchMapping` differ from `@SchemaMapping`?
-3. Show two ways to parallelize calls to independent services in a resolver.
-4. How would you use `getSelectionSet()` to avoid unnecessary downstream calls?
-5. What's the difference between `getSource()` and `getArgument()`?
+### 1. What is a DataFetcher and how does the engine decide which one to call?
+
+A `DataFetcher<T>` is a function that resolves a single field in the schema. Every field has one. During execution, the engine walks the query AST depth-first. For each field node, it looks up the `DataFetcher` registered for that type+field combination in the `RuntimeWiring`. If none is registered, it falls back to `PropertyDataFetcher`, which calls a getter matching the field name on the parent object (e.g., `getEmail()` for the `email` field).
+
+The engine passes a `DataFetchingEnvironment` containing: the parent object (`getSource()`), arguments (`getArgument()`), the GraphQL context (auth, headers), the DataLoader registry, and the selection set (which sub-fields were requested). The DataFetcher uses this to fetch and return the data.
+
+### 2. How does `@BatchMapping` differ from `@SchemaMapping`?
+
+`@SchemaMapping` resolves a single field for a single parent object. If you query 50 users, the `orders` SchemaMapping is called 50 times — once per user. This is the N+1 problem.
+
+`@BatchMapping` resolves a field for ALL parent objects at once. The method receives `List<User>` and returns `Map<User, List<Order>>`. Spring collects all the parents during execution, calls your method once, and distributes the results. Under the hood, it registers a `DataLoader` that batches the calls.
+
+```java
+// SchemaMapping: called N times
+@SchemaMapping(typeName = "User")
+public List<Order> orders(User user) { ... }  // 50 calls for 50 users
+
+// BatchMapping: called once
+@BatchMapping
+public Map<User, List<Order>> orders(List<User> users) { ... }  // 1 call
+```
+
+### 3. Show two ways to parallelize calls to independent services in a resolver.
+
+**CompletableFuture** (blocking services, runs on thread pool):
+```java
+@QueryMapping
+public CompletableFuture<Dashboard> dashboard(@Argument String userId) {
+    var userF = CompletableFuture.supplyAsync(() -> userService.getUser(userId));
+    var ordersF = CompletableFuture.supplyAsync(() -> orderService.getOrders(userId));
+    var recsF = CompletableFuture.supplyAsync(() -> recService.getRecs(userId));
+    return CompletableFuture.allOf(userF, ordersF, recsF)
+        .thenApply(v -> new Dashboard(userF.join(), ordersF.join(), recsF.join()));
+}
+```
+
+**Mono.zip** (reactive services, non-blocking):
+```java
+@QueryMapping
+public Mono<Dashboard> dashboard(@Argument String userId) {
+    return Mono.zip(
+        userClient.getUser(userId),
+        orderClient.getOrders(userId),
+        recClient.getRecs(userId)
+    ).map(t -> new Dashboard(t.getT1(), t.getT2(), t.getT3()));
+}
+```
+
+Both approaches run all three calls concurrently. The total latency equals the slowest service, not the sum. `Mono.zip` is preferred in WebFlux because it doesn't block threads.
+
+### 4. How would you use `getSelectionSet()` to avoid unnecessary downstream calls?
+
+`getSelectionSet()` tells you which sub-fields the client actually requested. If a client queries `{ user(id: "1") { name } }` — they didn't ask for orders. You can skip the order service call entirely:
+
+```java
+@QueryMapping
+public User user(@Argument String id, DataFetchingEnvironment env) {
+    User user = userService.findById(id);
+    if (env.getSelectionSet().contains("orders")) {
+        user.setOrders(orderService.findByUserId(id));
+    }
+    if (env.getSelectionSet().contains("recommendations")) {
+        user.setRecommendations(recService.getForUser(id));
+    }
+    return user;
+}
+```
+
+This is especially valuable in orchestration where downstream calls are expensive. You can also use it to optimize database queries — if the client didn't select `address`, you don't need to JOIN the addresses table.
+
+### 5. What's the difference between `getSource()` and `getArgument()`?
+
+`getSource()` returns the parent object in the graph. When resolving `User.orders`, the source is the `User` instance that was already resolved. It's how you access the parent's data to fetch child fields.
+
+`getArgument()` returns the arguments passed in the query. For `user(id: "123")`, `getArgument("id")` returns `"123"`. Arguments come from the client's query, while source comes from the parent resolver.
+
+In practice: top-level Query fields typically use `getArgument()` (the client passes the ID), while nested fields use `getSource()` (the parent provides context like `user.getId()` to look up orders).

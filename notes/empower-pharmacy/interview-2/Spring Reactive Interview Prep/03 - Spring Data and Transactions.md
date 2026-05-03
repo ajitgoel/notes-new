@@ -169,11 +169,126 @@ List<User> findByActiveTrue();
 
 ---
 
-## Interview Questions
+## Interview Questions & Answers
 
-1. Explain `@Transactional` propagation. When would you use `REQUIRES_NEW`?
-2. What happens when a `@Transactional` method calls another `@Transactional` method in the same class?
-3. How does Spring Data generate queries from method names? What are the limits?
-4. How do you solve the N+1 problem in JPA? Compare JOIN FETCH vs @EntityGraph.
-5. What is optimistic locking (`@Version`)? How does it differ from pessimistic locking?
-6. Why should you default all relationships to LAZY fetch?
+### 1. Explain `@Transactional` propagation. When would you use `REQUIRES_NEW`?
+
+Propagation determines how a transactional method behaves when called within an existing transaction:
+
+- **REQUIRED** (default): Join the existing transaction if one exists, otherwise create a new one. Most common — 95% of cases.
+- **REQUIRES_NEW**: Always create a new, independent transaction. Suspends the existing one. If the new transaction rolls back, the outer transaction is unaffected.
+- **MANDATORY**: Must run inside an existing transaction. Throws `IllegalTransactionStateException` if none exists.
+- **SUPPORTS**: Run in a transaction if one exists, otherwise run non-transactionally.
+- **NOT_SUPPORTED**: Suspend any existing transaction and run non-transactionally.
+- **NEVER**: Throw if a transaction exists.
+
+**Use `REQUIRES_NEW` for**: audit logging (must persist even if the business transaction rolls back), notification records (send confirmation even if a later step fails), or any operation that must commit independently of the outer transaction.
+
+```java
+@Transactional
+public void placeOrder(OrderRequest req) {
+    orderRepo.save(order);          // Part of main transaction
+    auditService.logEvent(event);   // REQUIRES_NEW — commits even if placeOrder rolls back
+    inventoryService.reserve(items); // If this throws, order rolls back but audit log persists
+}
+```
+
+### 2. What happens when a `@Transactional` method calls another `@Transactional` method in the same class?
+
+The `@Transactional` annotation on the inner method is **ignored**. Spring implements transactions via AOP proxies — when an external caller invokes a method, the proxy intercepts it and manages the transaction. But when a method calls `this.internalMethod()`, it bypasses the proxy entirely; it's a direct Java method call.
+
+```java
+@Service
+public class UserService {
+    public void outerMethod() {
+        this.innerMethod(); // ⚠️ No proxy — @Transactional is ignored
+    }
+
+    @Transactional
+    public void innerMethod() { ... } // Runs WITHOUT a transaction
+}
+```
+
+**Fixes**:
+1. **Inject self**: `@Autowired UserService self; self.innerMethod();` — goes through the proxy
+2. **Extract to another bean**: Move `innerMethod` to a separate `@Service` class
+3. **Use `TransactionTemplate`**: Programmatic transaction management, no proxy needed
+4. **AspectJ weaving**: Compile-time weaving that instruments the actual class (rare, complex)
+
+### 3. How does Spring Data generate queries from method names? What are the limits?
+
+Spring Data parses the method name into parts: `findBy` + property + operator + `And`/`Or` + more properties. Examples:
+
+- `findByEmail` → `WHERE email = ?`
+- `findByNameContainingIgnoreCase` → `WHERE LOWER(name) LIKE LOWER('%?%')`
+- `findByAgeGreaterThanOrderByNameAsc` → `WHERE age > ? ORDER BY name ASC`
+- `countByRole` → `SELECT COUNT(*) WHERE role = ?`
+
+**Limits**:
+- Can't express complex joins (JOINs across more than 2 tables)
+- No subqueries
+- No grouping or aggregation (`GROUP BY`, `HAVING`)
+- Method names become unreadable for complex queries: `findByDepartmentNameAndRoleAndActiveTrueAndAgeBetweenOrderByCreatedAtDesc` is a sign you need `@Query`
+- Can't do projections (select specific columns) without `@Query`
+- No support for database-specific functions
+
+Rule of thumb: derived queries for simple lookups (1-2 conditions), `@Query` with JPQL for anything more complex.
+
+### 4. How do you solve the N+1 problem in JPA? Compare JOIN FETCH vs @EntityGraph.
+
+**The problem**: Loading a list of entities and then accessing a lazy relationship triggers a separate query per entity.
+
+**JOIN FETCH** (JPQL):
+```java
+@Query("SELECT u FROM User u JOIN FETCH u.department JOIN FETCH u.orders")
+List<User> findAllWithDepartmentAndOrders();
+```
+Explicit, full control. Can add WHERE clauses, ordering. But: can't easily make it conditional (always fetches), and can cause Cartesian product issues with multiple `*ToMany` joins (use `Set` or `@BatchSize`).
+
+**@EntityGraph** (declarative):
+```java
+@EntityGraph(attributePaths = {"department", "orders"})
+List<User> findByActiveTrue();
+```
+Cleaner, works with derived queries. Spring generates a LEFT JOIN. But: less control, can't add custom WHERE clauses, and the same Cartesian product risk.
+
+**Batch fetching** (Hibernate config):
+```properties
+spring.jpa.properties.hibernate.default_batch_fetch_size=25
+```
+Instead of 100 individual queries, Hibernate groups them: `WHERE department_id IN (?, ?, ..., ?)` with 25 IDs at a time. Works globally without code changes. Reduces N+1 to N/25+1.
+
+**Best approach**: Use `@BatchSize` globally as a safety net, and explicit `JOIN FETCH` for hot paths where you know the access pattern.
+
+### 5. What is optimistic locking (`@Version`)? How does it differ from pessimistic locking?
+
+**Optimistic locking** assumes conflicts are rare. A `@Version` field (integer or timestamp) tracks the entity version. On update, Hibernate adds `WHERE version = :currentVersion` to the UPDATE. If another transaction modified the row (version changed), the WHERE clause matches zero rows, and Hibernate throws `OptimisticLockException`. The application catches this and retries or informs the user.
+
+```java
+@Version private Long version;
+// UPDATE users SET name = ?, version = 3 WHERE id = 1 AND version = 2
+// If version is now 3 (someone else updated), 0 rows affected → exception
+```
+
+**Pessimistic locking** locks the row in the database: `SELECT ... FOR UPDATE`. Other transactions block until the lock is released. Guarantees no conflicts but reduces throughput.
+
+| Aspect | Optimistic | Pessimistic |
+|--------|-----------|-------------|
+| Concurrency | High | Low (blocks) |
+| Conflict handling | Detect + retry | Prevent |
+| Use when | Read-heavy, rare conflicts | Write-heavy, frequent conflicts |
+| Database load | Lower | Higher (lock management) |
+| Deadlock risk | None | Yes |
+
+### 6. Why should you default all relationships to LAZY fetch?
+
+EAGER fetching loads related entities immediately when the parent is loaded, whether you need them or not. With `@ManyToOne(fetch = EAGER)` on every relationship, loading a `User` might trigger: load department → load department's company → load company's CEO → load CEO's orders → ... cascading into dozens of queries.
+
+LAZY fetching loads relationships only when accessed. This means `userRepo.findAll()` only queries the users table. If you need departments, you explicitly fetch them via `JOIN FETCH` or `@EntityGraph`.
+
+**Why LAZY is the default recommendation**:
+- **Performance**: You only pay for what you use. Most API calls don't need every relationship.
+- **Predictability**: You can see exactly which queries run by looking at your JPQL/EntityGraph declarations.
+- **N+1 is controllable**: When you know you need a relationship, you use `JOIN FETCH` intentionally. With EAGER, the N+1 happens silently and you may not notice until production.
+
+The JPA defaults are `EAGER` for `@ManyToOne` and `@OneToOne` — always override these to `LAZY`.
