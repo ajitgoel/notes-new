@@ -383,10 +383,8 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 public class KafkaHealthCheck : IHealthCheck
 {
     private readonly IProducer<string, string> _producer;
-
     public KafkaHealthCheck(IProducer<string, string> producer)
         => _producer = producer;
-
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken ct = default)
@@ -418,18 +416,15 @@ public class OrderEventConsumer : BackgroundService
 {
     private readonly IServiceProvider _provider;
     private readonly ILogger<OrderEventConsumer> _logger;
-
     public OrderEventConsumer(IServiceProvider provider,
         ILogger<OrderEventConsumer> logger)
     {
         _provider = provider;
         _logger = logger;
     }
-
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         _logger.LogInformation("Order consumer starting");
-
         while (!ct.IsCancellationRequested)
         {
             try
@@ -438,7 +433,6 @@ public class OrderEventConsumer : BackgroundService
                 using var scope = _provider.CreateScope();
                 var handler = scope.ServiceProvider
                     .GetRequiredService<IOrderHandler>();
-
                 await handler.ProcessNextAsync(ct);
             }
             catch (Exception ex)
@@ -449,7 +443,6 @@ public class OrderEventConsumer : BackgroundService
         }
     }
 }
-
 // Register in Program.cs
 builder.Services.AddHostedService<OrderEventConsumer>();
 ```
@@ -466,13 +459,10 @@ public record CreatePrescriptionDto
 {
     [Required(ErrorMessage = "Patient is required")]
     public int PatientId { get; init; }
-
     [Required, StringLength(200, MinimumLength = 2)]
     public string MedicationName { get; init; } = string.Empty;
-
     [Range(0.1, 5000, ErrorMessage = "Dosage must be between 0.1 and 5000")]
     public decimal Dosage { get; init; }
-
     [RegularExpression(@"^\d{10,11}$", ErrorMessage = "Invalid NDC code")]
     public string? NdcCode { get; init; }
 }
@@ -482,7 +472,7 @@ With `[ApiController]`, validation is automatic — invalid models return `400 B
 
 ### Custom Validation
 
-```csharp
+```csharp hl:1
 public class FutureDateAttribute : ValidationAttribute
 {
     protected override ValidationResult? IsValid(
@@ -504,7 +494,7 @@ public record ScheduleDto
 
 ### FluentValidation (alternative)
 
-```csharp
+```csharp hl:15-16,1
 public class CreateRxValidator : AbstractValidator<CreatePrescriptionDto>
 {
     public CreateRxValidator()

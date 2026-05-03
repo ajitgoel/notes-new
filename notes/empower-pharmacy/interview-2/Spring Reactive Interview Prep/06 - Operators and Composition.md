@@ -94,9 +94,7 @@ mono
 ```
 
 ---
-
 ## Context — Thread-Local Replacement
-
 Reactive chains jump threads. `ThreadLocal` doesn't work. Use `Context`.
 
 ```java
@@ -156,14 +154,10 @@ StepVerifier.create(
 ---
 
 ## Interview Questions & Answers
-
 ### 1. When would you use `zip` vs `merge` vs `concat`?
-
-**`zip`**: Use when you need results from ALL sources before proceeding, and they're independent. Executes in parallel, waits for all to complete, combines them. Example: fetching user profile + user preferences + user stats to build a dashboard.
-
-**`merge`**: Use when you want results from multiple sources interleaved, order doesn't matter. All sources emit to a single Flux concurrently. Example: combining notification streams from email, SMS, and push — you want to process them as they arrive.
-
-**`concat`**: Use when order matters and sources should be processed sequentially. Second source only starts after first completes. Example: try local cache first, then hit remote API only if cache misses. Or processing log files in chronological order.
+==**`zip`**: Use when you need results from ALL sources before proceeding, and they're independent. Executes in parallel, waits for all to complete, combines them.== Example: fetching user profile + user preferences + user stats to build a dashboard.
+==**`merge`**: Use when you want results== from multiple sources interleaved, ==order doesn't matter.== All sources emit to a single Flux concurrently. ==Example: combining notification streams from email, SMS, and push — you want to process them as they arrive.==
+==**`concat`**: Use when order matters and sources should be processed sequentially. Second source only starts after first completes.== Example: try local cache first, then hit remote API only if cache misses. Or processing log files in chronological order.
 
 ```java
 // zip: wait for all, combine
@@ -178,15 +172,13 @@ Flux.concat(cacheResults, remoteResults)
 
 ### 2. How do you implement fallback logic in a reactive chain? Compare `onErrorReturn` vs `onErrorResume`.
 
-**`onErrorReturn(value)`**: Returns a static fallback value on any error. Simple but inflexible — you can't inspect the error or produce the fallback reactively.
-
+==**`onErrorReturn(value)`**: Returns a static fallback value on any error.== Simple but inflexible — you can't inspect the error or produce the fallback reactively.
 ```java
 mono.onErrorReturn("default") // Any error → "default"
 mono.onErrorReturn(IOException.class, "io-default") // Only IOException
 ```
 
-**`onErrorResume(fn)`**: Returns a fallback Publisher based on the error. More powerful — you can inspect the error, call another service, or re-throw selectively.
-
+==**`onErrorResume(fn)`**:== Returns a fallback Publisher based on the error. More powerful — ==you can inspect the error,== call another service==, or re-throw selectively.==
 ```java
 mono.onErrorResume(ex -> {
     if (ex instanceof TimeoutException) {
@@ -199,8 +191,7 @@ mono.onErrorResume(ex -> {
 })
 ```
 
-**Rule**: Use `onErrorReturn` for simple static defaults. Use `onErrorResume` when the fallback depends on the error type or requires another async call.
-
+==**Rule**: Use `onErrorReturn` for simple static defaults. Use `onErrorResume` when the fallback depends on the error type or requires another async call.==
 Also useful: `onErrorMap(ex -> new WrappedException(ex))` to transform the error type without recovering, and `timeout(duration, fallbackMono)` which combines timeout + fallback in one operator.
 
 ### 3. Why can't you use ThreadLocal in reactive code? What replaces it?
