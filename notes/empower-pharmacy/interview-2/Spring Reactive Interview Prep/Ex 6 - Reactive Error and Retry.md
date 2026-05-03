@@ -13,18 +13,28 @@ You're building a reactive order service that calls three unreliable downstream 
 
 public class OrderService {
 
-    public Mono<Order> getOrder(String id) {
-        return orderApiClient.fetchOrder(id)
-            // TODO: Handle these cases:
-            // - 404 → return Mono.empty() (not an error)
-            // - 400 → wrap in ValidationException (don't retry)
-            // - 429 → wrap in RateLimitException (retry with backoff)
-            // - 500 → wrap in ServiceException (retry immediately)
-            // - 503 → wrap in ServiceUnavailableException (retry with longer backoff)
-            // - Timeout → retry 2 times, then fallback to cache
-            // - Unknown → log and return generic error
-            ;
-    }
+public Mono<Order> getOrder(String id) {
+    return orderApiClient.fetchOrder(id)
+        .onErrorResume(WebClientResponseException.class, ex -> {
+            return switch (ex.getStatusCode().value()) {
+                case 404 -> Mono.empty();
+                case 400 -> Mono.error(new ValidationException("Invalid request", ex));
+                case 429 -> Mono.error(new RateLimitException("Rate limit hit", ex));
+                case 500 -> Mono.error(new ServiceException("Internal server error", ex));
+                case 503 -> Mono.error(new ServiceUnavailableException("Service down", ex));
+                default -> Mono.error(new GenericException("Unknown API error", ex));
+            };
+        })
+        .retryWhen(Retry.backoff(3, Duration.ofMillis(100))
+            .filter(ex -> ex instanceof RateLimitException))
+        .retryWhen(Retry.max(3)
+            .filter(ex -> ex instanceof ServiceException))
+        .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+            .filter(ex -> ex instanceof ServiceUnavailableException))
+        .timeout(Duration.ofSeconds(2))
+        .onErrorResume(TimeoutException.class, ex -> cache.get(id))
+        .doOnError(ex -> log.error("Unhandled error for order {}", id, ex));
+}
 }
 ```
 
@@ -56,14 +66,14 @@ public Mono<Response> callWithRetry(Mono<Response> apiCall) {
 // If service A takes 3 seconds, services B and C only have 2 seconds left.
 
 public Mono<Dashboard> buildDashboard(String userId) {
-    // TODO: Implement cascading timeouts
-    // Total budget: 5 seconds
-    // Service A (user profile): max 2s, required
-    // Service B (orders): max 3s, optional (empty list fallback)
-    // Service C (recommendations): max 1s, optional (empty fallback)
-    //
-    // Track elapsed time and reduce downstream timeouts accordingly
-    // Hint: use Mono.zip with individual timeouts
+    return Mono.zip(
+        serviceA.getProfile(userId).timeout(Duration.ofSeconds(2)),
+        serviceB.getOrders(userId).timeout(Duration.ofSeconds(3)).onErrorReturn(Collections.emptyList()),
+        serviceC.getRecs(userId).timeout(Duration.ofSeconds(1)).onErrorReturn(Collections.emptyList())
+    )
+    .timeout(Duration.ofSeconds(5))
+    .map(tuple -> new Dashboard(tuple.getT1(), tuple.getT2(), tuple.getT3()))
+    .onErrorResume(TimeoutException.class, ex -> Mono.error(new GlobalTimeoutException()));
 }
 ```
 
@@ -83,12 +93,24 @@ public class ResilientUserClient {
     // - Open duration: 30 seconds
     // - Half-open test calls: 3
 
-    public Mono<User> getUser(String id) {
-        // Normal flow: call API with circuit breaker
-        // When circuit is OPEN: return cached user
-        // When cache miss during OPEN: return minimal User stub
-        // Log circuit state transitions
-    }
+private final CircuitBreaker circuitBreaker = CircuitBreaker.of("userClient", 
+    CircuitBreakerConfig.custom()
+        .slidingWindowSize(10)
+        .failureRateThreshold(50)
+        .waitDurationInOpenState(Duration.ofSeconds(30))
+        .permittedNumberOfCallsInHalfOpenState(3)
+        .build());
+
+public Mono<User> getUser(String id) {
+    return userClient.call(id)
+        .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+        .onErrorResume(CallNotPermittedException.class, ex -> {
+            log.warn("Circuit OPEN, serving from cache for {}", id);
+            return cache.get(id).switchIfEmpty(Mono.just(User.stub(id)));
+        })
+        .doOnNext(u -> log.info("Successfully fetched user {}", id))
+        .doOnError(ex -> log.error("Failed to fetch user {}", id, ex));
+}
 }
 ```
 
@@ -105,9 +127,29 @@ public class ResilientUserClient {
 // 5. If nothing → return sensible default
 
 public Mono<ProductData> getProductData(String id) {
-    // TODO: Chain all fallback levels
-    // Each level should have its own timeout
-    // Log which level served the response
+    return primaryApi.getProduct(id)
+        .timeout(Duration.ofSeconds(2))
+        .doOnNext(p -> log.info("Served from primary: {}", id))
+        .onErrorResume(ex -> {
+            log.warn("Primary failed, trying secondary: {}", id);
+            return secondaryApi.getProduct(id)
+                .timeout(Duration.ofSeconds(3))
+                .doOnNext(p -> log.info("Served from secondary: {}", id));
+        })
+        .onErrorResume(ex -> {
+            log.warn("Secondary failed, trying cache: {}", id);
+            return cache.get(id)
+                .doOnNext(p -> log.info("Served from cache: {}", id));
+        })
+        .switchIfEmpty(Mono.defer(() -> {
+            log.warn("Cache miss, trying stale cache: {}", id);
+            return staleCache.get(id)
+                .doOnNext(p -> log.info("Served from stale cache: {}", id));
+        }))
+        .switchIfEmpty(Mono.defer(() -> {
+            log.warn("All sources exhausted, using default for {}", id);
+            return Mono.just(ProductData.defaultFor(id));
+        }));
 }
 ```
 
@@ -120,38 +162,74 @@ public Mono<ProductData> getProductData(String id) {
 
 @Test
 void retriesOnServerError_thenSucceeds() {
-    // Mock: fail twice with 500, succeed on 3rd
-    // Verify: result is returned, 3 total calls made
+    AtomicInteger attempts = new AtomicInteger();
+    Mono<String> producer = Mono.defer(() -> {
+        if (attempts.incrementAndGet() < 3) return Mono.error(new RuntimeException("500"));
+        return Mono.just("OK");
+    });
+
+    StepVerifier.create(producer.retry(3))
+        .expectNext("OK")
+        .verifyComplete();
 }
 
 @Test
 void doesNotRetryOn400() {
-    // Mock: fail with 400
-    // Verify: error immediately, only 1 call made
-}
+    AtomicInteger attempts = new AtomicInteger();
+    Mono<String> producer = Mono.defer(() -> {
+        attempts.incrementAndGet();
+        return Mono.error(new WebClientResponseException(400, "Bad Request", null, null, null));
+    });
 
-@Test
-void circuitBreaker_opensAfterThreshold() {
-    // Mock: fail 6 out of 10 calls
-    // Verify: circuit opens, subsequent calls get fallback
+    StepVerifier.create(callWithRetry(producer.cast(Response.class)))
+        .expectError(RetryExhaustedException.class)
+        .verify();
+    
+    assertEquals(1, attempts.get());
 }
 
 @Test
 void timeoutFallsBackToCache() {
-    // Mock: primary hangs for 10 seconds
-    // Verify: timeout at 2s, cache value returned
-}
+    Mono<String> producer = Mono.delay(Duration.ofSeconds(10)).thenReturn("Late");
+    Mono<String> cache = Mono.just("Cached");
 
-@Test
-void fallbackChain_usesStaleCache() {
-    // Mock: primary, secondary, and cache all fail
-    // Verify: stale cache value returned
+    StepVerifier.create(producer.timeout(Duration.ofSeconds(1)).onErrorResume(TimeoutException.class, e -> cache))
+        .expectNext("Cached")
+        .verifyComplete();
 }
 ```
 
 ---
 
 ## Solution
+
+<details>
+<summary>Task 1: Categorized errors (click to reveal)</summary>
+
+```java
+public Mono<Order> getOrder(String id) {
+    return orderApiClient.fetchOrder(id)
+        .onErrorResume(WebClientResponseException.class, ex -> {
+            return switch (ex.getStatusCode().value()) {
+                case 404 -> Mono.empty();
+                case 400 -> Mono.error(new ValidationException("Invalid request", ex));
+                case 429 -> Mono.error(new RateLimitException("Rate limit hit", ex));
+                case 500 -> Mono.error(new ServiceException("Internal server error", ex));
+                case 503 -> Mono.error(new ServiceUnavailableException("Service down", ex));
+                default -> Mono.error(new GenericException("Unknown API error", ex));
+            };
+        })
+        .retryWhen(Retry.backoff(3, Duration.ofMillis(100))
+            .filter(ex -> ex instanceof RateLimitException))
+        .retryWhen(Retry.max(3)
+            .filter(ex -> ex instanceof ServiceException))
+        .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+            .filter(ex -> ex instanceof ServiceUnavailableException))
+        .timeout(Duration.ofSeconds(2))
+        .onErrorResume(TimeoutException.class, ex -> cache.get(id));
+}
+```
+</details>
 
 <details>
 <summary>Task 2: Smart retry (click to reveal)</summary>
@@ -182,6 +260,35 @@ public Mono<Response> callWithRetry(Mono<Response> apiCall) {
 </details>
 
 <details>
+<summary>Task 3: Timeout Cascade (click to reveal)</summary>
+
+```java
+public Mono<Dashboard> buildDashboard(String userId) {
+    return Mono.zip(
+        serviceA.getProfile(userId).timeout(Duration.ofSeconds(2)),
+        serviceB.getOrders(userId).timeout(Duration.ofSeconds(3)).onErrorReturn(Collections.emptyList()),
+        serviceC.getRecs(userId).timeout(Duration.ofSeconds(1)).onErrorReturn(Collections.emptyList())
+    )
+    .timeout(Duration.ofSeconds(5))
+    .map(tuple -> new Dashboard(tuple.getT1(), tuple.getT2(), tuple.getT3()));
+}
+```
+</details>
+
+<details>
+<summary>Task 4: Circuit Breaker (click to reveal)</summary>
+
+```java
+public Mono<User> getUser(String id) {
+    return userClient.call(id)
+        .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+        .onErrorResume(CallNotPermittedException.class, ex -> 
+            cache.get(id).switchIfEmpty(Mono.just(User.stub(id))));
+}
+```
+</details>
+
+<details>
 <summary>Task 5: Fallback chain (click to reveal)</summary>
 
 ```java
@@ -190,20 +297,17 @@ public Mono<ProductData> getProductData(String id) {
         .timeout(Duration.ofSeconds(2))
         .doOnNext(p -> log.info("Served from primary"))
         .onErrorResume(ex -> {
-            log.warn("Primary failed: {}", ex.getMessage());
+            log.warn("Primary failed, trying secondary");
             return secondaryApi.getProduct(id)
-                .timeout(Duration.ofSeconds(3))
-                .doOnNext(p -> log.info("Served from secondary"));
+                .timeout(Duration.ofSeconds(3));
         })
         .onErrorResume(ex -> {
-            log.warn("Secondary failed: {}", ex.getMessage());
-            return cache.get(id)
-                .doOnNext(p -> log.info("Served from cache"));
+            log.warn("Secondary failed, trying cache");
+            return cache.get(id);
         })
         .switchIfEmpty(Mono.defer(() -> {
             log.warn("Cache miss, trying stale cache");
-            return staleCache.get(id)
-                .doOnNext(p -> log.info("Served from stale cache"));
+            return staleCache.get(id);
         }))
         .switchIfEmpty(Mono.defer(() -> {
             log.warn("All sources exhausted, using default");

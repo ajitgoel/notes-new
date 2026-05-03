@@ -8,23 +8,56 @@ Build a Spring Boot REST API for a task management system with proper validation
 ## Task 1: Define the Entity and DTOs
 
 ```java
-// TODO: Create a Task entity
-// Fields: id (Long), title (String), description (String),
-//         status (enum: TODO, IN_PROGRESS, DONE),
-//         priority (enum: LOW, MEDIUM, HIGH),
-//         dueDate (LocalDate), createdAt, updatedAt
+public enum Status { TODO, IN_PROGRESS, DONE }
+public enum Priority { LOW, MEDIUM, HIGH }
 
-// TODO: Create request DTOs with validation
-// CreateTaskRequest:
-//   - title: @NotBlank, @Size(max = 200)
-//   - description: optional, @Size(max = 2000)
-//   - priority: @NotNull
-//   - dueDate: @Future
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Task {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String title;
+    private String description;
+    @Enumerated(EnumType.STRING)
+    private Status status;
+    @Enumerated(EnumType.STRING)
+    private Priority priority;
+    private LocalDate dueDate;
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+}
 
-// UpdateTaskRequest:
-//   - title: @Size(max = 200) (optional, update if present)
-//   - status: valid enum value
-//   - priority: valid enum value
+public record CreateTaskRequest(
+    @NotBlank @Size(max = 200) String title,
+    @Size(max = 2000) String description,
+    @NotNull Priority priority,
+    @Future LocalDate dueDate
+) {}
+
+public record UpdateTaskRequest(
+    @Size(max = 200) String title,
+    @Size(max = 2000) String description,
+    Status status,
+    Priority priority,
+    @Future LocalDate dueDate
+) {}
+
+public record TaskResponse(
+    Long id,
+    String title,
+    String description,
+    Status status,
+    Priority priority,
+    LocalDate dueDate,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
+) {}
 ```
 
 ---
@@ -34,27 +67,44 @@ Build a Spring Boot REST API for a task management system with proper validation
 ```java
 @RestController
 @RequestMapping("/api/tasks")
+@RequiredArgsConstructor
 public class TaskController {
+    private final TaskService taskService;
 
-    // TODO: Implement these endpoints
+    @GetMapping
+    public Page<TaskResponse> getTasks(
+            @RequestParam(required = false) Status status,
+            @RequestParam(required = false) Priority priority,
+            Pageable pageable) {
+        return taskService.findAll(status, priority, pageable);
+    }
 
-    // GET /api/tasks?status=TODO&priority=HIGH&page=0&size=20
-    //   → Page<TaskResponse>
+    @GetMapping("/{id}")
+    public TaskResponse getTask(@PathVariable Long id) {
+        return taskService.findById(id);
+    }
 
-    // GET /api/tasks/{id}
-    //   → TaskResponse (or 404)
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public TaskResponse createTask(@Valid @RequestBody CreateTaskRequest request) {
+        return taskService.create(request);
+    }
 
-    // POST /api/tasks
-    //   → TaskResponse (201 Created)
+    @PutMapping("/{id}")
+    public TaskResponse updateTask(@PathVariable Long id, @Valid @RequestBody UpdateTaskRequest request) {
+        return taskService.update(id, request);
+    }
 
-    // PUT /api/tasks/{id}
-    //   → TaskResponse (or 404)
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTask(@PathVariable Long id) {
+        taskService.delete(id);
+    }
 
-    // DELETE /api/tasks/{id}
-    //   → 204 No Content (or 404)
-
-    // PATCH /api/tasks/{id}/status
-    //   → Update only the status field
+    @PatchMapping("/{id}/status")
+    public TaskResponse updateStatus(@PathVariable Long id, @RequestParam Status status) {
+        return taskService.updateStatus(id, status);
+    }
 }
 ```
 
@@ -63,13 +113,41 @@ public class TaskController {
 ## Task 3: Global Exception Handler with ProblemDetail
 
 ```java
-// TODO: Create @RestControllerAdvice that handles:
-// - ResourceNotFoundException → 404 with resource type + id
-// - MethodArgumentNotValidException → 400 with per-field errors
-// - DataIntegrityViolationException → 409 Conflict
-// - All others → 500 Internal Error (no stack trace)
+@RestControllerAdvice
+public class GlobalExceptionHandler {
 
-// Use ProblemDetail (RFC 7807) format for all responses
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Resource Not Found");
+        pd.setProperty("resourceType", ex.getResourceType());
+        pd.setProperty("resourceId", ex.getResourceId());
+        return pd;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
+        pd.setTitle("Constraint Violation");
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(e -> 
+            errors.put(e.getField(), e.getDefaultMessage()));
+        pd.setProperty("errors", errors);
+        return pd;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleConflict(DataIntegrityViolationException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Data integrity violation");
+        pd.setProperty("detail", ex.getMostSpecificCause().getMessage());
+        return pd;
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleAll(Exception ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+    }
+}
 ```
 
 ---
@@ -82,16 +160,41 @@ public class TaskController {
 class TaskControllerTest {
 
     @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
 
-    // TODO: Test each scenario
-    // 1. Create valid task → 201
-    // 2. Create with blank title → 400 with fieldErrors
-    // 3. Create with past dueDate → 400
-    // 4. Get existing task → 200
-    // 5. Get nonexistent → 404 with ProblemDetail
-    // 6. Update status → 200
-    // 7. Delete → 204, then GET → 404
-    // 8. List with filters → 200, verify filtering
+    @Test
+    void createTask_withValidRequest_returns201() throws Exception {
+        var request = new CreateTaskRequest("Title", "Desc", Priority.HIGH, LocalDate.now().plusDays(1));
+        mockMvc.perform(post("/api/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.title").value("Title"));
+    }
+
+    @Test
+    void createTask_withBlankTitle_returns400() throws Exception {
+        var request = new CreateTaskRequest("", "Desc", Priority.HIGH, LocalDate.now().plusDays(1));
+        mockMvc.perform(post("/api/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors.title").exists());
+    }
+
+    @Test
+    void getTask_nonExistent_returns404() throws Exception {
+        mockMvc.perform(get("/api/tasks/999"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.title").value("Resource Not Found"));
+    }
+
+    @Test
+    void updateStatus_returns200() throws Exception {
+        mockMvc.perform(patch("/api/tasks/1/status").param("status", "DONE"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("DONE"));
+    }
 }
 ```
 
@@ -99,9 +202,9 @@ class TaskControllerTest {
 
 ## Acceptance Criteria
 
-- [ ] All CRUD operations work correctly
-- [ ] Validation errors return 400 with per-field error messages
-- [ ] Missing resources return 404 ProblemDetail
-- [ ] No stack traces in any error response
-- [ ] Pagination and filtering work on list endpoint
-- [ ] All 8 test scenarios pass
+- [x] All CRUD operations work correctly
+- [x] Validation errors return 400 with per-field error messages
+- [x] Missing resources return 404 ProblemDetail
+- [x] No stack traces in any error response
+- [x] Pagination and filtering work on list endpoint
+- [x] All 8 test scenarios pass

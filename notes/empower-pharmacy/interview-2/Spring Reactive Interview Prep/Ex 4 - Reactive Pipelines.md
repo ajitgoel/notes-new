@@ -14,12 +14,16 @@ You're building an order processing pipeline. Each order goes through: validatio
 // Each step returns Mono<StepResult>
 
 public Mono<OrderResult> processOrder(OrderRequest request) {
-    // 1. validateOrder(request) → Mono<ValidatedOrder>
-    // 2. checkInventory(validatedOrder) → Mono<InventoryReservation>
-    // 3. processPayment(reservation) → Mono<PaymentConfirmation>
-    // 4. createFulfillment(payment) → Mono<FulfillmentOrder>
-    // 5. sendNotification(fulfillment) → Mono<Void>
-    // Return OrderResult combining all step outputs
+    return validateOrder(request)
+        .flatMap(validOrder -> checkInventory(validOrder)
+            .flatMap(inv -> processPayment(inv)
+                .flatMap(payment -> createFulfillment(payment)
+                    .flatMap(fulfillment -> sendNotification(fulfillment)
+                        .thenReturn(new OrderResult(validOrder, inv, payment, fulfillment))
+                    )
+                )
+            )
+        );
 }
 ```
 
@@ -32,19 +36,23 @@ public Mono<OrderResult> processOrder(OrderRequest request) {
 // Both must pass before proceeding to payment.
 
 public Mono<OrderResult> processOrderV2(OrderRequest request) {
-    // TODO:
-    // 1. validateOrder(request) → Mono<ValidatedOrder>
-    // 2. PARALLEL:
-    //    a. checkInventory(order) → Mono<InventoryResult>
-    //    b. checkFraud(order) → Mono<FraudResult>
-    //    (use Mono.zip)
-    // 3. If fraud score > 0.8, reject
-    // 4. processPayment(...) → Mono<PaymentResult>
-    // 5. PARALLEL:
-    //    a. createFulfillment(...)
-    //    b. updateAnalytics(...)
-    //    c. sendNotification(...)
-    //    (use Mono.when for fire-and-forget)
+    return validateOrder(request)
+        .flatMap(order -> Mono.zip(checkInventory(order), checkFraud(order))
+            .flatMap(tuple -> {
+                if (tuple.getT2().score() > 0.8) {
+                    return Mono.error(new FraudException("High fraud score"));
+                }
+                return processPayment(order, tuple.getT1());
+            })
+        )
+        .flatMap(payment -> {
+            Mono<Void> sideEffects = Mono.when(
+                createFulfillment(payment),
+                updateAnalytics(payment),
+                sendNotification(payment).onErrorResume(ex -> Mono.empty()) // non-critical
+            );
+            return sideEffects.thenReturn(new OrderResult(payment));
+        });
 }
 ```
 
@@ -57,16 +65,25 @@ public Mono<OrderResult> processOrderV2(OrderRequest request) {
 // Implement compensating transactions.
 
 public Mono<OrderResult> processWithSaga(OrderRequest request) {
-    // TODO:
-    // 1. Reserve inventory
-    // 2. Charge payment
-    // 3. Create fulfillment
-    //    - If fails: refund payment, then release inventory
-    // 4. Send notification
-    //    - If fails: log warning but don't rollback (non-critical)
-
-    // Hint: use onErrorResume to trigger compensating actions
-    // then re-throw the original error
+    return reserveInventory(request)
+        .flatMap(reservation -> chargePayment(request, reservation)
+            .flatMap(payment -> createFulfillment(payment)
+                .onErrorResume(ex -> refundPayment(payment)
+                    .then(releaseInventory(reservation))
+                    .then(Mono.error(ex))
+                )
+            )
+            .onErrorResume(PaymentException.class, ex -> releaseInventory(reservation)
+                .then(Mono.error(ex))
+            )
+        )
+        .flatMap(fulfillment -> sendNotification(fulfillment)
+            .onErrorResume(ex -> {
+                log.warn("Notification failed", ex);
+                return Mono.empty();
+            })
+            .thenReturn(new OrderResult(fulfillment))
+        );
 }
 ```
 
@@ -83,12 +100,20 @@ public Mono<OrderResult> processWithSaga(OrderRequest request) {
 // - Collect final stats: success count, failure count, processing time
 
 public Mono<BatchResult> processBatch(Flux<OrderRequest> orders) {
-    // TODO:
-    // 1. buffer(100)
-    // 2. flatMap(batch -> processBatchItems(batch), concurrency = 5)
-    // 3. Each item: processOrder(item)
-    //      .onErrorResume(ex -> log + return Failure)
-    // 4. Reduce into BatchResult
+    return orders
+        .buffer(100)
+        .flatMap(batch -> Flux.fromIterable(batch)
+            .flatMap(item -> processOrder(item)
+                .map(res -> 1)
+                .onErrorResume(ex -> {
+                    log.error("Item failed", ex);
+                    return Mono.just(0);
+                })
+            )
+            .reduce(0, Integer::sum)
+            .map(successCount -> new BatchStats(successCount, 100 - successCount)), 
+        5) // Max 5 batches concurrently
+        .reduce(new BatchResult(), BatchResult::accumulate);
 }
 ```
 
@@ -105,20 +130,48 @@ public Mono<BatchResult> processBatch(Flux<OrderRequest> orders) {
 // - Rate limit alerts to max 1 per symbol per 10 seconds
 
 public Flux<PriceAlert> monitorPrices(Flux<PriceUpdate> updates) {
-    // TODO:
-    // 1. groupBy(symbol)
-    // 2. For each group:
-    //    a. distinctUntilChanged(PriceUpdate::price)
-    //    b. window(Duration.ofSeconds(5))
-    //    c. Calculate average per window
-    //    d. Compare latest price to average
-    //    e. sample(Duration.ofSeconds(10)) for rate limiting
+    return updates.groupBy(PriceUpdate::getSymbol)
+        .flatMap(groupedFlux -> groupedFlux
+            .distinctUntilChanged(PriceUpdate::getPrice)
+            .window(Duration.ofSeconds(5))
+            .flatMap(window -> window.collectList()
+                .filter(list -> !list.isEmpty())
+                .flatMapMany(list -> {
+                    double avg = list.stream().mapToDouble(PriceUpdate::getPrice).average().orElse(0.0);
+                    PriceUpdate latest = list.get(list.size() - 1);
+                    if (Math.abs(latest.getPrice() - avg) / avg > 0.05) {
+                        return Mono.just(new PriceAlert(groupedFlux.key(), latest.getPrice(), avg));
+                    }
+                    return Mono.empty();
+                })
+            )
+            .sample(Duration.ofSeconds(10))
+        );
 }
 ```
 
 ---
 
 ## Solution
+
+<details>
+<summary>Task 1: Sequential Pipeline (click to reveal)</summary>
+
+```java
+public Mono<OrderResult> processOrder(OrderRequest request) {
+    return validateOrder(request)
+        .flatMap(validOrder -> checkInventory(validOrder)
+            .flatMap(inv -> processPayment(inv)
+                .flatMap(payment -> createFulfillment(payment)
+                    .flatMap(fulfillment -> sendNotification(fulfillment)
+                        .thenReturn(new OrderResult(validOrder, inv, payment, fulfillment))
+                    )
+                )
+            )
+        );
+}
+```
+</details>
 
 <details>
 <summary>Task 2: Parallel fan-out (click to reveal)</summary>
@@ -183,6 +236,55 @@ public Mono<OrderResult> processWithSaga(OrderRequest request) {
                     return Mono.empty();
                 })
                 .thenReturn(new OrderResult(fulfillment))
+        );
+}
+```
+</details>
+
+<details>
+<summary>Task 4: Batch Processing (click to reveal)</summary>
+
+```java
+public Mono<BatchResult> processBatch(Flux<OrderRequest> orders) {
+    return orders
+        .buffer(100)
+        .flatMap(batch -> Flux.fromIterable(batch)
+            .flatMap(item -> processOrder(item)
+                .map(res -> 1)
+                .onErrorResume(ex -> {
+                    log.error("Item failed", ex);
+                    return Mono.just(0);
+                })
+            )
+            .reduce(0, Integer::sum)
+            .map(successCount -> new BatchStats(successCount, 100 - successCount)), 
+        5)
+        .reduce(new BatchResult(), BatchResult::accumulate);
+}
+```
+</details>
+
+<details>
+<summary>Task 5: Event Stream Processing (click to reveal)</summary>
+
+```java
+public Flux<PriceAlert> monitorPrices(Flux<PriceUpdate> updates) {
+    return updates.groupBy(PriceUpdate::getSymbol)
+        .flatMap(groupedFlux -> groupedFlux
+            .distinctUntilChanged(PriceUpdate::getPrice)
+            .window(Duration.ofSeconds(5))
+            .flatMap(window -> window.collectList()
+                .filter(list -> !list.isEmpty())
+                .flatMapMany(list -> {
+                    double avg = list.stream().mapToDouble(PriceUpdate::getPrice).average().orElse(0.0);
+                    PriceUpdate latest = list.get(list.size() - 1);
+                    if (Math.abs(latest.getPrice() - avg) / avg > 0.05) {
+                        return Mono.just(new PriceAlert(groupedFlux.key(), latest.getPrice(), avg));
+                    }
+                    return Mono.empty();
+                })
+            )
+            .sample(Duration.ofSeconds(10))
         );
 }
 ```

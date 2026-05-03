@@ -130,52 +130,42 @@ Flux<String> replayed = coldFlux.cache(3); // replay last 3 to new subs
 
 ## Interview Questions & Answers
 
-### 1. What's the difference between Mono and Flux? When do you use each?
+### => 1. What's the difference between Mono and Flux? When do you use each?
 **Mono< T>**: Emits 0 or 1 item, then completes. Think of it as a reactive `Optional` or `CompletableFuture`. ==Use for:== single value lookups (`findById`), single API calls, void operations (`Mono<Void>`), ==any operation that produces at most one result.==
 **Flux< T>**: Emits 0 to N items, then completes. Think of it as a reactive `List` or `Stream`. ==Use for:== collection queries (`findAll`), event streams, paginated results, SSE endpoints, ==any operation that produces multiple items over time.==
 **Conversion**: `flux.collectList()` converts `Flux<T>` → `Mono<List<T>>`. `Mono.flux()` converts `Mono<T>` → `Flux<T>` (single-element Flux). `flux.next()` takes the first element as a `Mono<T>`.
 
-### 2. What does "nothing happens until you subscribe" mean? Why is it important?
+### => 2. What does "nothing happens until you subscribe" mean? Why is it important?
 ==Reactive streams are **lazy**. Building a chain like== `mono.map(...).flatMap(...).filter(...)` ==only assembles a pipeline== — no code executes, no HTTP calls are made, no database queries run. ==Execution starts only when someone calls `.subscribe()` (or the framework does it for you, like WebFlux subscribing to the returned Mono/Flux).==
 This matters because:
 - **No side effects during assembly**: `Mono.fromCallable(() -> sendEmail())` doesn't send the email when the Mono is created — only when subscribed. This is different from `CompletableFuture.supplyAsync()` which starts immediately.
 - **Resubscription**: You can subscribe multiple times to a cold publisher. Each subscription re-executes the pipeline. `Mono.defer()` ensures the inner supplier is called fresh each time.
 - **Framework control**: WebFlux subscribes to the returned Mono/Flux after applying backpressure, error handling, and context propagation. If execution started eagerly, the framework couldn't manage it.
 
-### 3. Explain `flatMap` vs `concatMap` vs `flatMapSequential`.
-
+### => 3. Explain `flatMap` vs `concatMap` vs `flatMapSequential`.
 All three transform each element into a new Publisher and merge the results, but differ in ordering and concurrency:
-
-**`flatMap`**: Subscribes to all inner publishers eagerly, interleaves results as they arrive. Fast but unordered. Use when order doesn't matter and you want maximum concurrency. Concurrency is unbounded by default (configurable with `flatMap(fn, concurrency)`).
-
-**`concatMap`**: Subscribes to inner publishers sequentially — waits for each to complete before subscribing to the next. Preserves order but no concurrency. Use when order matters AND operations have side effects that must be sequential (e.g., writing files in order).
-
-**`flatMapSequential`**: Subscribes to inner publishers eagerly (like `flatMap`) for concurrency, but queues results to emit in the original order. Best of both worlds: concurrent execution with ordered output. Use when you want parallelism but the downstream consumer expects ordered results.
-
+**==flatMap**: Subscribes to all inner publishers== eagerly, interleaves results as they arrive. Fast but unordered. ==Use when order doesn't matter== and you want maximum concurrency. Concurrency is unbounded by default (configurable with `flatMap(fn, concurrency)`).
+==**concatMap**: Subscribes to inner publishers== sequentially — ==waits for each publisher to complete before subscribing to the next. Preserves order== but no concurrency. ==Use when order matters== AND operations have side effects that must be sequential (e.g., writing files in order).
+==**flatMapSequential**: Subscribes to inner publishers== eagerly (like `flatMap`) for concurrency, but ==queues results to emit in the original order.== Best of both worlds: concurrent execution with ordered output. Use when you want parallelism but the ==downstream consumer expects ordered results.==
 ```java
 // flatMap: [3, 1, 2] (order depends on completion speed)
 // concatMap: [1, 2, 3] (always ordered, sequential execution)
 // flatMapSequential: [1, 2, 3] (always ordered, concurrent execution)
 ```
 
-### 4. What's the difference between `Mono.just()` and `Mono.defer()`?
-
-**`Mono.just(value)`**: Captures the value at assembly time. The value is computed once, when the line executes. Every subscriber gets the same value.
-
-```java
+### => 4. What's the difference between `Mono.just()` and `Mono.defer()`?
+==**Mono.just(value)**: Captures the value at assembly time.== The value is computed once, when the line executes. Every subscriber gets the same value.
+```java hl:3
 Mono<Instant> now = Mono.just(Instant.now()); // Instant captured NOW
 // 5 seconds later...
 now.subscribe(System.out::println); // Prints the ORIGINAL instant, not "now"
 ```
-
-**`Mono.defer(() -> Mono.just(value))`**: Defers the supplier to subscription time. The lambda runs fresh for each subscriber.
-
-```java
+==**Mono.defer(() -> Mono.just(value))**: Defers the supplier to subscription time.== The lambda runs fresh for each subscriber.
+```java hl:3
 Mono<Instant> now = Mono.defer(() -> Mono.just(Instant.now()));
 // 5 seconds later...
 now.subscribe(System.out::println); // Prints the CURRENT instant
 ```
-
 **When `defer` matters**:
 - Computing values that should be fresh per subscription (timestamps, random values)
 - Wrapping conditional logic: `Mono.defer(() -> condition ? monoA : monoB)` evaluates the condition at subscription time
@@ -206,10 +196,10 @@ sink.tryEmitNext("B"); // Both see "B". Sub2 missed "A".
 ```
 **Converting cold to hot**: `flux.share()` multicasts to all subscribers (late subscribers miss past events). `flux.cache()` replays past events to late subscribers. `flux.share()` is commonly used for event buses and SSE endpoints.
 
-### 6. When is it acceptable to call `.block()`?
+### => 6. When is it acceptable to call `.block()`?
 `.block()` suspends the calling thread until the Mono/Flux completes. It's acceptable ONLY in:
-1. **Tests**: `StepVerifier` is preferred, but `.block()` works for simple assertions
+1. ==**Tests**: `StepVerifier` is preferred, but `.block()` works for simple assertions==
 2. **Main methods / CLI apps**: Outside a reactive runtime, you need to block to get results
 3. **Imperative integration points**: When reactive code must call a blocking library (but wrap it with `subscribeOn(Schedulers.boundedElastic())` first)
 4. **Spring MVC controllers**: MVC is thread-per-request anyway, so blocking a WebClient call is acceptable (though using the async callback is better)
-**Never block** inside a reactive chain, on an event loop thread, or in WebFlux handlers. Blocking a Netty event loop thread deadlocks the server — a single blocked thread can prevent ALL requests from being processed. If you must integrate blocking code in a reactive chain, use `Mono.fromCallable(() -> blockingCall()).subscribeOn(Schedulers.boundedElastic())`.
+==**Never block** inside a reactive chain,== on an event loop thread, or in WebFlux handlers. ==Blocking a Netty event loop thread deadlocks the server== — a single blocked thread can prevent ALL requests from being processed. If you must integrate blocking code in a reactive chain, use `Mono.fromCallable(() -> blockingCall()).subscribeOn(Schedulers.boundedElastic())`.

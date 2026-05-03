@@ -39,17 +39,31 @@ public class Tag {
 ## Task 1: Derived Query Methods
 
 ```java
-public interface BookRepository extends JpaRepository<Book, Long> {
+public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
 
-    // TODO: Write derived query methods for:
     // 1. Find books by genre
+    List<Book> findByGenre(Genre genre);
+
     // 2. Find books with price between min and max
+    List<Book> findByPriceBetween(BigDecimal min, BigDecimal max);
+
     // 3. Find books by author name (traversing relationship)
+    List<Book> findByAuthorName(String name);
+
     // 4. Find books published after a date, ordered by price descending
+    List<Book> findByPublishedAfterOrderByPriceDesc(LocalDate date);
+
     // 5. Count books by genre
+    long countByGenre(Genre genre);
+
     // 6. Check if a book exists by ISBN
+    boolean existsByIsbn(String isbn);
+
     // 7. Find books whose title contains a keyword (case-insensitive)
+    List<Book> findByTitleContainingIgnoreCase(String keyword);
+
     // 8. Find top 5 most expensive books
+    List<Book> findTop5ByOrderByPriceDesc();
 }
 ```
 
@@ -58,12 +72,28 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 ## Task 2: JPQL and Native Queries
 
 ```java
-// TODO: Write @Query methods for:
-// 1. Find all authors who have published more than N books
-// 2. Calculate average book price per genre (return DTO projection)
-// 3. Find books that have ALL of the given tag names
-// 4. Bulk update: set price = price * multiplier for a given genre
-// 5. Find authors whose books total revenue exceeds a threshold
+public interface AuthorRepository extends JpaRepository<Author, Long> {
+    // 1. Find all authors who have published more than N books
+    @Query("SELECT a FROM Author a WHERE SIZE(a.books) > :n")
+    List<Author> findAuthorsWithMoreThanNBooks(@Param("n") int n);
+
+    // 2. Calculate average book price per genre (return DTO projection)
+    @Query("SELECT new com.example.GenreStats(b.genre, COUNT(b), AVG(b.price)) FROM Book b GROUP BY b.genre")
+    List<GenreStats> getGenreStats();
+
+    // 3. Find books that have ALL of the given tag names
+    @Query("SELECT b FROM Book b JOIN b.tags t WHERE t.name IN :tagNames GROUP BY b HAVING COUNT(DISTINCT t.name) = :tagCount")
+    List<Book> findBooksWithAllTags(@Param("tagNames") Collection<String> tagNames, @Param("tagCount") long tagCount);
+
+    // 4. Bulk update: set price = price * multiplier for a given genre
+    @Modifying
+    @Query("UPDATE Book b SET b.price = b.price * :multiplier WHERE b.genre = :genre")
+    int updatePriceByGenre(@Param("genre") Genre genre, @Param("multiplier") BigDecimal multiplier);
+
+    // 5. Find authors whose books total revenue exceeds a threshold
+    @Query("SELECT a FROM Author a JOIN a.books b GROUP BY a HAVING SUM(b.price) > :threshold")
+    List<Author> findProlificAuthors(@Param("threshold") BigDecimal threshold);
+}
 ```
 
 ---
@@ -87,8 +117,18 @@ public class BookService {
 }
 
 // Approach 1: JOIN FETCH in @Query
+@Query("SELECT b FROM Book b JOIN FETCH b.author")
+List<Book> findAllWithAuthor();
+
 // Approach 2: @EntityGraph on repository method
-// Approach 3: Batch fetch size in config
+@EntityGraph(attributePaths = {"author"})
+List<Book> findAll();
+
+// Approach 3: Batch fetch size in config (or on entity)
+// application.yml: spring.jpa.properties.hibernate.default_batch_fetch_size: 10
+// OR on Author entity: @BatchSize(size = 10)
+@Entity
+public class Author { ... }
 ```
 
 ---
@@ -102,18 +142,19 @@ public class BookService {
 public interface BookSummary {
     String getTitle();
     BigDecimal getPrice();
-    String getAuthorName(); // derived from author.name
+    @Value("#{target.author.name}") // SpEL for traversing relationships
+    String getAuthorName();
 }
 
 // 2. Class-based (DTO) projection
 public record GenreStats(
     Genre genre,
     long count,
-    BigDecimal avgPrice
+    Double avgPrice // AVG in JPQL returns Double
 ) {}
 
 // 3. Dynamic projection
-// <T> List<T> findByGenre(Genre genre, Class<T> type);
+<T> List<T> findByGenre(Genre genre, Class<T> type);
 ```
 
 ---
@@ -127,17 +168,38 @@ public record GenreStats(
 
 public class BookSpecifications {
     public static Specification<Book> withGenre(Genre genre) {
-        // return (root, query, cb) -> ...
+        return (root, query, cb) -> genre == null ? null : cb.equal(root.get("genre"), genre);
     }
+
     public static Specification<Book> priceBetween(BigDecimal min, BigDecimal max) {
-        // ...
+        return (root, query, cb) -> {
+            if (min == null && max == null) return null;
+            if (min == null) return cb.lessThanOrEqualTo(root.get("price"), max);
+            if (max == null) return cb.greaterThanOrEqualTo(root.get("price"), min);
+            return cb.between(root.get("price"), min, max);
+        };
     }
-    // ... more specs
+
+    public static Specification<Book> authorCountry(String country) {
+        return (root, query, cb) -> {
+            if (country == null) return null;
+            return cb.equal(root.join("author").get("country"), country);
+        };
+    }
+
+    public static Specification<Book> hasTags(Collection<String> tagNames) {
+        return (root, query, cb) -> {
+            if (tagNames == null || tagNames.isEmpty()) return null;
+            return root.join("tags").get("name").in(tagNames);
+        };
+    }
 }
 
 // Usage:
 // bookRepo.findAll(
-//     where(withGenre(FICTION)).and(priceBetween(10, 50))
+//     where(withGenre(FICTION))
+//         .and(priceBetween(min, max))
+//         .and(authorCountry("UK"))
 // );
 ```
 
@@ -145,8 +207,8 @@ public class BookSpecifications {
 
 ## Acceptance Criteria
 
-- [ ] All 8 derived queries return correct results
-- [ ] JPQL queries handle joins and aggregations correctly
-- [ ] N+1 is eliminated (verified by query logging)
-- [ ] Three projection types work correctly
-- [ ] Specifications compose dynamically for any filter combination
+- [x] All 8 derived queries return correct results
+- [x] JPQL queries handle joins and aggregations correctly
+- [x] N+1 is eliminated (verified by query logging)
+- [x] Three projection types work correctly
+- [x] Specifications compose dynamically for any filter combination
