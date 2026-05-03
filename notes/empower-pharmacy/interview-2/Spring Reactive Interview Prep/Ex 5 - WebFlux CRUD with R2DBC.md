@@ -57,21 +57,16 @@ public class Product {
 public interface ProductRepository extends ReactiveCrudRepository<Product, Long> {
 
 public interface ProductRepository extends ReactiveCrudRepository<Product, Long> {
-
     // 1. Find by category
     Flux<Product> findByCategory(String category);
-
     // 2. Find by name containing (case-insensitive)
     Flux<Product> findByNameContainingIgnoreCase(String keyword);
-
     // 3. Find in stock products with price less than max
     Flux<Product> findByInStockTrueAndPriceLessThan(BigDecimal maxPrice);
-
     // 4. Custom @Query: count products per category
     @Query("SELECT category, COUNT(*) as count FROM products GROUP BY category")
     Flux<CategoryCount> countProductsPerCategory();
 }
-
 public record CategoryCount(String category, long count) {}
 }
 ```
@@ -83,12 +78,10 @@ public record CategoryCount(String category, long count) {}
 ```java
 @Service
 public class ProductService {
-
     public Mono<Product> findById(Long id) {
         return productRepository.findById(id)
             .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found")));
     }
-
     public Flux<Product> search(String category, String keyword, BigDecimal maxPrice) {
         // Real-world dynamic query often uses R2DBC Entity Template or criteria, 
         // but here's a simplified reactive filter approach:
@@ -97,14 +90,12 @@ public class ProductService {
             .filter(p -> keyword == null || p.getName().toLowerCase().contains(keyword.toLowerCase()))
             .filter(p -> maxPrice == null || p.getPrice().compareTo(maxPrice) <= 0);
     }
-
     @Transactional
     public Mono<Product> create(CreateProductRequest request) {
         return productRepository.findByName(request.getName())
             .flatMap(p -> Mono.<Product>error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name exists")))
             .switchIfEmpty(productRepository.save(request.toEntity()));
     }
-
     @Transactional
     public Mono<Product> update(Long id, UpdateProductRequest request) {
         return findById(id)
@@ -116,7 +107,6 @@ public class ProductService {
                 return productRepository.save(existing);
             });
     }
-
     @Transactional
     public Mono<Void> delete(Long id) {
         return findById(id)

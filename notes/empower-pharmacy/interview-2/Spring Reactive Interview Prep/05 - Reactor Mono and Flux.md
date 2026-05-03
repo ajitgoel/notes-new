@@ -143,7 +143,7 @@ This matters because:
 - **Framework control**: WebFlux subscribes to the returned Mono/Flux after applying backpressure, error handling, and context propagation. If execution started eagerly, the framework couldn't manage it.
 
 ### => 3. Explain `flatMap` vs `concatMap` vs `flatMapSequential`.
-All three transform each element into a new Publisher and merge the results, but differ in ordering and concurrency:
+==All three transform each element into a new Publisher and merge the results,== but differ in ordering and concurrency:
 **==flatMap**: Subscribes to all inner publishers== eagerly, interleaves results as they arrive. Fast but unordered. ==Use when order doesn't matter== and you want maximum concurrency. Concurrency is unbounded by default (configurable with `flatMap(fn, concurrency)`).
 ==**concatMap**: Subscribes to inner publishers== sequentially — ==waits for each publisher to complete before subscribing to the next. Preserves order== but no concurrency. ==Use when order matters== AND operations have side effects that must be sequential (e.g., writing files in order).
 ==**flatMapSequential**: Subscribes to inner publishers== eagerly (like `flatMap`) for concurrency, but ==queues results to emit in the original order.== Best of both worlds: concurrent execution with ordered output. Use when you want parallelism but the ==downstream consumer expects ordered results.==

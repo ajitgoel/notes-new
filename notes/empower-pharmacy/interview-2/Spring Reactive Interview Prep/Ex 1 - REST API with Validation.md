@@ -62,15 +62,14 @@ public record TaskResponse(
 
 ---
 
-## Task 2: Implement the Controller
+## => Task 2: Implement the Controller
 
-```java
+```java hl:1-2,6,17-18,22,26-27,31
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 public class TaskController {
     private final TaskService taskService;
-
     @GetMapping
     public Page<TaskResponse> getTasks(
             @RequestParam(required = false) Status status,
@@ -78,29 +77,24 @@ public class TaskController {
             Pageable pageable) {
         return taskService.findAll(status, priority, pageable);
     }
-
     @GetMapping("/{id}")
     public TaskResponse getTask(@PathVariable Long id) {
         return taskService.findById(id);
     }
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TaskResponse createTask(@Valid @RequestBody CreateTaskRequest request) {
         return taskService.create(request);
     }
-
     @PutMapping("/{id}")
     public TaskResponse updateTask(@PathVariable Long id, @Valid @RequestBody UpdateTaskRequest request) {
         return taskService.update(id, request);
     }
-
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTask(@PathVariable Long id) {
         taskService.delete(id);
     }
-
     @PatchMapping("/{id}/status")
     public TaskResponse updateStatus(@PathVariable Long id, @RequestParam Status status) {
         return taskService.updateStatus(id, status);
@@ -110,12 +104,11 @@ public class TaskController {
 
 ---
 
-## Task 3: Global Exception Handler with ProblemDetail
+## => Task 3: Global Exception Handler with ProblemDetail
 
-```java
+```java hl:1,3
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -124,7 +117,6 @@ public class GlobalExceptionHandler {
         pd.setProperty("resourceId", ex.getResourceId());
         return pd;
     }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
@@ -135,14 +127,12 @@ public class GlobalExceptionHandler {
         pd.setProperty("errors", errors);
         return pd;
     }
-
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleConflict(DataIntegrityViolationException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Data integrity violation");
         pd.setProperty("detail", ex.getMostSpecificCause().getMessage());
         return pd;
     }
-
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleAll(Exception ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");

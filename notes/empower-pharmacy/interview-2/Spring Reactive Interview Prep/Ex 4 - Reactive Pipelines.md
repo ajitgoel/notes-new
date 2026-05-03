@@ -5,9 +5,7 @@
 You're building an order processing pipeline. Each order goes through: validation → inventory check → payment → fulfillment → notification. Some steps are parallel, some sequential.
 
 ---
-
 ## Task 1: Sequential Pipeline
-
 ```java
 // TODO: Build a pipeline where each step depends on the previous.
 // If any step fails, the pipeline should short-circuit.
@@ -154,10 +152,9 @@ public Flux<PriceAlert> monitorPrices(Flux<PriceUpdate> updates) {
 
 ## Solution
 
+```java
 <details>
 <summary>Task 1: Sequential Pipeline (click to reveal)</summary>
-
-```java
 public Mono<OrderResult> processOrder(OrderRequest request) {
     return validateOrder(request)
         .flatMap(validOrder -> checkInventory(validOrder)
@@ -170,13 +167,12 @@ public Mono<OrderResult> processOrder(OrderRequest request) {
             )
         );
 }
-```
 </details>
-
-<details>
-<summary>Task 2: Parallel fan-out (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 2: Parallel fan-out (click to reveal)</summary>
 public Mono<OrderResult> processOrderV2(OrderRequest request) {
     return validateOrder(request)
         .flatMap(order -> Mono.zip(
@@ -205,13 +201,12 @@ public Mono<OrderResult> processOrderV2(OrderRequest request) {
             return sideEffects.thenReturn(new OrderResult(payment));
         });
 }
-```
 </details>
-
-<details>
-<summary>Task 3: Saga pattern (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 3: Saga pattern (click to reveal)</summary>
 public Mono<OrderResult> processWithSaga(OrderRequest request) {
     return reserveInventory(request)
         .flatMap(reservation ->
@@ -238,13 +233,12 @@ public Mono<OrderResult> processWithSaga(OrderRequest request) {
                 .thenReturn(new OrderResult(fulfillment))
         );
 }
-```
 </details>
-
-<details>
-<summary>Task 4: Batch Processing (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 4: Batch Processing (click to reveal)</summary>
 public Mono<BatchResult> processBatch(Flux<OrderRequest> orders) {
     return orders
         .buffer(100)
@@ -261,13 +255,12 @@ public Mono<BatchResult> processBatch(Flux<OrderRequest> orders) {
         5)
         .reduce(new BatchResult(), BatchResult::accumulate);
 }
-```
 </details>
-
-<details>
-<summary>Task 5: Event Stream Processing (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 5: Event Stream Processing (click to reveal)</summary>
 public Flux<PriceAlert> monitorPrices(Flux<PriceUpdate> updates) {
     return updates.groupBy(PriceUpdate::getSymbol)
         .flatMap(groupedFlux -> groupedFlux
@@ -287,5 +280,5 @@ public Flux<PriceAlert> monitorPrices(Flux<PriceUpdate> updates) {
             .sample(Duration.ofSeconds(10))
         );
 }
-```
 </details>
+```

@@ -1,18 +1,14 @@
 # Exercise 6: Reactive Error Handling & Retry Patterns
 
 ## Scenario
-
 You're building a reactive order service that calls three unreliable downstream APIs. Build robust error handling with retries, circuit breakers, timeouts, and fallbacks.
 
 ---
-
 ## Task 1: Categorized Error Handling
 
-```java
+```java hl:5-7,15,21-22
 // TODO: Implement a service that handles different error types differently
-
 public class OrderService {
-
 public Mono<Order> getOrder(String id) {
     return orderApiClient.fetchOrder(id)
         .onErrorResume(WebClientResponseException.class, ex -> {
@@ -32,8 +28,7 @@ public Mono<Order> getOrder(String id) {
         .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
             .filter(ex -> ex instanceof ServiceUnavailableException))
         .timeout(Duration.ofSeconds(2))
-        .onErrorResume(TimeoutException.class, ex -> cache.get(id))
-        .doOnError(ex -> log.error("Unhandled error for order {}", id, ex));
+        .onErrorResume(TimeoutException.class, ex -> cache.get(id));
 }
 }
 ```
@@ -44,7 +39,6 @@ public Mono<Order> getOrder(String id) {
 
 ```java
 // TODO: Implement a configurable retry strategy
-
 public Mono<Response> callWithRetry(Mono<Response> apiCall) {
     // Requirements:
     // - Retry up to 3 times
@@ -54,6 +48,25 @@ public Mono<Response> callWithRetry(Mono<Response> apiCall) {
     // - Do NOT retry on 4xx errors
     // - Log each retry attempt with attempt number and error
     // - If exhausted, throw RetryExhaustedException with original cause
+    return apiCall.retryWhen(Retry.backoff(3, Duration.ofMillis(100))
+        .maxBackoff(Duration.ofMillis(500))
+        .jitter(0.5)
+        .filter(ex ->
+            ex instanceof IOException ||
+            ex instanceof TimeoutException ||
+            (ex instanceof WebClientResponseException wce &&
+                wce.getStatusCode().is5xxServerError())
+        )
+        .doBeforeRetry(signal ->
+            log.warn("Retry attempt {} for error: {}",
+                signal.totalRetries() + 1,
+                signal.failure().getMessage())
+        )
+        .onRetryExhaustedThrow((spec, signal) ->
+            new RetryExhaustedException(
+                "All retries exhausted", signal.failure())
+        )
+    );
 }
 ```
 
@@ -203,10 +216,10 @@ void timeoutFallsBackToCache() {
 
 ## Solution
 
+```java hl:6-8,16,22-23
+// TODO: Implement a service that handles different error types differently
 <details>
 <summary>Task 1: Categorized errors (click to reveal)</summary>
-
-```java
 public Mono<Order> getOrder(String id) {
     return orderApiClient.fetchOrder(id)
         .onErrorResume(WebClientResponseException.class, ex -> {
@@ -228,13 +241,12 @@ public Mono<Order> getOrder(String id) {
         .timeout(Duration.ofSeconds(2))
         .onErrorResume(TimeoutException.class, ex -> cache.get(id));
 }
-```
 </details>
-
-<details>
-<summary>Task 2: Smart retry (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 2: Smart retry (click to reveal)</summary>
 public Mono<Response> callWithRetry(Mono<Response> apiCall) {
     return apiCall.retryWhen(Retry.backoff(3, Duration.ofMillis(100))
         .maxBackoff(Duration.ofMillis(500))
@@ -256,13 +268,12 @@ public Mono<Response> callWithRetry(Mono<Response> apiCall) {
         )
     );
 }
-```
 </details>
-
-<details>
-<summary>Task 3: Timeout Cascade (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 3: Timeout Cascade (click to reveal)</summary>
 public Mono<Dashboard> buildDashboard(String userId) {
     return Mono.zip(
         serviceA.getProfile(userId).timeout(Duration.ofSeconds(2)),
@@ -272,26 +283,24 @@ public Mono<Dashboard> buildDashboard(String userId) {
     .timeout(Duration.ofSeconds(5))
     .map(tuple -> new Dashboard(tuple.getT1(), tuple.getT2(), tuple.getT3()));
 }
-```
 </details>
-
-<details>
-<summary>Task 4: Circuit Breaker (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 4: Circuit Breaker (click to reveal)</summary>
 public Mono<User> getUser(String id) {
     return userClient.call(id)
         .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
         .onErrorResume(CallNotPermittedException.class, ex -> 
             cache.get(id).switchIfEmpty(Mono.just(User.stub(id))));
 }
-```
 </details>
-
-<details>
-<summary>Task 5: Fallback chain (click to reveal)</summary>
+```
 
 ```java
+<details>
+<summary>Task 5: Fallback chain (click to reveal)</summary>
 public Mono<ProductData> getProductData(String id) {
     return primaryApi.getProduct(id)
         .timeout(Duration.ofSeconds(2))
@@ -314,5 +323,5 @@ public Mono<ProductData> getProductData(String id) {
             return Mono.just(ProductData.defaultFor(id));
         }));
 }
-```
 </details>
+```
