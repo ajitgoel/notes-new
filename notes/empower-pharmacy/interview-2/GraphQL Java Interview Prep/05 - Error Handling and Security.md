@@ -196,7 +196,7 @@ public class RateLimitInterceptor implements WebGraphQlInterceptor {
 REST uses HTTP status codes (200, 404, 500) to signal success or failure. The status code is the primary error indicator, and the response body may contain error details.
 GraphQL always returns **HTTP 200**, even when errors occur. Errors are reported in the `errors` array of the response body. This enables **partial responses** — the `data` field can contain successfully resolved fields while `errors` contains failures for specific fields. For example, if `user` resolves but `user.orders` fails, you get `{ "data": { "user": { "name": "Alice", "orders": null } }, "errors": [{ "path": ["user", "orders"], "message": "Order service unavailable" }] }`.
 This is a fundamental architectural difference: ==REST treats the entire response as succeeded or failed, while GraphQL treats each field independently. This makes GraphQL more resilient in orchestration scenarios where some downstream services may fail while others succeed.==
-### 2. How do you implement field-level authorization in a GraphQL schema?
+### => 2. How do you implement field-level authorization in a GraphQL schema?
 Three approaches, from simplest to most powerful:
 **In the resolver** — check permissions directly:
 ```java hl:4
@@ -222,7 +222,7 @@ A `SchemaDirectiveWiring` wraps the original DataFetcher with an authorization c
 ### 3. What is a schema directive and how would you use one for auth?
 A directive is a schema annotation that modifies field behavior. For auth, you define `directive @auth(role: String!) on FIELD_DEFINITION` and implement `SchemaDirectiveWiring`. The wiring intercepts the field's DataFetcher: before calling the original fetcher, it checks the caller's roles from the GraphQL context. If unauthorized, it throws an exception. If authorized, it delegates to the original fetcher.
 This is powerful because: (a) auth rules are visible in the schema SDL, (b) the implementation is DRY — one wiring class handles all `@auth` fields, (c) it composes with other directives like `@deprecated` or `@cacheControl`.
-### 4. How do you prevent introspection attacks in production?
+### => 4. How do you prevent introspection attacks in production?
 Introspection queries (`{ __schema { types { name fields { name } } } }`) expose your entire schema, including internal types, deprecated fields, and field descriptions. In production:
 ```java
 GraphQL graphQL = GraphQL.newGraphQL(schema)
@@ -237,7 +237,7 @@ Scenario: a `dashboard` query calls User Service, Order Service, and Recommendat
 1. **Classify services as required or optional**: User data is required (without it the response is meaningless). Orders are required. Recommendations are optional (nice to have).
 2. **Required services**: Let errors propagate. If User Service fails, the entire `dashboard` field returns null with an error in the `errors` array.
 3. **Optional services**: Catch failures and return defaults:
-```java hl:3
+```java
 Mono<List<Product>> recs = recClient.getForUser(userId)
     .timeout(Duration.ofSeconds(2))
     .onErrorReturn(List.of());  // empty list instead of error
@@ -248,3 +248,26 @@ Mono<List<Product>> recs = recClient.getForUser(userId)
     .put("warnings", "Recommendations unavailable"))
 ```
 5. **Result**: The client gets user + orders data with `errors: [{ "message": "Recommendations service timeout", "path": ["dashboard", "recommendations"] }]`. The UI can show the dashboard with a "Recommendations unavailable" placeholder instead of a full error page.
+
+==For surfacing the failure to the GraphQL client (not just server logs), you’d need to interact with the `DataFetchingEnvironment` or structure your resolver to return a type that carries both data and warnings.== There’s no built-in “partial error” mechanism in `Mono.zip` itself — it’s all-or-nothing at the reactive level. The partial error behavior comes from GraphQL’s field-level resolution: ==if you make recommendations a _separate field resolver_ instead of bundling it into `Mono.zip`, GraphQL handles the partial failure natively:==
+
+```java hl:1-2,9-10,12-16
+// Top-level resolver returns the required parts
+@QueryMapping
+public Mono<Dashboard> dashboard(@Argument String userId) {
+    return Mono.zip(
+        userClient.getUser(userId),
+        orderClient.getOrders(userId)
+    ).map(t -> new Dashboard(t.getT1(), t.getT2()));
+}
+// Separate resolver for the optional field
+@SchemaMapping(typeName = "Dashboard")
+public Mono<List<Product>> recommendations(Dashboard dashboard) {
+    return recClient.getForUser(dashboard.user().getId())
+        .timeout(Duration.ofSeconds(2));
+    // No onErrorReturn — let it fail.
+    // GraphQL sets this field to null and adds an error to the errors array,
+    // while the rest of the dashboard (user, orders) still returns.
+}
+```
+This is the cleanest approach. ==GraphQL’s engine resolves each field independently — if `recommendations` throws, only that field is null. The `user` and `orders` fields are unaffected. The `errors` array automatically includes `{ "path": "dashboard", "recommendations"], "message": "..." }`, giving the client exactly what it needs to show a partial UI.==
