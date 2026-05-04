@@ -6,14 +6,12 @@
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
-
     @GetMapping("/{id}")
     public ResponseEntity<User> getUser(@PathVariable String id) {
         return userService.findById(id)
             .map(ResponseEntity::ok)
             .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
-
     @GetMapping
     public Page<User> listUsers(
             @RequestParam(defaultValue = "0") int page,
@@ -23,19 +21,16 @@ public class UserController {
             PageRequest.of(page, size, Sort.by(sort))
         );
     }
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public User createUser(@Valid @RequestBody CreateUserRequest request) {
         return userService.create(request);
     }
-
     @PutMapping("/{id}")
     public User updateUser(@PathVariable String id,
                            @Valid @RequestBody UpdateUserRequest request) {
         return userService.update(id, request);
     }
-
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable String id) {

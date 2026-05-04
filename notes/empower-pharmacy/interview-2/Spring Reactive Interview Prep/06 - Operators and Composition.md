@@ -154,7 +154,7 @@ StepVerifier.create(
 ---
 
 ## Interview Questions & Answers
-### 1. When would you use `zip` vs `merge` vs `concat`?
+### => 1. When would you use `zip` vs `merge` vs `concat`?
 ==**`zip`**: Use when you need results from ALL sources before proceeding, and they're independent. Executes in parallel, waits for all to complete, combines them.== Example: fetching user profile + user preferences + user stats to build a dashboard.
 ==**`merge`**: Use when you want results== from multiple sources interleaved, ==order doesn't matter.== All sources emit to a single Flux concurrently. ==Example: combining notification streams from email, SMS, and push — you want to process them as they arrive.==
 ==**`concat`**: Use when order matters and sources should be processed sequentially. Second source only starts after first completes.== Example: try local cache first, then hit remote API only if cache misses. Or processing log files in chronological order.
@@ -162,10 +162,8 @@ StepVerifier.create(
 ```java
 // zip: wait for all, combine
 Mono.zip(userMono, ordersMono, recsMono).map(...)
-
 // merge: interleave, fastest first
 Flux.merge(emailNotifs, smsNotifs, pushNotifs)
-
 // concat: sequential, ordered
 Flux.concat(cacheResults, remoteResults)
 ```

@@ -1,11 +1,8 @@
 # GraphQL as a Java Orchestration Layer — Core Concepts
 
 ## Why GraphQL as an Orchestration Layer?
-
-Traditional REST-based orchestration (BFF or API gateway) forces the server to define fixed response shapes. GraphQL flips this: **the client declares what it needs, and the server assembles it from underlying services.**
-
+Traditional REST-based orchestration (BFF or API gateway) forces the server to define fixed response shapes. GraphQL flips this: ==**the client declares what it needs, and the server assembles it from underlying services.**==
 In Java, this means your GraphQL server sits between clients and downstream microservices/databases, acting as a **single composable entry point**.
-
 ```
 Client ──▶ GraphQL (Java) ──▶ User Service (REST)
                              ──▶ Order Service (gRPC)
@@ -20,13 +17,11 @@ Client ──▶ GraphQL (Java) ──▶ User Service (REST)
 - **Evolvable**: add fields without versioning; deprecate gracefully
 
 ---
-
-## Java GraphQL Frameworks
-
-### 1. Spring for GraphQL (official, Spring Boot 3+)
+## ==Java GraphQL Frameworks==
+### ==1. Spring for GraphQL (official, Spring Boot 3+)==
 - Built on `graphql-java`
-- Annotation-driven: `@QueryMapping`, `@SchemaMapping`, `@MutationMapping`
-- Integrates with Spring WebFlux for reactive pipelines
+- ==Annotation-driven: `@QueryMapping`, `@SchemaMapping`, `@MutationMapping`==
+- ==Integrates with Spring WebFlux for reactive pipelines==
 - Auto-wires `DataLoader` via `@BatchMapping`
 
 ### 2. Netflix DGS (Domain Graph Service)

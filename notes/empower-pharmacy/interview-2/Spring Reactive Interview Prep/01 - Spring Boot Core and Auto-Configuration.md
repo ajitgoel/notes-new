@@ -208,29 +208,23 @@ Register it in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfi
 
 Key principles: use `@ConditionalOnMissingBean` so users can override, use `@ConfigurationProperties` for type-safe config, and document properties in `META-INF/additional-spring-configuration-metadata.json` for IDE autocomplete.
 
-### 6. What's the difference between `@Bean` and `@Component`? When would you prefer one over the other?
-
-**`@Component`** (+ `@Service`, `@Repository`): Annotated on the class itself. Discovered via classpath scanning. You control the class source code. One bean per class (unless using `@Scope`).
-
-**`@Bean`**: Annotated on a method inside `@Configuration`. Creates a bean from the method's return value. Used when: (a) you don't control the class (third-party library), (b) you need conditional or parameterized creation, (c) you need multiple beans of the same type with different configs.
-
+### => 6. What's the difference between `@Bean` and `@Component`? When would you prefer one over the other?
+==**`@Component`** (+ `@Service`, `@Repository`): Annotated on the class itself.== Discovered via classpath scanning. You control the class source code. ==One bean per class (unless using `@Scope`).==
+==**@Bean**: Annotated on a method inside `@Configuration`. Creates a bean from the method's return value. Used when:== (a) you don't control the class (third-party library), (b) ==you need conditional or parameterized creation==, (c) ==you need multiple beans of the same type with different configs.==
 ```java
 // @Component — you own the class
 @Component
 public class MyService { ... }
-
 // @Bean — third-party class or conditional creation
 @Bean
 @Profile("prod")
 public MetricsClient prodMetrics() {
     return new MetricsClient("https://prod.metrics.com");
 }
-
 @Bean
 @Profile("dev")
 public MetricsClient devMetrics() {
     return new MetricsClient("http://localhost:9090");
 }
 ```
-
-Prefer `@Component` for your own classes (less boilerplate). Use `@Bean` for third-party classes or when you need method-level control.
+==Prefer @Component for your own classes (less boilerplate). Use @Bean== for third-party classes or ==when you need method-level control.==
