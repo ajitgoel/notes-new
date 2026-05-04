@@ -1,10 +1,7 @@
 # Error Handling & Security
-
 ## GraphQL Error Model
-
-GraphQL always returns HTTP 200 (even on errors). Errors live in the `errors` array:
-
-```json
+==GraphQL always returns HTTP 200 (even on errors). Errors live in the `errors` array:==
+```json hl:2-4,6
 {
   "data": { "user": null },
   "errors": [{
@@ -18,13 +15,10 @@ GraphQL always returns HTTP 200 (even on errors). Errors live in the `errors` ar
   }]
 }
 ```
-
-**Partial responses**: GraphQL can return data AND errors simultaneously — some fields succeed, others fail.
+==**Partial responses**: GraphQL can return data AND errors simultaneously — some fields succeed, others fail.==
 
 ---
-
 ## Custom Exceptions in Spring for GraphQL
-
 ```java
 // Custom exception
 public class ResourceNotFoundException extends RuntimeException {
@@ -37,7 +31,6 @@ public class ResourceNotFoundException extends RuntimeException {
         this.resourceId = id;
     }
 }
-
 // Exception resolver
 @Component
 public class CustomExceptionResolver
@@ -198,23 +191,15 @@ public class RateLimitInterceptor implements WebGraphQlInterceptor {
 - [ ] Audit log mutations
 
 ---
-
 ## Interview Questions & Answers
-
-### 1. How does GraphQL error handling differ from REST (HTTP status codes)?
-
+### => 1. ==How does GraphQL error handling differ from REST (HTTP status codes)==?
 REST uses HTTP status codes (200, 404, 500) to signal success or failure. The status code is the primary error indicator, and the response body may contain error details.
-
 GraphQL always returns **HTTP 200**, even when errors occur. Errors are reported in the `errors` array of the response body. This enables **partial responses** — the `data` field can contain successfully resolved fields while `errors` contains failures for specific fields. For example, if `user` resolves but `user.orders` fails, you get `{ "data": { "user": { "name": "Alice", "orders": null } }, "errors": [{ "path": ["user", "orders"], "message": "Order service unavailable" }] }`.
-
-This is a fundamental architectural difference: REST treats the entire response as succeeded or failed, while GraphQL treats each field independently. This makes GraphQL more resilient in orchestration scenarios where some downstream services may fail while others succeed.
-
+This is a fundamental architectural difference: ==REST treats the entire response as succeeded or failed, while GraphQL treats each field independently. This makes GraphQL more resilient in orchestration scenarios where some downstream services may fail while others succeed.==
 ### 2. How do you implement field-level authorization in a GraphQL schema?
-
 Three approaches, from simplest to most powerful:
-
 **In the resolver** — check permissions directly:
-```java
+```java hl:4
 @SchemaMapping(typeName = "User")
 public String email(User user, DataFetchingEnvironment env) {
     UserContext caller = env.getGraphQlContext().get("user");
@@ -226,47 +211,33 @@ public String email(User user, DataFetchingEnvironment env) {
 ```
 
 **Schema directive** — declarative, reusable:
-```graphql
+```graphql hl:2
 type User {
   email: String! @auth(role: "ADMIN")
 }
 ```
 A `SchemaDirectiveWiring` wraps the original DataFetcher with an authorization check. Clean separation of concerns.
-
-**Spring Security `@PreAuthorize`** — integrates with Spring's security model but less GraphQL-idiomatic. Works well if your team already uses Spring Security extensively.
-
-The directive approach is preferred for orchestration because it's visible in the schema (the contract shows who can access what) and reusable across all fields.
-
+==**Spring Security `@PreAuthorize`** — integrates with Spring's security model but less GraphQL-idiomatic. Works well if your team already uses Spring Security extensively.==
+==The directive approach is preferred for orchestration because it's visible in the schema (the contract shows who can access what) and reusable across all fields.==
 ### 3. What is a schema directive and how would you use one for auth?
-
 A directive is a schema annotation that modifies field behavior. For auth, you define `directive @auth(role: String!) on FIELD_DEFINITION` and implement `SchemaDirectiveWiring`. The wiring intercepts the field's DataFetcher: before calling the original fetcher, it checks the caller's roles from the GraphQL context. If unauthorized, it throws an exception. If authorized, it delegates to the original fetcher.
-
 This is powerful because: (a) auth rules are visible in the schema SDL, (b) the implementation is DRY — one wiring class handles all `@auth` fields, (c) it composes with other directives like `@deprecated` or `@cacheControl`.
-
 ### 4. How do you prevent introspection attacks in production?
-
 Introspection queries (`{ __schema { types { name fields { name } } } }`) expose your entire schema, including internal types, deprecated fields, and field descriptions. In production:
-
 ```java
 GraphQL graphQL = GraphQL.newGraphQL(schema)
     .instrumentation(new IntrospectionDisabledInstrumentation())
     .build();
 ```
-
-Or in Spring Boot: `spring.graphql.schema.introspection.enabled=false`.
-
+Or ==in Spring Boot: spring.graphql.schema.introspection.enabled=false.==
 Additional measures: use persisted queries (only pre-registered query hashes are accepted), set `MaxQueryDepthInstrumentation` and `MaxQueryComplexityInstrumentation` to prevent exploratory abuse, and rate-limit by API key.
-
 Note: keep introspection enabled in development and staging for tooling like GraphiQL and Apollo Studio.
-
-### 5. Walk through how you'd handle partial failures when orchestrating 3 services.
-
+### => 5. Walk through how you'd handle partial failures when orchestrating 3 services.
 Scenario: a `dashboard` query calls User Service, Order Service, and Recommendation Service.
-
 1. **Classify services as required or optional**: User data is required (without it the response is meaningless). Orders are required. Recommendations are optional (nice to have).
 2. **Required services**: Let errors propagate. If User Service fails, the entire `dashboard` field returns null with an error in the `errors` array.
 3. **Optional services**: Catch failures and return defaults:
-```java
+```java hl:3
 Mono<List<Product>> recs = recClient.getForUser(userId)
     .timeout(Duration.ofSeconds(2))
     .onErrorReturn(List.of());  // empty list instead of error
