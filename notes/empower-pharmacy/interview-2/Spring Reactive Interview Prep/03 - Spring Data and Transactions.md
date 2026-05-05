@@ -11,26 +11,21 @@ Repository (marker)
 
 ```java
 public interface UserRepository extends JpaRepository<User, Long> {
-
     // Derived queries — Spring generates SQL from method name
     List<User> findByEmailContainingIgnoreCase(String fragment);
     Optional<User> findByEmailAndActiveTrue(String email);
     List<User> findByAgeGreaterThanOrderByNameAsc(int age);
     long countByRole(Role role);
     boolean existsByEmail(String email);
-
     // JPQL
     @Query("SELECT u FROM User u WHERE u.department.name = :dept AND u.active = true")
     List<User> findActiveByDepartment(@Param("dept") String department);
-
     // Native SQL
     @Query(value = "SELECT * FROM users WHERE created_at > :since", nativeQuery = true)
     List<User> findRecentUsers(@Param("since") LocalDateTime since);
-
     // Projections
     @Query("SELECT u.name AS name, u.email AS email FROM User u WHERE u.role = :role")
     List<UserSummary> findSummariesByRole(@Param("role") Role role);
-
     // Modifying queries
     @Modifying
     @Query("UPDATE User u SET u.active = false WHERE u.lastLogin < :cutoff")
@@ -260,17 +255,14 @@ Instead of 100 individual queries, Hibernate groups them: `WHERE department_id I
 
 **Best approach**: Use `@BatchSize` globally as a safety net, and explicit `JOIN FETCH` for hot paths where you know the access pattern.
 
-### 5. What is optimistic locking (`@Version`)? How does it differ from pessimistic locking?
-
-**Optimistic locking** assumes conflicts are rare. A `@Version` field (integer or timestamp) tracks the entity version. On update, Hibernate adds `WHERE version = :currentVersion` to the UPDATE. If another transaction modified the row (version changed), the WHERE clause matches zero rows, and Hibernate throws `OptimisticLockException`. The application catches this and retries or informs the user.
-
+### => 5. What is optimistic locking (`@Version`)? How does it differ from pessimistic locking?
+==**Optimistic locking**== assumes conflicts are rare. ==A `@Version` field (integer or timestamp) tracks the entity version. On update, Hibernate adds `WHERE version = :currentVersion` to the UPDATE. If another transaction modified the row (version changed), the WHERE clause matches zero rows, and Hibernate throws `OptimisticLockException`. The application catches this and retries or informs the user.==
 ```java
 @Version private Long version;
 // UPDATE users SET name = ?, version = 3 WHERE id = 1 AND version = 2
 // If version is now 3 (someone else updated), 0 rows affected → exception
 ```
-
-**Pessimistic locking** locks the row in the database: `SELECT ... FOR UPDATE`. Other transactions block until the lock is released. Guarantees no conflicts but reduces throughput.
+==**Pessimistic locking** locks the row in the database: `SELECT ... FOR UPDATE`.== Other transactions block until the lock is released. Guarantees no conflicts but reduces throughput.
 
 | Aspect | Optimistic | Pessimistic |
 |--------|-----------|-------------|

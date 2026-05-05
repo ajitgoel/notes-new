@@ -152,7 +152,6 @@ This matters because:
 // concatMap: [1, 2, 3] (always ordered, sequential execution)
 // flatMapSequential: [1, 2, 3] (always ordered, concurrent execution)
 ```
-
 ### => 4. What's the difference between `Mono.just()` and `Mono.defer()`?
 ==**Mono.just(value)**: Captures the value at assembly time.== The value is computed once, when the line executes. Every subscriber gets the same value.
 ```java hl:3

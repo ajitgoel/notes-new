@@ -86,7 +86,6 @@ public Mono<OrderResult> processWithSaga(OrderRequest request) {
 ```
 
 ---
-
 ## Task 4: Batch Processing Pipeline
 
 ```java
@@ -96,7 +95,6 @@ public Mono<OrderResult> processWithSaga(OrderRequest request) {
 // - Track progress: emit a ProgressEvent every 100 items
 // - If one item in a batch fails, skip it (don't fail the batch)
 // - Collect final stats: success count, failure count, processing time
-
 public Mono<BatchResult> processBatch(Flux<OrderRequest> orders) {
     return orders
         .buffer(100)
@@ -116,7 +114,6 @@ public Mono<BatchResult> processBatch(Flux<OrderRequest> orders) {
 ```
 
 ---
-
 ## Task 5: Event Stream Processing
 
 ```java

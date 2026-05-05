@@ -4,13 +4,11 @@
 Build a Spring Boot REST API for a task management system with proper validation and structured error responses.
 
 ---
-
 ## Task 1: Define the Entity and DTOs
 
 ```java
 public enum Status { TODO, IN_PROGRESS, DONE }
 public enum Priority { LOW, MEDIUM, HIGH }
-
 @Entity
 @Data
 @NoArgsConstructor
@@ -32,14 +30,12 @@ public class Task {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
-
 public record CreateTaskRequest(
     @NotBlank @Size(max = 200) String title,
     @Size(max = 2000) String description,
     @NotNull Priority priority,
     @Future LocalDate dueDate
 ) {}
-
 public record UpdateTaskRequest(
     @Size(max = 200) String title,
     @Size(max = 2000) String description,
@@ -47,7 +43,6 @@ public record UpdateTaskRequest(
     Priority priority,
     @Future LocalDate dueDate
 ) {}
-
 public record TaskResponse(
     Long id,
     String title,
@@ -61,9 +56,7 @@ public record TaskResponse(
 ```
 
 ---
-
 ## => Task 2: Implement the Controller
-
 ```java hl:1-2,6,17-18,22,26-27,31
 @RestController
 @RequestMapping("/api/tasks")
