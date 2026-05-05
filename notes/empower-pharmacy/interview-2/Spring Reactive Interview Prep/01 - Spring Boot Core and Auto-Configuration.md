@@ -152,7 +152,7 @@ All four are stereotypes that mark a class for component scanning, but they carr
 
 - **`@Component`**: Generic stereotype. Use when no other stereotype fits.
 - **`@Service`**: Marks a business logic class. No technical difference from `@Component`, but communicates intent. Spring doesn't add special behavior.
-- **`@Repository`**: Marks a data access class. Spring adds **exception translation** — it wraps JDBC/JPA exceptions into Spring's `DataAccessException` hierarchy, giving consistent error handling across database vendors.
+- ==**`@Repository`**: Marks a data access class. Spring adds **exception translation** — it wraps JDBC/JPA exceptions into Spring's `DataAccessException` hierarchy, giving consistent error handling across database vendors.==
 - **`@Configuration`**: Marks a class that defines `@Bean` methods. Unlike the others, Spring creates a **CGLIB proxy** for `@Configuration` classes, ensuring that calling a `@Bean` method from within the same class returns the singleton bean instead of creating a new instance.
 
 ### 3. How does Spring resolve property values when the same key exists in multiple sources?
@@ -207,7 +207,6 @@ Register it in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfi
 **`my-library-spring-boot-starter`** (pom-only): Depends on the autoconfigure module and the library itself. Users add only this dependency.
 
 Key principles: use `@ConditionalOnMissingBean` so users can override, use `@ConfigurationProperties` for type-safe config, and document properties in `META-INF/additional-spring-configuration-metadata.json` for IDE autocomplete.
-
 ### => 6. What's the difference between `@Bean` and `@Component`? When would you prefer one over the other?
 ==**`@Component`** (+ `@Service`, `@Repository`): Annotated on the class itself.== Discovered via classpath scanning. You control the class source code. ==One bean per class (unless using `@Scope`).==
 ==**@Bean**: Annotated on a method inside `@Configuration`. Creates a bean from the method's return value. Used when:== (a) you don't control the class (third-party library), (b) ==you need conditional or parameterized creation==, (c) ==you need multiple beans of the same type with different configs.==
