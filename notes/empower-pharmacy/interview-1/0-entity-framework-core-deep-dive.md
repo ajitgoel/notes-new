@@ -13,7 +13,6 @@ public class PharmacyDbContext : DbContext
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Medication> Medications => Set<Medication>();
-
     public PharmacyDbContext(DbContextOptions<PharmacyDbContext> options)
         : base(options) { }
 
@@ -22,10 +21,9 @@ public class PharmacyDbContext : DbContext
         mb.ApplyConfigurationsFromAssembly(typeof(PharmacyDbContext).Assembly);
     }
 }
-
 // Registration in Program.cs
 builder.Services.AddDbContext<PharmacyDbContext>(opts =>
-    opts.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+opts.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 ```
 
 > [!warning] DbContext lifetime
@@ -72,7 +70,7 @@ public class Patient
 
 ### Fluent API (separate configuration class — preferred for complex models)
 
-```csharp
+```csharp hl:1,3
 public class OrderConfiguration : IEntityTypeConfiguration<Order>
 {
     public void Configure(EntityTypeBuilder<Order> builder)
@@ -226,49 +224,41 @@ var summaries = await _db.Orders
 // No Include needed — EF joins automatically in projections
 ```
 
-> [!warning] N+1 Problem
-> Without `.Include()` or `.Select()`, accessing `order.Patient` inside a loop triggers a **separate SQL query per iteration**. This is the #1 EF performance killer.
->
-> ```csharp
+```csharp hl:3,6-7,9,11
+N+1 Problem
+Without `.Include()` or `.Select()`, accessing `order.Patient` inside a loop triggers a **separate SQL query per iteration**. This is the #1 EF performance killer.
 > // BAD: N+1 — each .Patient triggers a query
 > var orders = await _db.Orders.ToListAsync();
 > foreach (var o in orders)
 >     Console.WriteLine(o.Patient.Name);  // 💥 query per order
->
 > // GOOD: Single query with Include
 > var orders = await _db.Orders.Include(o => o.Patient).ToListAsync();
->
 > // BETTER: Projection — only fetches needed columns
 > var orders = await _db.Orders
 >     .Select(o => new { o.Id, PatientName = o.Patient.Name })
 >     .ToListAsync();
-> ```
+```
 
 ---
-
 ## 5. Change Tracking
-
 EF Core tracks every entity it loads. When you call `SaveChanges`, it compares current values to original values and generates SQL for changes.
-
 ### Entity States
 
-| State | Meaning | What SaveChanges does |
-|---|---|---|
-| `Added` | New entity, no DB row yet | INSERT |
-| `Modified` | Loaded from DB, properties changed | UPDATE |
-| `Deleted` | Marked for deletion | DELETE |
-| `Unchanged` | Loaded from DB, no changes | Nothing |
-| `Detached` | Not tracked by this context | Nothing |
+| State       | Meaning                            | What SaveChanges does |
+| ----------- | ---------------------------------- | --------------------- |
+| `Added`     | New entity, no DB row yet          | INSERT                |
+| `Modified`  | Loaded from DB, properties changed | UPDATE                |
+| `Deleted`   | Marked for deletion                | DELETE                |
+| `Unchanged` | Loaded from DB, no changes         | Nothing               |
+| `Detached`  | Not tracked by this context        | Nothing               |
 
-```csharp
+```csharp hl:9,7,1,5
 // EF tracks changes automatically
 var patient = await _db.Patients.FindAsync(42);  // Unchanged
 patient.Name = "New Name";                        // Modified
 await _db.SaveChangesAsync();                     // UPDATE
-
 // Explicit state control
 _db.Entry(patient).State = EntityState.Modified;
-
 // No-tracking queries (read-only — faster)
 var patients = await _db.Patients
     .AsNoTracking()                               // Detached
@@ -368,26 +358,20 @@ public class Order
     public int Id { get; set; }
     public decimal Total { get; set; }
     public string Status { get; set; }
-
     [Timestamp]
     public byte[] RowVersion { get; set; }  // auto-managed by SQL Server
 }
-
 // Fluent API
 builder.Property(o => o.RowVersion).IsRowVersion();
 ```
-
 ### Handling concurrency conflicts
-
-```csharp
+```csharp hl:11,18-20,22-24
 public async Task UpdateOrderAsync(int id, UpdateOrderDto dto)
 {
     var order = await _db.Orders.FindAsync(id)
         ?? throw new NotFoundException("Order", id);
-
     order.Status = dto.Status;
     order.Total = dto.Total;
-
     try
     {
         await _db.SaveChangesAsync();
@@ -397,14 +381,12 @@ public async Task UpdateOrderAsync(int id, UpdateOrderDto dto)
         // Someone else modified this row since we loaded it
         var entry = ex.Entries.Single();
         var dbValues = await entry.GetDatabaseValuesAsync();
-
         if (dbValues is null)
             throw new ConflictException("Order was deleted by another user");
-
         // Option 1: "Last write wins" — overwrite
         entry.OriginalValues.SetValues(dbValues);
         await _db.SaveChangesAsync();
-
+        
         // Option 2: Reject and tell the user
         throw new ConflictException(
             "Order was modified by another user. Please refresh and try again.");
@@ -413,10 +395,9 @@ public async Task UpdateOrderAsync(int id, UpdateOrderDto dto)
 ```
 
 ---
-
 ## 9. Global Query Filters (Soft Delete)
 
-```csharp
+```csharp hl:8-11,14-15
 // Entity
 public class Patient
 {
@@ -424,10 +405,8 @@ public class Patient
     public string Name { get; set; }
     public bool IsDeleted { get; set; }  // soft delete flag
 }
-
 // In OnModelCreating — applies to ALL queries automatically
 builder.HasQueryFilter(p => !p.IsDeleted);
-
 // Now this NEVER returns deleted patients:
 var patients = await _db.Patients.ToListAsync();
 // SQL: SELECT * FROM Patients WHERE IsDeleted = 0
@@ -440,11 +419,8 @@ var allPatients = await _db.Patients.IgnoreQueryFilters().ToListAsync();
 > Soft delete is critical for HIPAA. You can't truly delete patient records — you mark them deleted but preserve the data for audit and legal compliance. Global filters make this automatic.
 
 ---
-
 ## 10. Performance Patterns
-
 ### Batch operations (EF Core 7+)
-
 ```csharp
 // ExecuteUpdate — bulk update without loading entities
 await _db.Orders
@@ -461,10 +437,8 @@ await _db.AuditLogs
     .ExecuteDeleteAsync();
 // Single DELETE statement
 ```
-
 ### Split queries (for complex Includes)
-
-```csharp
+```csharp hl:1,6,8,12,14
 // Problem: Include with large collections generates a cartesian explosion
 var orders = await _db.Orders
     .Include(o => o.Items)
@@ -480,10 +454,8 @@ var orders = await _db.Orders
     .ToListAsync();
 // 3 queries instead of 1 massive JOIN — often faster
 ```
-
 ### Compiled queries (hot paths)
-
-```csharp
+```csharp hl:1-3,9-10
 // Pre-compile the query for repeated use — skips LINQ translation overhead
 private static readonly Func<PharmacyDbContext, int, Task<Order?>>
     GetOrderById = EF.CompileAsyncQuery(
@@ -495,9 +467,7 @@ private static readonly Func<PharmacyDbContext, int, Task<Order?>>
 // Usage — faster on hot paths
 var order = await GetOrderById(_db, orderId);
 ```
-
 ---
-
 ## 11. Quick-Fire Interview Q&A
 
 ### "DbContext: Scoped, Singleton, or Transient?"
@@ -505,10 +475,14 @@ var order = await GetOrderById(_db, orderId);
 ### =="When would you use AsNoTracking?"==
 ==Read-only queries== — lists, reports, search results. Anything you don't plan to modify. It skips the change tracker snapshot, uses less memory, and runs faster. Don't use it if you'll call SaveChanges on those entities.
 ### "How do you handle the N+1 problem?"
-Three options: (1) `.Include()` for eager loading, (2) `.Select()` projection to fetch only needed columns, (3) explicit loading with `.Entry().Collection().LoadAsync()`. I prefer `.Select()` — it's the most efficient because it only fetches what you need.
+Three options: 
+(1) `.Include()` for eager loading, 
+(2) `.Select()` projection to fetch only needed columns, 
+(3) explicit loading with `.Entry().Collection().LoadAsync()`.
+I prefer `.Select()` — it's the most efficient because it only fetches what you need.
 ### "Fluent API or Data Annotations?"
 Both work. Data Annotations for simple constraints (Required, MaxLength). Fluent API for relationships, indexes, composite keys, and anything complex. I prefer Fluent API with `IEntityTypeConfiguration<T>` to keep entity classes clean.
 ### "How do you deploy migrations to production?"
 Generate an idempotent SQL script with `dotnet ef migrations script --idempotent`, review it, and apply through the CI/CD pipeline. Never run `database update` directly in production.
 ### "What's the difference between `Find` and `FirstOrDefault`?"
-`Find()` checks the local change tracker cache first, then queries the DB. `FirstOrDefault()` always queries the DB. Use `Find()` when you have the primary key and want cache hits. Use `FirstOrDefault()` with complex filters.
+==`Find()` checks the local change tracker cache first, then queries the DB. `FirstOrDefault()` always queries the DB. Use `Find()` when you have the primary key and want cache hits. Use `FirstOrDefault()` with complex filters.==

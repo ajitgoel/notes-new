@@ -4,17 +4,14 @@
 > Empower's stack includes **React.js** for frontend. Dave's teams have built UIs across multiple roles. This covers modern React (hooks, functional components, TypeScript) — class components are legacy.
 
 ---
+## 1. ==useState — Managing Local State==
 
-## 1. useState — Managing Local State
-
-```tsx
+```tsx hl:14-17,1,7-12
 import { useState } from "react";
-
 function PrescriptionForm() {
   // Simple state
   const [medication, setMedication] = useState("");
   const [dosage, setDosage] = useState(0);
-
   // Object state — always spread to avoid losing fields
   const [form, setForm] = useState({
     patientId: 0,
@@ -22,7 +19,7 @@ function PrescriptionForm() {
     dosage: 0,
     notes: "",
   });
-
+  
   const updateField = (field: string, value: string | number) => {
     setForm(prev => ({ ...prev, [field]: value }));
     // ✅ ...prev preserves other fields
@@ -44,35 +41,27 @@ function PrescriptionForm() {
 }
 ```
 
-> [!warning] State updates are asynchronous
-> `setState` doesn't update immediately. If you need the previous value to compute the next, use the **callback form**: `setCount(prev => prev + 1)`, not `setCount(count + 1)`.
+==**State updates are asynchronous**==
+==`setState` doesn't update immediately. If you need the previous value to compute the next, use the **callback form**: `setCount(prev => prev + 1)`, not `setCount(count + 1)`==.
 
 ---
-
 ## 2. useEffect — Side Effects
-
-`useEffect` runs after render. It's for side effects: API calls, subscriptions, timers, DOM manipulation.
-
-```tsx
+==`useEffect` runs after render. It's for side effects: API calls,== subscriptions, ==timers==, DOM manipulation.
+```tsx hl:1,6,28
 import { useEffect, useState } from "react";
-
 function PrescriptionList({ patientId }: { patientId: number }) {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     let cancelled = false;  // prevent setting state on unmounted component
-
     async function fetchData() {
       setLoading(true);
       setError(null);
-
       try {
         const res = await fetch(`/api/patients/${patientId}/prescriptions`);
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
-
         if (!cancelled) {
           setPrescriptions(data);
         }
@@ -84,28 +73,23 @@ function PrescriptionList({ patientId }: { patientId: number }) {
         if (!cancelled) setLoading(false);
       }
     }
-
     fetchData();
-
     return () => { cancelled = true; };  // cleanup on unmount or re-run
   }, [patientId]);  // re-runs when patientId changes
-
   if (loading) return <Spinner />;
   if (error) return <ErrorMessage message={error} />;
   return <PrescriptionTable data={prescriptions} />;
 }
 ```
-
 ### Dependency Array Rules
 
-| Dependency Array | When Effect Runs |
-|---|---|
-| `[]` | Once after first render (mount only) |
-| `[patientId]` | On mount + whenever `patientId` changes |
+| Dependency Array   | When Effect Runs                                |
+| ------------------ | ----------------------------------------------- |
+| ==`[]`==               | ==Once after first render (mount only)==            |
+| ==`[patientId]`==      | ==On mount + whenever `patientId` changes==         |
 | No array (omitted) | After EVERY render — almost never what you want |
-
 ### Cleanup Function
-
+1qsx
 ```tsx
 useEffect(() => {
   const interval = setInterval(() => {
@@ -118,16 +102,12 @@ useEffect(() => {
 ```
 
 ---
-
-## 3. useRef — Persistent Values Without Re-renders
-
-```tsx
+## 3. ==useRef — Persistent Values Without Re-renders==
+```tsx hl:4,6,23,1
 import { useRef, useEffect } from "react";
-
 function SearchInput() {
   // DOM reference
   const inputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     inputRef.current?.focus();  // auto-focus on mount
   }, []);
@@ -146,24 +126,19 @@ function SearchInput() {
     }
     prevPatientId.current = patientId;
   }, [patientId]);
-
   return <input ref={inputRef} placeholder="Search..." />;
 }
 ```
 
-> [!tip] useState vs useRef
-> `useState`: when the UI should re-render when the value changes (form fields, lists, toggles).
-> `useRef`: when you need a value to persist but changing it should NOT re-render (DOM refs, timers, previous values).
+**useState vs useRef**
+==`useState`: when the UI should re-render when the value changes (form fields, lists, toggles).==
+==`useRef`: when you need a value to persist but changing it should NOT re-render== (DOM refs, timers, previous values).
 
 ---
-
 ## 4. useMemo & useCallback — Performance
-
-### useMemo — cache an expensive calculation
-
-```tsx
+### ==useMemo — cache an expensive calculation==
+```tsx hl:1,4,11
 import { useMemo } from "react";
-
 function OrderDashboard({ orders }: { orders: Order[] }) {
   // Only recalculates when `orders` changes, not on every render
   const stats = useMemo(() => ({
@@ -174,7 +149,6 @@ function OrderDashboard({ orders }: { orders: Order[] }) {
       ? orders.reduce((sum, o) => sum + o.total, 0) / orders.length
       : 0,
   }), [orders]);
-
   return (
     <div>
       <StatCard label="Total Orders" value={stats.total} />
@@ -186,12 +160,10 @@ function OrderDashboard({ orders }: { orders: Order[] }) {
 
 ### useCallback — cache a function reference
 
-```tsx
+```tsx hl:1,4-6,11
 import { useCallback, useState } from "react";
-
 function PatientSearch() {
   const [query, setQuery] = useState("");
-
   // Without useCallback, this creates a new function on every render,
   // causing child components that receive it to re-render unnecessarily
   const handleSearch = useCallback((searchTerm: string) => {
@@ -199,20 +171,16 @@ function PatientSearch() {
       .then(res => res.json())
       .then(data => setResults(data));
   }, []);  // empty deps = function never changes
-
   return <SearchInput onSearch={handleSearch} />;
 }
 ```
 
 > [!warning] Don't overuse these
-> `useMemo` and `useCallback` have overhead (storing and comparing). Only use them for: (1) genuinely expensive computations, (2) preventing re-renders in child components wrapped in `React.memo`, (3) values passed as dependencies to other hooks.
+==`useMemo` and `useCallback` have overhead (storing and comparing). Only use them for: (1) genuinely expensive computations, (2) preventing re-renders in child components wrapped in `React.memo`, (3) values passed as dependencies to other hooks.==
 
 ---
-
 ## 5. Custom Hooks — Reusable Logic
-
 Extract repeated patterns into custom hooks. Any function starting with `use` is a hook.
-
 ```tsx
 // === useFetch — reusable data fetching ===
 function useFetch<T>(url: string) {
@@ -277,12 +245,9 @@ function SearchBar() {
 ```
 
 ---
-
 ## 6. Context — Sharing State Across Components
-
-```tsx
+```tsx hl:1,9,29
 import { createContext, useContext, useState, ReactNode } from "react";
-
 // === Define the context ===
 type AuthContextType = {
   user: User | null;
@@ -290,13 +255,10 @@ type AuthContextType = {
   logout: () => void;
   isAuthenticated: boolean;
 };
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 // === Provider component ===
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-
   const login = async (token: string) => {
     const res = await fetch("/api/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
@@ -304,27 +266,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userData = await res.json();
     setUser(userData);
   };
-
   const logout = () => setUser(null);
-
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
 }
-
 // === Custom hook for consuming ===
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 }
-
 // === Usage in any component ===
 function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
-
   return (
     <nav>
       {isAuthenticated ? (
@@ -341,14 +298,12 @@ function Navbar() {
 ```
 
 > [!warning] Context re-render trap
-> When the Provider's value changes, ALL consumers re-render — even if they only use one field. For large apps, split contexts by concern (AuthContext, ThemeContext, NotificationContext) rather than one giant AppContext.
+==When the Provider's value changes, ALL consumers re-render — even if they only use one field. For large apps, split contexts by concern (AuthContext, ThemeContext, NotificationContext) rather than one giant AppContext.==
 
 ---
-
 ## 7. useReducer — Complex State Logic
 
 When state has multiple sub-values or the next state depends on the previous, `useReducer` is cleaner than multiple `useState` calls.
-
 ```tsx
 import { useReducer } from "react";
 
@@ -434,7 +389,7 @@ function OrderBuilder() {
 
 ### React.memo — skip re-renders when props haven't changed
 
-```tsx
+```tsx hl:1-3
 // Without memo: re-renders every time parent re-renders
 // With memo: only re-renders if `patient` prop actually changed
 const PatientCard = React.memo(function PatientCard({ patient }: { patient: Patient }) {
@@ -488,28 +443,21 @@ function UncontrolledInput() {
   return <input ref={inputRef} defaultValue="" />;
 }
 ```
-
 ### Composition over Props Drilling
-
-```tsx
+```tsx hl:11,1
 // ❌ Props drilling — passing data through 4 layers
 <App user={user}>
   <Dashboard user={user}>
     <Sidebar user={user}>
       <UserAvatar user={user} />
-
 // ✅ Composition — pass the component itself
 function Dashboard({ sidebar }: { sidebar: ReactNode }) {
   return <div className="flex">{sidebar}<main>...</main></div>;
 }
-
 <Dashboard sidebar={<Sidebar><UserAvatar user={user} /></Sidebar>} />
-
 // ✅ Or use Context for truly global data (auth, theme)
 ```
-
 ### Error Boundaries
-
 ```tsx
 import { Component, ReactNode } from "react";
 
@@ -591,17 +539,20 @@ function List<T>({ items, renderItem, keyExtractor }: ListProps<T>) {
 ```
 
 ---
-
 ## 11. Quick-Fire Interview Q&A
 
-### "What's the virtual DOM?"
-A lightweight JavaScript representation of the real DOM. When state changes, React creates a new virtual DOM tree, diffs it against the previous one, and only updates the real DOM where differences exist. This batched, minimal update is why React is fast.
+### =="What's the virtual DOM?"==
+==A lightweight JavaScript representation of the real DOM. When state changes, React creates a new virtual DOM tree, diffs it against the previous one, and only updates the real DOM where differences exist. This batched, minimal update is why React is fast.==
 ### "Why can't you call hooks inside conditions or loops?"
 React tracks hooks by their call order. If a hook is inside an `if` block that sometimes doesn't run, the order shifts and React maps the wrong state to the wrong hook. Always call hooks at the top level of your component.
 ### "What's the difference between controlled and uncontrolled components?"
 Controlled: React state is the source of truth (`value` + `onChange`). Uncontrolled: the DOM is the source of truth (`ref` + `defaultValue`). Use controlled for forms where you need validation, conditional logic, or to share the value with other components.
-### "How do you prevent unnecessary re-renders?"
-(1) `React.memo` on child components, (2) `useMemo` for expensive calculations, (3) `useCallback` for function props passed to memoized children, (4) split Context into smaller pieces, (5) move state as close to where it's used as possible.
+### =="How do you prevent unnecessary re-renders?"==
+==(1) `React.memo` on child components,== 
+==(2) `useMemo` for expensive calculations,== 
+==(3) `useCallback` for function props passed to memoized children,== 
+==(4) split Context into smaller pieces,== 
+==(5) move state as close to where it's used as possible.==
 ### "When would you use useReducer over useState?"
 When state transitions are complex (multiple sub-values that change together), when the next state depends on the previous state in non-trivial ways, or when you want to extract and test state logic independently. Think of it as a mini Redux at the component level.
 ### "What are the rules of hooks?"

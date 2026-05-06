@@ -22,22 +22,17 @@ Build a `PrescriptionSearch` component that:
 > ```tsx
 > // === hooks/useDebounce.ts ===
 > import { useState, useEffect } from "react";
->
+
 > export function useDebounce(value: T, delay: number): T {
 >   const [debouncedValue, setDebouncedValue] = useState(value);
->
 >   useEffect(() => {
 >     const timer = setTimeout(() => setDebouncedValue(value), delay);
 >     return () => clearTimeout(timer);
 >   }, [value, delay]);
->
 >   return debouncedValue;
 > }
->
->
 > // === hooks/useFetch.ts ===
 > import { useState, useEffect } from "react";
->
 > export function useFetch(url: string | null) {
 >   const [data, setData] = useState(null);
 >   const [loading, setLoading] = useState(false);

@@ -2,7 +2,6 @@
 ## Framework internals, patterns, and interview-ready code
 
 ---
-
 ## 1. Program.cs — The Application Entry Point
 
 Modern .NET (6+) uses a minimal hosting model. Everything is configured in one file.

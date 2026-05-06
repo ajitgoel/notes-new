@@ -476,8 +476,8 @@ const secret = process.env.API_SECRET_KEY;       // ✗ undefined
 
 ## 10. Quick-Fire Interview Q&A
 
-### "When would you use a Client Component vs Server Component?"
-Server Component by default — it's lighter, more secure, and fetches data without loading states. Switch to Client only when you need interactivity: `useState`, `useEffect`, event handlers, or browser APIs.
+### =="When would you use a Client Component vs Server Component?"==
+==Server Component by default — it's lighter, more secure, and fetches data without loading states. Switch to Client only when you need interactivity: `useState`, `useEffect`, event handlers, or browser APIs.==
 ### "What's the difference between `cache: 'no-store'` and `revalidate`?"
 `no-store` fetches fresh data on every request (SSR). `revalidate: 60` caches the result and re-fetches at most every 60 seconds (ISR). Use `no-store` for user-specific data, `revalidate` for shared data that changes occasionally.
 ### "How do layouts work in the App Router?"
@@ -487,4 +487,6 @@ Functions marked with `"use server"` that run on the server but can be called fr
 ### "How does `loading.tsx` work?"
 Next.js wraps each route segment in a React Suspense boundary. `loading.tsx` is the fallback UI shown while the `page.tsx` is fetching data. It renders instantly — no spinner-on-the-whole-page delay. You get streaming HTML out of the box.
 ### "How do you handle auth in Next.js?"
-Middleware for route protection (redirect unauthenticated users), Server Components for reading the session, and Client Components for login forms. Libraries like NextAuth.js/Auth.js handle the heavy lifting. Never check auth only on the client — always verify server-side.
+==Middleware for route protection (redirect unauthenticated users),== 
+==Server Components for reading the session, and== 
+==Client Components for login forms.== Libraries like NextAuth.js/Auth.js handle the heavy lifting. Never check auth only on the client — always verify server-side.
