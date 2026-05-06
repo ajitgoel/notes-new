@@ -62,10 +62,9 @@ CROSS JOIN Dosages d;
 ---
 ## 2. Window Functions
 
-Window functions perform calculations across a set of rows **without collapsing them** (unlike GROUP BY). These come up constantly in interviews.
+==Window functions perform calculations across a set of rows **without collapsing them** (unlike GROUP BY).== These come up constantly in interviews.
 ### ROW_NUMBER, RANK, DENSE_RANK
-
-```sql
+```sql hl:10,11
 -- ROW_NUMBER: unique sequential number (no ties)
 -- RANK: same rank for ties, skips next (1, 2, 2, 4)
 -- DENSE_RANK: same rank for ties, no skip (1, 2, 2, 3)
@@ -85,9 +84,7 @@ FROM Pharmacists;
 -- 3            | 120         | 2      | 1   | 1    ← tied
 -- 8            | 95          | 3      | 3   | 2    ← RANK skips to 3, DENSE_RANK goes to 2
 ```
-
-### PARTITION BY — window within groups
-
+### ==PARTITION BY — window within groups==
 ```sql hl:3-4
 -- "Rank each pharmacist's orders within their own state"
 SELECT Name, State, TotalOrders,
@@ -107,7 +104,6 @@ Dr. Brown      | NY    | 95          | 2          ← same TotalOrders, but ROW_
 
 ```
 ### LAG and LEAD — access previous/next rows
-
 ```sql
 -- "Compare each day's order count to the previous day"
 SELECT
@@ -117,8 +113,7 @@ SELECT
     OrderCount - LAG(OrderCount, 1) OVER (ORDER BY OrderDate) AS DayOverDayChange
 FROM DailyOrderSummary;
 ```
-### Running totals with SUM OVER
-
+### ==Running totals with SUM OVER==
 ```sql hl:5
 -- "Running total of revenue by date"
 SELECT
@@ -143,10 +138,9 @@ OrderDate   | DailyRevenue | RunningTotal
 ```
 
 > [!tip] Key insight
-> Window functions let you do analytics (rankings, running totals, comparisons) **without** self-joins or subqueries. They're cleaner and usually faster.
+==Window functions let you do analytics (rankings, running totals, comparisons) **without** self-joins or subqueries. They're cleaner and usually faster.==
 
 ---
-
 ## 3. Common Table Expressions (CTEs)
 
 ==A CTE is a named, temporary result set that exists only for the duration of the query.== Think of it as an inline view.
@@ -286,7 +280,7 @@ INCLUDE (PatientId, Total, CreatedAt);
 -- is answered entirely from the index — no "key lookup" needed
 ```
 
-### When to add indexes
+### ==When to add indexes==
 
 ```sql hl:7,5,6
 -- Check what the optimizer wants:
@@ -300,7 +294,7 @@ INCLUDE (PatientId, Total, CreatedAt);
 ```
 
 > [!tip] Interview answer
-> "I'd look at the execution plan, check for key lookups and table scans, and add a covering index on the filtered columns with INCLUDEs for the selected columns."
+=="I'd look at the execution plan, check for key lookups and table scans, and add a covering index on the filtered columns with INCLUDEs for the selected columns."==
 
 ---
 
