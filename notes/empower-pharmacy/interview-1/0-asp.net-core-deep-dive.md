@@ -5,7 +5,6 @@
 ## 1. Program.cs — The Application Entry Point
 
 Modern .NET (6+) uses a minimal hosting model. Everything is configured in one file.
-
 ```csharp hl:1,11,19
 var builder = WebApplication.CreateBuilder(args);
 // === SERVICES (DI container) ===
@@ -29,22 +28,19 @@ app.Run();
 ```
 
 > [!tip] Interview insight
-> "Services" go in the top half (before `Build()`). "Middleware" goes in the bottom half (after `Build()`). Services = what's available. Middleware = how requests flow.
+=="Services" go in the top half (before `Build()`). "Middleware" goes in the bottom half (after `Build()`). Services = what's available. Middleware = how requests flow.==
 
 ---
-
 ## 2. Middleware Pipeline
-
-Every HTTP request passes through middleware in the order they're registered. Each middleware can:
-- **Process and pass** to the next middleware
-- **Short-circuit** — return a response without calling the next middleware
-
+==Every HTTP request passes through middleware in the order they're registered. Each middleware can:==
+- ==**Process and pass** to the next middleware==
+- ==**Short-circuit** — return a response without calling the next middleware==
 ```
 Request  →  ExceptionHandler → HTTPS → Auth → Authorization → Controller
 Response ←  ExceptionHandler ← HTTPS ← Auth ← Authorization ← Controller
 ```
 ### Writing Custom Middleware
-```csharp hl:14,22
+```csharp hl:5,8,11,14,21
 public class RequestTimingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -64,23 +60,21 @@ public class RequestTimingMiddleware
             context.Response.StatusCode, sw.ElapsedMilliseconds);
     }
 }
-
 // Register in Program.cs:
 app.UseMiddleware<RequestTimingMiddleware>();
 ```
-
 ### Common Middleware Order
 
-| Order | Middleware | Why |
-|---|---|---|
-| 1 | Exception Handler | Catches everything — must be first |
-| 2 | HSTS / HTTPS | Redirect before any processing |
-| 3 | Static Files | Serve files without hitting auth |
-| 4 | Routing | Match URL to endpoint |
-| 5 | CORS | Must come before auth |
-| 6 | Authentication | Identify the user |
-| 7 | Authorization | Check permissions |
-| 8 | Endpoints / Controllers | Handle the request |
+| Order | Middleware              | Why                                |
+| ----- | ----------------------- | ---------------------------------- |
+| 1     | Exception Handler       | Catches everything — must be first |
+| 2     | HSTS / HTTPS            | Redirect before any processing     |
+| 3     | Static Files            | Serve files without hitting auth   |
+| 4     | Routing                 | Match URL to endpoint              |
+| 5     | CORS                    | Must come before auth              |
+| 6     | Authentication          | Identify the user                  |
+| 7     | Authorization           | Check permissions                  |
+| 8     | Endpoints / Controllers | Handle the request                 |
 
 > [!warning] Order matters
 > If you put Authentication AFTER the controller, your `[Authorize]` attributes won't work — the user identity hasn't been set yet.
@@ -187,28 +181,24 @@ public class OrderEventProducer
 }
 ```
 
-| Interface | Behavior |
-|---|---|
-| `IOptions<T>` | Reads config once at startup, never changes |
-| `IOptionsSnapshot<T>` | Re-reads per request (scoped). Picks up file changes. |
-| `IOptionsMonitor<T>` | Singleton that watches for changes and fires callbacks |
+| Interface             | Behavior                                               |
+| --------------------- | ------------------------------------------------------ |
+| `IOptions<T>`         | Reads config once at startup, never changes            |
+| `IOptionsSnapshot<T>` | Re-reads per request (scoped). Picks up file changes.  |
+| `IOptionsMonitor<T>`  | Singleton that watches for changes and fires callbacks |
 
 ---
-
 ## 5. Filters (Action Filters, Exception Filters)
-
-Filters run code **before and after** controller actions. They're the ASP.NET way to handle cross-cutting concerns.
+==Filters run code **before and after** controller actions. They're the ASP.NET way to handle cross-cutting concerns.==
 ### Action Filter
-
-```csharp hl:1,14-17
+```csharp hl:1,13-16,3,5,7
 public class ValidateModelFilter : IActionFilter
 {
     public void OnActionExecuting(ActionExecutingContext context)
     {
         if (!context.ModelState.IsValid)
         {
-            context.Result = new BadRequestObjectResult(
-                context.ModelState);
+            context.Result = new BadRequestObjectResult(context.ModelState);
         }
     }
     public void OnActionExecuted(ActionExecutedContext context) { }
@@ -219,9 +209,7 @@ builder.Services.AddControllers(opts =>
     opts.Filters.Add<ValidateModelFilter>();
 });
 ```
-
 ### Exception Filter
-
 ```csharp hl:1,6
 public class GlobalExceptionFilter : IExceptionFilter
 {
@@ -245,21 +233,15 @@ public class GlobalExceptionFilter : IExceptionFilter
     }
 }
 ```
-
 ### Filter Execution Order
-
-```
+``` hl:1-3
 Authorization Filters → Resource Filters → Model Binding →
 Action Filters (before) → ACTION → Action Filters (after) →
 Exception Filters → Result Filters
 ```
-
 ---
-
 ## 6. Authentication & Authorization
-
 ### JWT Bearer Authentication
-
 ```csharp hl:2,17
 // Program.cs
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -353,9 +335,7 @@ public class OrderService
 | `Critical` | App-wide failure (DB down, out of memory) |
 
 ---
-
 ## 8. Health Checks
-
 ```csharp
 // Program.cs
 builder.Services.AddHealthChecks()
@@ -405,12 +385,9 @@ public class KafkaHealthCheck : IHealthCheck
 > `/health/live` = "is the process running?" (for Kubernetes restarts). `/health/ready` = "can it handle traffic?" (checks DB, Kafka, etc.). Kubernetes uses these to decide whether to route traffic to this instance.
 
 ---
-
 ## 9. Background Services (Hosted Services)
-
 Long-running tasks that run alongside your API — perfect for Kafka consumers.
-
-```csharp
+```csharp hl:18-19
 public class OrderEventConsumer : BackgroundService
 {
     private readonly IServiceProvider _provider;
@@ -447,7 +424,7 @@ builder.Services.AddHostedService<OrderEventConsumer>();
 ```
 
 > [!warning] DI Scope trap
-> BackgroundService is a singleton, but DbContext is scoped. You MUST create a scope with `CreateScope()` to get scoped services. Injecting DbContext directly into the constructor will throw.
+==BackgroundService is a singleton, but DbContext is scoped. You MUST create a scope with `CreateScope()` to get scoped services. Injecting DbContext directly into the constructor will throw.==
 
 ---
 
@@ -467,7 +444,7 @@ public record CreatePrescriptionDto
 }
 ```
 
-With `[ApiController]`, validation is automatic — invalid models return `400 Bad Request` before your action code runs.
+==With `[ApiController]`, validation is automatic — invalid models return `400 Bad Request` before your action code runs.==
 
 ### Custom Validation
 
@@ -513,20 +490,16 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateRxValidator>();
 ```
 
 ---
-
 ## 11. Quick-Fire Interview Q&A
-
-### "What does `[ApiController]` do?"
-Three things: (1) automatic model validation (returns 400 for invalid models), (2) binding source inference (`[FromBody]` is implied for complex types), (3) problem details responses for errors. It's a convenience attribute — you can do all this manually.
-### "How does routing work?"
-Two layers. **Conventional routing** (`MapControllerRoute`) matches URL patterns globally. **Attribute routing** (`[Route]`, `[HttpGet]`) is defined on each controller/action. In API projects, attribute routing is standard.
+### =="What does `[ApiController]` do?"==
+Three things: ==(1) automatic model validation (returns 400 for invalid models),== (2) binding source inference (`[FromBody]` is implied for complex types), (3) problem details responses for errors. It's a convenience attribute — you can do all this manually.
+### =="How does routing work?"==
+Two layers. **Conventional routing** (`MapControllerRoute`) matches URL patterns globally. ==**Attribute routing** (`[Route]`, `[HttpGet]`) is defined on each controller/action. In API projects, attribute routing is standard.==
 ### "What's the difference between `AddSingleton`, `AddScoped`, `AddTransient`?"
 ==Singleton = one instance for the app. Scoped = one instance per HTTP request. Transient = new instance every time it's injected. DbContext is always scoped. Caches and HttpClient factories are singletons.== Validators and formatters are usually transient.
 ### "How do you handle errors globally?"
 Three options: ==(1) `app.UseExceptionHandler()` middleware — catches everything, (2) `IExceptionFilter` — catches controller exceptions only,== (3) Problem Details middleware (.NET 7+) — standardized error format. I'd use exception middleware for API-wide handling and filters for controller-specific logic.
-
 ### "What's the difference between `IApplicationBuilder` and `WebApplication`?"
 `WebApplication` (modern .NET 6+) IS an `IApplicationBuilder` — plus it also implements `IHost` and `IEndpointRouteBuilder`. It merges what used to be `Startup.Configure` and `Program.Main` into a single unified API.
-
-### "How do you handle CORS?"
+### "How do you handle CORS(Cross Origin Resource Sharing)?"
 Register in services: `builder.Services.AddCors(opts => opts.AddPolicy("AllowFrontend", p => p.WithOrigins("https://app.empower.com").AllowAnyMethod().AllowAnyHeader()))`. Apply with `app.UseCors("AllowFrontend")` — must come AFTER routing but BEFORE auth.
