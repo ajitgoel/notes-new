@@ -1,5 +1,5 @@
 ###### **1. Indexing Strategy** 
-**Create indexes on columns used in WHERE, JOIN, and ORDER BY:**
+==**Create indexes on columns used in WHERE, JOIN, and ORDER BY:**==
 ```sql
 -- Covering index: includes all columns the query needs
 CREATE NONCLUSTERED INDEX IX_Orders_CustomerDate
@@ -146,7 +146,6 @@ LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
 GROUP BY c.Name;
 ```
 ###### **11. ==Use SET NOCOUNT ON in Stored Procedures**== 
-
 ```sql hl:4
 CREATE PROCEDURE usp_GetOrders @CustomerID INT
 AS
@@ -160,7 +159,6 @@ END
 ```
 
   ###### **12. Query Store — Find Regressions** 
-
 ```sql
 -- Enable Query Store
 ALTER DATABASE MyDB SET QUERY_STORE = ON;
@@ -191,7 +189,6 @@ ALTER DATABASE MyDB SET READ_COMMITTED_SNAPSHOT ON;
 -- Now readers never block writers, no NOLOCK hints needed
 ```
 ###### **14. ==Avoid Cursors — Use Set-Based Logic**== 
-
 ```sql hl:1,11
 -- Bad: row-by-row cursor
 DECLARE cur CURSOR FOR SELECT OrderID, Amount FROM Orders;
