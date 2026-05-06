@@ -5,7 +5,11 @@ Q: Explain multi-tenancy options and which you'd choose for a healthcare SaaS.
 Three models: shared DB with tenant_id column (cheap, leaky risk), ==schema-per-tenant (moderate isolation), database-per-tenant (strong isolation, higher cost)==. For healthcare, database-per-tenant is the gold standard — no cross-tenant query leakage possible. Row-level security in SQL is a viable middle ground: enforces tenant_id filtering at the DB engine level even if the app layer has a bug.
 
 <mark style="background:#d3f8b6">Q: Walk me through how React renders and where you'd optimize performance.</mark>
-<mark style="background:#d3f8b6">React re-renders a component when state or props change; the virtual DOM diffs against previous and patches only what changed. Optimize with: React.memo to skip re-render of pure components, useMemo/useCallback to stabilize references passed as props, virtualization (react-window) for long lists, code splitting via lazy()/Suspense, and avoid inline object/function literals in JSX that create new references on every render.</mark>
+<mark style="background:#d3f8b6">React re-renders a component when state or props change; the virtual DOM diffs against previous and patches only what changed. Optimize with: React.memo to skip re-render of pure components, 
+useMemo/useCallback to stabilize references passed as props, 
+virtualization (react-window) for long lists, 
+code splitting via lazy()/Suspense, and 
+avoid inline object/function literals in JSX that create new references on every render.</mark>
 
 Q: How do you version a REST API when clients are on different versions?
 URL versioning (/v1/, /v2/) is most explicit and works with caching and APIM policies. Use the Asp.Versioning NuGet package — decorate controllers with [ApiVersion("2.0")], add a deprecated sunset header on v1. Support at minimum N-1. Breaking changes go in a new version; additive changes (new fields, new optional params) are backward compatible within a version.
