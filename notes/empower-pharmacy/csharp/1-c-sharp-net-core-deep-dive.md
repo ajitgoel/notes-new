@@ -55,7 +55,7 @@ builder.Services.AddScoped<OrderService>();
 | ==`AddSingleton`== | ==One instance for **app lifetime**==     | ==Caches, config, HttpClient factories==              |
 
 > [!warning] Trap
-> Injecting a Scoped service into a Singleton causes a "captured dependency" — the Scoped service lives forever. ASP.NET Core throws `InvalidOperationException` in Development mode.
+==Injecting a Scoped service into a Singleton causes a "captured dependency" — the Scoped service lives forever. ASP.NET Core throws `InvalidOperationException` in Development mode.==
 
 ---
 
@@ -64,7 +64,7 @@ builder.Services.AddScoped<OrderService>();
 > [!tip] Why Dave cares
 > Empower handles 15,000+ prescriptions daily. Blocking threads kills throughput. Every DB call, API call, and file read should be async.
 
-`async` marks a method as asynchronous. `await` pauses execution until a task completes — **without blocking the thread**.
+==`async` marks a method as asynchronous. `await` pauses execution until a task completes — **without blocking the thread**.==
 ### Basic Pattern
 
 ```csharp
@@ -114,14 +114,10 @@ public async Task<DashboardDto> GetDashboardAsync(int userId)
 | `Task.WhenAll()` for parallel | `async void` — swallows exceptions |
 
 ---
-
 ## 3. LINQ
-
 > [!tip] Why Dave cares
 > His work at Orion involved data flows between multiple applications. LINQ is how .NET developers filter, transform, and aggregate data.
-
 ### The Essentials
-
 ```csharp
 var orders = new List<Order> { /* ... */ };
 
@@ -174,7 +170,8 @@ var meds = orders
 ```
 
 > [!warning] IEnumerable vs IQueryable
-> With `IQueryable` (EF Core), LINQ translates to SQL — filtering in the database. With `IEnumerable`, filtering happens in memory. Calling `.ToList()` too early pulls the entire table into memory — a classic perf killer.
+==With `IQueryable` (EF Core), LINQ translates to SQL — filtering in the database. With `IEnumerable`, filtering happens in memory. Calling `.ToList()` too early pulls the entire table into memory — a classic perf killer.==
+
 ---
 ## 4. REST API Design
 ### Controller-Based Approach
@@ -234,8 +231,8 @@ public record CreateRxDto(
 ```
 ### Status Codes
 
-| Code              | When                                      |
-| ----------------- | ----------------------------------------- |
+| Code                  | When                                          |
+| --------------------- | --------------------------------------------- |
 | ==`200 OK`==          | ==Successful GET or PUT==                     |
 | ==`201 Created`==     | ==Successful POST — include Location header== |
 | ==`204 No Content`==  | ==Successful DELETE or PUT with no body==     |
@@ -276,14 +273,11 @@ public class CompoundedMedication : Medication
 }
 ```
 
-**Rule of thumb:** Interface when unrelated classes share a capability. Abstract class when related classes share behavior and state.
+**Rule of thumb:** ==Interface when unrelated classes share a capability. Abstract class when related classes share behavior and state.==
 
 ---
-
 ## 6. Value Types vs Reference Types
-
-### Value Types — Copied on Assignment
-
+### ==Value Types — Copied on Assignment==
 ```csharp hl:5,2
 int a = 10;
 int b = a;      // b gets a COPY
@@ -291,7 +285,7 @@ b = 20;
 Console.WriteLine(a);  // 10 — unchanged
 // Value types: int, double, bool, char, decimal, struct, enum, DateTime, Guid
 ```
-### Reference Types — Shared on Assignment
+### ==Reference Types — Shared on Assignment==
 ```csharp hl:5,2
 var order1 = new Order { Total = 100 };
 var order2 = order1;    // both point to SAME object
@@ -301,7 +295,7 @@ Console.WriteLine(order1.Total);  // 999 — both changed!
 ```
 
 > [!warning] Trap
-> `string` is a reference type but behaves like a value type because it's *immutable*. Every "modification" creates a new string. For heavy string manipulation, use `StringBuilder`.
+==`string` is a reference type but behaves like a value type because it's *immutable*. Every "modification" creates a new string. For heavy string manipulation, use `StringBuilder`.==
 
 ---
 ## 7. Generics
@@ -392,14 +386,11 @@ var summaries = await _ctx.Orders
 ```
 
 > [!warning] N+1 Problem
-> Without `.Include()`, accessing `order.Patient` in a loop triggers a separate SQL query per order. Use `.Include()` for eager loading, or `.Select()` to project — often the better approach.
+==Without `.Include()`, accessing `order.Patient` in a loop triggers a separate SQL query per order. Use `.Include()` for eager loading, or `.Select()` to project — often the better approach.==
 
 ---
-
 ## 9. Middleware Pipeline
-
 Every HTTP request passes through middleware in registration order. Each can process, pass to next, or short-circuit.
-
 ```csharp
 // Program.cs — ORDER MATTERS
 var app = builder.Build();
@@ -413,9 +404,7 @@ app.MapControllers();                 // 5. Route to controller
 // Request flows DOWN: 1 → 2 → 3 → 4 → 5
 // Response flows UP:  5 → 4 → 3 → 2 → 1
 ```
-
 ### Custom Middleware
-
 ```csharp
 public class RequestTimingMiddleware
 {
