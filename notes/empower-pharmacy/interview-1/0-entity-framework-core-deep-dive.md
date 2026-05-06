@@ -4,7 +4,7 @@
 
 ## 1. DbContext — Your Database Session
 
-DbContext is the central class. It represents a session with the database: tracks entities, manages connections, and translates LINQ to SQL.
+==DbContext== is the central class. ==It represents a session with the database:== tracks entities, manages connections, and translates LINQ to SQL.
 
 ```csharp
 public class PharmacyDbContext : DbContext
@@ -27,7 +27,7 @@ opts.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 ```
 
 > [!warning] DbContext lifetime
-> DbContext is registered as **Scoped** by default — one instance per HTTP request. NEVER register it as Singleton (it's not thread-safe). In a BackgroundService, create a new scope: `provider.CreateScope()`.
+==DbContext is registered as **Scoped** by default — one instance per HTTP request. NEVER register it as Singleton (it's not thread-safe). In a BackgroundService, create a new scope: `provider.CreateScope()`.==
 
 ### DbContext is a Unit of Work
 
@@ -267,7 +267,7 @@ var patients = await _db.Patients
 ```
 
 > [!tip] Performance rule
-> Use `AsNoTracking()` for read-only queries (lists, reports, dashboards). It skips change detection and uses less memory. Only track entities you intend to modify.
+==Use `AsNoTracking()` for read-only queries (lists, reports, dashboards). It skips change detection and uses less memory. Only track entities you intend to modify.==
 
 ---
 

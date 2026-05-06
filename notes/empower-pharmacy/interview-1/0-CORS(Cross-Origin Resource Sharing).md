@@ -1,8 +1,8 @@
-In plain English, **CORS (Cross-Origin Resource Sharing)** is a security guard in your web browser that prevents one website from "talking" to another website unless the second website explicitly says it’s okay.
+In plain English, ==**CORS (Cross-Origin Resource Sharing)** is a security guard in your web browser that prevents one website from "talking" to another website unless the second website explicitly says it’s okay.==
 
 ### The Problem it Solves
 
-Browsers have a rule called the **Same-Origin Policy**. It says: "If you loaded a page from `website-a.com`, that page is only allowed to request data from `website-a.com`."
+==Browsers have a rule called the **Same-Origin Policy**. It says: "If you loaded a page from `website-a.com`, that page is only allowed to request data from `website-a.com`."==
 
 Without this rule, a malicious website you accidentally visited could use your browser to send a request to `your-bank.com` and, because you're already logged in, steal your info.
 
@@ -62,4 +62,4 @@ app.MapControllers();
 
 ### Key Takeaway
 
-If you see a **CORS Error** in your browser console, it almost always means the **Backend** needs to be updated to whitelist the **Frontend's** URL.
+==If you see a **CORS Error** in your browser console, it almost always means the **Backend** needs to be updated to whitelist the **Frontend's** URL.==
