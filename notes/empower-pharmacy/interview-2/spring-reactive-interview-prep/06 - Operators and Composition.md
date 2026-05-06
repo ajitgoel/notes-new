@@ -175,7 +175,6 @@ Flux.concat(cacheResults, remoteResults)
 mono.onErrorReturn("default") // Any error → "default"
 mono.onErrorReturn(IOException.class, "io-default") // Only IOException
 ```
-
 ==**`onErrorResume(fn)`**:== Returns a fallback Publisher based on the error. More powerful — ==you can inspect the error,== call another service==, or re-throw selectively.==
 ```java
 mono.onErrorResume(ex -> {

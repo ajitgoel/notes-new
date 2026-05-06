@@ -90,7 +90,6 @@ flux.buffer(5)                          // Flux<T> → Flux<List<T>>
 | Aggregate multiple results | Flux → collectList() → Mono<List> |
 
 ---
-
 ## Subscribing (terminal operations)
 
 ```java
@@ -147,7 +146,7 @@ This matters because:
 **==flatMap**: Subscribes to all inner publishers== eagerly, interleaves results as they arrive. Fast but unordered. ==Use when order doesn't matter== and you want maximum concurrency. Concurrency is unbounded by default (configurable with `flatMap(fn, concurrency)`).
 ==**concatMap**: Subscribes to inner publishers== sequentially — ==waits for each publisher to complete before subscribing to the next. Preserves order== but no concurrency. ==Use when order matters== AND operations have side effects that must be sequential (e.g., writing files in order).
 ==**flatMapSequential**: Subscribes to inner publishers== eagerly (like `flatMap`) for concurrency, but ==queues results to emit in the original order.== Best of both worlds: concurrent execution with ordered output. Use when you want parallelism but the ==downstream consumer expects ordered results.==
-```java
+```java hl:1-3
 // flatMap: [3, 1, 2] (order depends on completion speed)
 // concatMap: [1, 2, 3] (always ordered, sequential execution)
 // flatMapSequential: [1, 2, 3] (always ordered, concurrent execution)

@@ -26,8 +26,8 @@
 ### 4. C# / .NET Core deep dive `HIS CORE STACK`
 **"Walk me through how you'd build a high-throughput REST API in .NET Core — middleware pipeline, dependency injection, error handling, and performance tuning."**
 - Middleware ordering: auth → exception handler → logging → routing → endpoints.
-- DI lifetimes: Scoped for request-bound services (DbContext), Singleton for caches, Transient sparingly.
-- Response caching, output caching, and async/await patterns to avoid thread starvation.
+- ==DI lifetimes: Scoped for request-bound services (DbContext), Singleton for caches,== Transient sparingly.
+- ==Response caching, output caching, and async/await patterns to avoid thread starvation.==
 - Mention ==EF Core performance: compiled queries, split queries, no N+1 traps.==
 ### 5. Angular frontend architecture
 **"How do you structure a large Angular application — module organization, state management, and communication with backend APIs?"**
@@ -38,9 +38,9 @@
 ### 6. CI/CD and Infrastructure
 **"Describe your experience with Terraform and Azure DevOps pipelines. How do you structure IaC for a multi-environment deployment?"**
 - Terraform modules per resource group; remote state in Azure Storage with locking.
-- Environment promotion: dev → staging → prod with approval gates in Azure DevOps.
-- Containerized deployments (Docker + AKS or ECS); blue-green or canary release strategies.
-- Secret management via Azure Key Vault or AWS Secrets Manager, never in code or pipeline vars.
+- ==Environment promotion: dev → staging → prod with approval gates in Azure DevOps.==
+- ==Containerized deployments (Docker + AKS or ECS); blue-green or canary release strategies.==
+- ==Secret management via Azure Key Vault== or AWS Secrets Manager, never in code or pipeline vars.
 ---
 ## III. Integration & Data Challenges
 ### 7. Salesforce integration
@@ -92,9 +92,9 @@
 - ==If you have healthcare experience, highlight it. If not, draw parallels from other high-stakes domains (fintech, safety-critical systems).==
 ### 14. Rapid growth environment
 **"Empower has grown ~100% YoY in revenue. How do you build systems that keep up with that kind of scaling?"**
-- Design for 10x current load, not just today's numbers. Horizontal scaling, stateless services, caching layers.
-- Prioritize ruthlessly — build the 80% solution now, design the extensibility point for the remaining 20%.
-- Technical debt management: track it explicitly, pay it down in planned increments, don't let it compound silently.
+- ==Design for 10x current load, not just today's numbers. Horizontal scaling, stateless services, caching layers.==
+- ==Prioritize ruthlessly — build the 80% solution now, design the extensibility point for the remaining 20%.==
+- ==Technical debt management:== track it explicitly, pay it down in planned increments, don't let it compound silently.
 ### 15. Your questions for them
 **Arjang will likely close with "What questions do you have for me?" — prepare 2-3 strong ones:**
 - =="What's the biggest technical challenge your team is facing right now that this role would help solve?"==

@@ -12,11 +12,8 @@ SecurityContextPersistenceFilter
   → ExceptionTranslationFilter
   → FilterSecurityInterceptor (authorization)
 ```
-
 ---
-
 ## SecurityFilterChain Configuration (Spring Boot 3+)
-
 ```java
 @Configuration
 @EnableWebSecurity
@@ -56,9 +53,7 @@ public class SecurityConfig {
     }
 }
 ```
-
 ---
-
 ## JWT Authentication Filter
 
 ```java
@@ -97,9 +92,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 }
 ```
-
 ---
-
 ## Method-Level Security
 
 ```java
@@ -119,9 +112,7 @@ public class OrderService {
     public void deleteOrders(List<Order> orders) { ... }
 }
 ```
-
 ---
-
 ## UserDetailsService
 
 ```java
@@ -148,11 +139,8 @@ public class AppUserDetailsService implements UserDetailsService {
     }
 }
 ```
-
 ---
-
 ## CORS Configuration
-
 ```java
 @Bean
 public CorsConfigurationSource corsConfigurationSource() {
@@ -219,15 +207,10 @@ CSRF (Cross-Site Request Forgery) attacks exploit browser-stored session cookies
 CSRF protection works by requiring a token (not in a cookie) that only the real client page has. This prevents cross-site requests because the attacker's page can't read the CSRF token.
 
 **Stateless APIs (JWT)** don't use cookies for authentication. The JWT is sent in the `Authorization` header, which browsers don't automatically attach. A CSRF attack can't work because the attacker's page can't set the Authorization header on cross-origin requests. Therefore, CSRF protection is unnecessary and adds overhead.
-
 **Important**: If your API uses cookie-based authentication (session cookies, OAuth cookies), you MUST keep CSRF enabled.
-
 ### 5. How would you implement refresh tokens alongside access tokens?
-
 **Access token**: Short-lived (15 minutes). Sent in `Authorization: Bearer` header. Contains user ID, roles, expiry. Stateless — server validates by checking signature and expiry.
-
 **Refresh token**: Long-lived (7-30 days). Stored in the database. Used only to get a new access token. Never sent to resource endpoints.
-
 Flow:
 1. User logs in → server returns `{ accessToken, refreshToken }`
 2. Client uses access token for API calls
@@ -235,7 +218,6 @@ Flow:
 4. Server validates refresh token against database, checks it's not revoked/expired
 5. Server issues new access token (and optionally rotates the refresh token)
 6. If refresh token is expired/revoked → user must log in again
-
 ```java
 @PostMapping("/auth/refresh")
 public TokenResponse refresh(@RequestBody RefreshRequest request) {
@@ -251,19 +233,13 @@ public TokenResponse refresh(@RequestBody RefreshRequest request) {
 ```
 
 **Security**: Store refresh tokens hashed in the database. Implement token rotation (issue new refresh token on each refresh, invalidate the old one) to detect token theft.
-
 ### 6. Explain the `SecurityContextHolder` and how authentication state is propagated.
-
 `SecurityContextHolder` is a thread-local storage for the current user's authentication. After the JWT filter validates the token, it creates a `UsernamePasswordAuthenticationToken` and stores it:
-
 ```java
 SecurityContextHolder.getContext().setAuthentication(auth);
 ```
-
 Any code downstream can retrieve it: `SecurityContextHolder.getContext().getAuthentication()`. This is how `@PreAuthorize`, `@AuthenticationPrincipal`, and `SecurityContextHolder` calls all find the current user.
-
 **Thread propagation**: By default, `SecurityContextHolder` uses `MODE_THREADLOCAL` — the authentication is bound to the current thread. This works for Spring MVC (thread-per-request). For async (`@Async`) or reactive (WebFlux), you need different strategies:
 - **`@Async`**: Use `DelegatingSecurityContextExecutor` or set `SecurityContextHolder.setStrategyName(MODE_INHERITABLETHREADLOCAL)`
 - **WebFlux**: Uses `ReactiveSecurityContextHolder`, which stores authentication in the Reactor `Context` instead of ThreadLocal
-
 After the request completes, `SecurityContextPersistenceFilter` clears the context to prevent thread-local leaks.

@@ -12,12 +12,12 @@ Azure APIM (api.contoso.com)
 ```
 ==APIM handles JWT validation, rate limiting (e.g., 1000 req/min per client), and request routing.== Your individual services never deal with auth tokens directly — they trust the gateway already validated them.
 **In an interview, say:** “We use APIM as a reverse proxy. It validates OAuth tokens, enforces throttling policies, and routes to the correct backend. Services behind it only accept traffic from the gateway’s VNet.”
-##### **Outbox Pattern** 
-**The problem it solves:** You need to save data to a database AND publish an event to a message bus. If the DB write succeeds but the event publish fails (or vice versa), your system is inconsistent. This is the “dual-write” problem.
+##### ==**Outbox Pattern**== 
+==**The problem it solves:** You need to save data to a database AND publish an event to a message bus. If the DB write succeeds but the event publish fails (or vice versa), your system is inconsistent.== This is the “dual-write” problem.
 
 **How it works:**
 
-```csharp
+```csharp hl:1-2,22-23
 // Step 1: In a SINGLE database transaction, write both the entity
 // and an outbox record
 using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -66,7 +66,7 @@ public class OutboxPublisher : BackgroundService
 ```
 **Key insight:** The event is guaranteed to be published eventually because it’s in the same database as your business data. No distributed transaction needed.
 ##### **Saga Pattern** 
-**The problem:** A “place order” operation spans OrderService, InventoryService, and PaymentService. You can’t use a single SQL transaction across three databases.
+==**The problem:** A “place order” operation spans OrderService, InventoryService, and PaymentService. You can’t use a single SQL transaction across three databases.==
 **Choreography (event-driven):**
 ```
 OrderService         InventoryService       PaymentService
@@ -79,7 +79,7 @@ OrderService         InventoryService       PaymentService
      │                      ◄── ReleaseInventory──┤
      ◄── CancelOrder ──────┤                     │
 ```
-Each service listens for events and reacts. If PaymentService fails, it emits `PaymentFailed`, which triggers `ReleaseInventory` in InventoryService and `CancelOrder` in OrderService.
+==Each service listens for events and reacts. If PaymentService fails, it emits `PaymentFailed`, which triggers `ReleaseInventory` in InventoryService and `CancelOrder` in OrderService.==
 
 **Orchestration (central coordinator):**
 ```csharp
