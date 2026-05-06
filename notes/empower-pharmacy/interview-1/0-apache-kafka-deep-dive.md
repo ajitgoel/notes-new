@@ -363,15 +363,15 @@ If BillingService fails → publishes "PaymentFailed"
 
 ## 7. Kafka vs RabbitMQ vs Azure Service Bus
 
-| Feature | Kafka | RabbitMQ | Azure Service Bus |
-|---|---|---|---|
-| **Model** | Distributed log | Message queue | Message queue + topics |
-| **Retention** | Keeps messages (configurable) | Deletes after consumption | Deletes after consumption |
-| **Throughput** | Millions/sec | Thousands/sec | Thousands/sec |
-| **Ordering** | Per partition | Per queue | Per session |
-| **Replay** | Yes — consumers can rewind | No | Limited (dead letter) |
-| **Best for** | Event streaming, high volume, replay | Task queues, RPC, routing | Azure-native, enterprise messaging |
-| **Complexity** | High (cluster management) | Medium | Low (managed service) |
+| Feature            | Kafka                                | RabbitMQ                  | Azure Service Bus                  |
+| ------------------ | ------------------------------------ | ------------------------- | ---------------------------------- |
+| **Model**          | Distributed log                      | Message queue             | Message queue + topics             |
+| **==Retention==**  | ==Keeps messages== (configurable)    | Deletes after consumption | ==Deletes after consumption==      |
+| **Throughput**     | Millions/sec                         | Thousands/sec             | Thousands/sec                      |
+| ==**Ordering**==   | ==Per partition==                    | Per queue                 | ==Per session==                    |
+| **Replay**         | Yes — consumers can rewind           | No                        | Limited (dead letter)              |
+| **Best for**       | Event streaming, high volume, replay | Task queues, RPC, routing | Azure-native, enterprise messaging |
+| **==Complexity==** | ==High== (cluster management)        | Medium                    | ==Low== (managed service)          |
 
 > [!tip] Interview answer
 > "I'd choose Kafka when we need high throughput, event replay, or multiple independent consumers reading the same stream. For simple task queues or request-reply patterns, RabbitMQ or Service Bus is simpler."
