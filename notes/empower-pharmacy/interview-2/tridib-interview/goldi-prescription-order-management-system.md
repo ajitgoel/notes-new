@@ -10,7 +10,6 @@
 - **Session-keyed ordering:** Azure Service Bus sessions guarantee FIFO processing per order while allowing parallel processing across orders.
 - **Polyglot persistence:** PostgreSQL (R2DBC) for operational state, a dedicated Event Store for the append-only audit log, Redis for caching and idempotency keys.
 ### How It Differs from a Standard OMS
-
 A Prescription Order Management System is a **Healthcare/Clinical OMS**. While a standard OMS focuses on inventory and shipping, a prescription system must handle:
 
 |Concern|Standard OMS|Prescription OMS|
@@ -19,18 +18,16 @@ A Prescription Order Management System is a **Healthcare/Clinical OMS**. While a
 |Compliance|PCI-DSS for payments|HIPAA (privacy), DEA/FDA (controlled substances), State Board of Pharmacy rules|
 |Fulfillment|Pick and pack|Custom compounding/manufacturing of medications|
 |Audit trail|Nice-to-have feature|Legal requirement — Event Sourcing is a compliance necessity|
-
 ### Request Flow
-
 A prescription moves through five stages, each owned by a single service.
 
-|Stage|Service|ASB Topic|Key Action|
-|---|---|---|---|
-|1. Intake|Order Intake|`rx-intake`|Validate schema, assign OrderID, persist draft, publish `OrderCreated`|
-|2. Clinical Review|Prescription Validation|`rx-validation`|DDI check via external API, pharmacist approval queue, publish `OrderValidated`|
-|3. Inventory|Inventory|`rx-inventory`|Reserve ingredients, decrement stock, publish `InventoryReserved`|
-|4. Compounding|Compounding|—|Black-box manufacturing step; publishes `CompoundingComplete`|
-|5. Fulfillment|Fulfillment|`rx-fulfillment`|Generate shipping label, hand off to carrier, publish `OrderShipped`|
+| Stage              | Service                 | ASB Topic        | Key Action                                                                      |
+| ------------------ | ----------------------- | ---------------- | ------------------------------------------------------------------------------- |
+| 1. Intake          | Order Intake            | `rx-intake`      | Validate schema, assign OrderID, persist draft, publish `OrderCreated`          |
+| 2. Clinical Review | Prescription Validation | `rx-validation`  | DDI check via external API, pharmacist approval queue, publish `OrderValidated` |
+| 3. Inventory       | Inventory               | `rx-inventory`   | Reserve ingredients, decrement stock, publish `InventoryReserved`               |
+| 4. Compounding     | Compounding             | —                | Black-box manufacturing step; publishes `CompoundingComplete`                   |
+| 5. Fulfillment     | Fulfillment             | `rx-fulfillment` | Generate shipping label, hand off to carrier, publish `OrderShipped`            |
 
 ### Component Diagram
 
@@ -123,23 +120,18 @@ order-intake-service/
 ├── Dockerfile  
 └── helm/  
 ```
-
 ### GraphQL Schema (DGS Federation)
-
 The GraphQL Gateway aggregates all service schemas via Netflix DGS Federation. Each service exposes its own subgraph; the gateway composes them into a single endpoint.
-
-```graphql
+```graphql hl:2-9
 # --- Order Intake Subgraph ---  
 type Mutation {  
   createOrder(input: CreateOrderInput!): OrderPayload!  
   cancelOrder(orderId: ID!): OrderPayload!  
 }  
-  
 type Query {  
   order(id: ID!): Order  
   orders(filter: OrderFilter, page: PageInput): OrderConnection!  
 }  
-  
 input CreateOrderInput {  
   patientId: ID!  
   prescriberId: ID!  
@@ -196,11 +188,8 @@ type DrugInteraction {
 
 > [!tip] Interview talking point  
 > The `events` field on the `Order` type exposes the full event-sourced history directly in the API. An interviewer asking “how do you audit?” gets a one-line answer: query the `events` field.
-
 ### Reactive Persistence (R2DBC)
-
 Each service owns its database schema — no shared databases.
-
 ```java
 // Domain port (no framework dependency)  
 public interface OrderRepository {  
@@ -208,12 +197,10 @@ public interface OrderRepository {
     Mono<Order> save(Order order);  
     Flux<Order> findByStatus(OrderStatus status);  
 }  
-  
 // R2DBC adapter  
 @Repository  
 public class R2dbcOrderRepository implements OrderRepository {  
     private final DatabaseClient client;  
-  
     @Override  
     public Mono<Order> save(Order order) {  
         return client.sql("""  
@@ -230,12 +217,10 @@ public class R2dbcOrderRepository implements OrderRepository {
     }  
 }  
 ```
-
 ### DGS Federation Gateway
-
-- **DataLoader pattern:** Batch-resolves `Patient` and `Medication` references across services to avoid N+1 queries.
-- **Subscriptions:** WebSocket subscriptions on `orderStatusChanged(orderId)` push real-time updates to the Next.js dashboard.
-- **Auth:** JWT validation at the gateway. Claims propagated downstream via HTTP headers. Services trust the gateway’s validation — no redundant token parsing.
+- ==**DataLoader pattern:** Batch-resolves `Patient` and `Medication` references across services to avoid N+1 queries.==
+- ==**Subscriptions:** WebSocket subscriptions on `orderStatusChanged(orderId)` push real-time updates to the Next.js dashboard.==
+- **Auth:** ==JWT validation at the gateway.== Claims propagated downstream via HTTP headers. Services trust the gateway’s validation — no redundant token parsing.
 ---
 ## Azure Service Bus — Messaging Design
 ### Topic & Subscription Topology
@@ -248,11 +233,8 @@ Four topics form the event backbone. Each topic has one or more subscriptions wi
 |`rx-validation`|`sub-hold-notify`|`eventType = 'OrderOnHold'`|Notification Service|
 |`rx-inventory`|`sub-compounding`|`eventType = 'InventoryReserved'`|Compounding Service|
 |`rx-fulfillment`|`sub-shipping`|`eventType = 'CompoundingComplete'`|Fulfillment Service|
-
 ### Sessions for FIFO Ordering
-
 Sessions are keyed by `orderId`. All events for a single prescription process in strict order; different prescriptions process in parallel across consumers.
-
 ```java
 // Publishing with session  
 ServiceBusSenderClient sender = clientBuilder  
@@ -283,20 +265,13 @@ ServiceBusProcessorClient processor = clientBuilder
 > Sessions allow dynamic, fine-grained ordering (one session per order) without pre-allocating partition counts. A pharmacy processing 10,000 orders/day gets 10,000 independent FIFO streams. Kafka would require pre-sizing partitions and re-keying on schema changes.
 
 ### Dead-Letter & Retry Strategy
-
 Three-tier retry with exponential backoff, then dead-letter for human review.
-
 - **Tier 1 — Immediate retry (3×):** Built-in ASB retry with 2s/4s/8s backoff. Handles transient network blips.
-    
 - **Tier 2 — Deferred retry:** On 4th failure, message scheduled for redelivery 5 min later via `ScheduledEnqueueTime`. Handles downstream service restarts.
-    
 - **Tier 3 — Dead-letter queue (DLQ):** After `MaxDeliveryCount = 5`, message lands in DLQ. A dedicated DLQ processor alerts the operations team via the dashboard and logs `OrderProcessingFailed` in the Event Store.
-    
-
 Poison messages (malformed JSON, unknown event types) are immediately dead-lettered with `deadLetterReason` set — no retries wasted.
 
 ### Idempotency
-
 At-least-once delivery requires idempotent consumers. Each handler checks a Redis-backed idempotency store before processing.
 
 ```java
@@ -353,9 +328,7 @@ app/
     └── auth/  
         └── middleware.ts       # NextAuth.js + Azure AD B2C  
 ```
-
 ### Real-Time Updates
-
 GraphQL subscriptions over WebSocket push order status changes to the dashboard in real time.
 
 ```tsx
@@ -383,13 +356,9 @@ export function EventTimeline({ orderId }: { orderId: string }) {
 Apollo Client’s `cache.modify` appends new events to the existing `Order.events` list — no refetch needed. The dashboard order table uses a separate `ordersUpdated` subscription to reflect status badge changes across all visible rows.
 
 ---
-
 ## AKS Deployment & Docker
-
 ### Dockerfile — Multi-Stage
-
 Three-stage build: dependency cache → compile → minimal runtime.
-
 ```dockerfile
 # Stage 1: Cache dependencies  
 FROM eclipse-temurin:21-jdk AS deps  

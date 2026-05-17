@@ -410,12 +410,12 @@ After 3 retries (30 minutes total), the orchestrator begins compensating and ale
 ### Minutes 25–30: Trade-offs
 **Demonstrate architectural maturity by discussing what you gave up.**
 
-|Trade-off|Your Position|
-|---|---|
-|Single point of failure?|The orchestrator is stateless — saga state lives in PostgreSQL. Multiple replicas behind KEDA. If a pod dies, another picks up the saga from its persisted state.|
-|Coupling?|The orchestrator knows the workflow shape, but services remain decoupled — they receive typed commands and return typed replies. Adding a new service means adding one state transition, not rewiring subscriptions.|
-|Performance overhead?|One extra hop per step (service → orchestrator → next service). At pharmacy scale (thousands/day, not millions/second), this latency is irrelevant. Correctness of compensation matters more.|
-|Why not Temporal?|Temporal is excellent but adds operational complexity. For 5 services with a linear flow + 2 compensation paths, a hand-rolled state machine is simpler to reason about and debug.|
+| Trade-off                | Your Position                                                                                                                                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Single point of failure? | The orchestrator is stateless — saga state lives in PostgreSQL. Multiple replicas behind KEDA. If a pod dies, another picks up the saga from its persisted state.                                                    |
+| Coupling?                | The orchestrator knows the workflow shape, but services remain decoupled — they receive typed commands and return typed replies. Adding a new service means adding one state transition, not rewiring subscriptions. |
+| Performance overhead?    | One extra hop per step (service → orchestrator → next service). At pharmacy scale (thousands/day, not millions/second), this latency is irrelevant. Correctness of compensation matters more.                        |
+| Why not Temporal?        | Temporal is excellent but adds operational complexity. For 5 services with a linear flow + 2 compensation paths, a hand-rolled state machine is simpler to reason about and debug.                                   |
 
 -----
 
@@ -480,3 +480,13 @@ Compounding Service (Compensation) **Command received:** `ReverseCompounding`
 If Validation rejects the order, nothing has been reserved or manufactured yet — the saga goes straight to `REJECTED` with no rollback. Same for `ReservationFailed`. Compensation only kicks in when a step fails _after_ a previous step has already changed state (reserved stock, started manufacturing).
 [!warning] Compensation commands must eventually succeed  
 `ReleaseInventory` and `ReverseCompounding` are retried until they work. If they’re permanently stuck (database down, data corruption), the saga enters `COMPENSATION_STUCK` and alerts a human. You can’t just give up on a compensation — that leaves the system in an inconsistent state.
+
+-------
+
+Correlation ID is for **humans debugging** (find everything related to order X). Idempotency key is for **machines** (don’t do the same work twice).
+
+**Session Id and Idempotency key:**
+**They never interact with each other directly.** The session ID is handled entirely by ASB’s broker — your application code never reads it during processing. The idempotency key is handled entirely by your application code — ASB doesn’t care about it. They’re two independent safety mechanisms operating at different layers:
+
+- **Session ID** = infrastructure layer (ASB broker manages ordering)
+- **Idempotency key** = application layer (your code manages dedup in Redis)
