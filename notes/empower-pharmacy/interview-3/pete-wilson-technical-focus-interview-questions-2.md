@@ -52,41 +52,29 @@ Prepare 2+ architecture stories where:
 - You had to explain it to execs or non-engineers and adjust based on their input.
 
 **4. Style and signals Pete is likely looking for** 
-
 Given Pete’s background (Principal Technical Product Management, ex-Amazon/Cisco, TPM focus):
-
 They’ll likely evaluate whether you:
-
 - Think in terms of **outcomes**, not just implementation details.
 - Can connect architecture to product strategy, customer needs, and operational metrics.
 - Are comfortable with ambiguity and can create structure and standards where none existed.
 - Show strong written and verbal communication, framing, and narrative.
 - Demonstrate ownership beyond “my team’s code” to “the whole product / platform.”
-
 They may also test:
-
 - How you handle pushback or constraints (time, budget, legacy systems).
 - Your approach to risk, tradeoffs, and phasing (MVP vs long-term vision).
 - How you collaborate with TPMs and product managers.
 
 **5. How to prepare concretely** 
-
 1. Pick 5–6 strong stories from your experience and map them:
-
 - 2 for setting/raising standards.
 - 2 for cross-functional influence and driving alignment.
 - 2 for enterprise-level or multi-team architecture decisions.
-
-3. For each story, outline with a clear structure (Situation → Problem → Options/Your Thought Process → Actions → Results → Lessons).
-4. Practice explaining one complex system you’ve built or owned:
-
+1. For each story, outline with a clear structure (Situation → Problem → Options/Your Thought Process → Actions → Results → Lessons).
+2. Practice explaining one complex system you’ve built or owned:
 - First as if to a senior engineer.
 - Then as if to a non-technical exec, focusing on business impact and tradeoffs.
-
-6. Be ready to describe your general approach:
-
+1. Be ready to describe your general approach:
 - “How do you typically approach a new cross-team initiative?”
 - “How do you define and roll out new standards?”
 - “How do you keep architecture aligned with evolving business goals?”
-
 If you want, I can help you turn a few of your real experiences into tight, principal-level stories tailored specifically to these three areas.
