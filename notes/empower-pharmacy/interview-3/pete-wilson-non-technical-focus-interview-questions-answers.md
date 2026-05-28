@@ -2,7 +2,9 @@ You can expect Pete to focus less on deep coding and more on how you operate as 
 Below are probable questions grouped around those themes, with detailed, high‑signal example answers you can adapt to your own stories.
 **1. Setting Standards & Technical Leadership** 
 1. **“As a Principal Engineer, how do you set and raise engineering standards across multiple teams?”**
+```
 Focus your answer on: concrete mechanisms (design reviews, RFCs, playbooks), leading by example in code, and measurable outcomes.
+```
 Example answer (abridged but specific):  
 “I treat standards as something you **demonstrate, codify, and scale**.
 In my current role, I inherited several teams building microservices in slightly different ways: different API conventions, logging formats, and release practices. That inconsistency hurt reliability and slowed onboarding.
@@ -14,7 +16,8 @@ Once we had those results, I hosted cross‑team design reviews and brown‑bags
 So I set standards by pairing **hands‑on examples** with **codified templates and review gates**, and backing them with data so teams actually want to adopt them.”
 **2. Influencing Cross‑Functional Teams (Product, Compliance, HR, etc.)** 
 1. **“Tell me about a time you had to influence cross‑functional stakeholders (Product, Compliance, Operations) to move toward a particular technical direction.”**
-Pete’s TPM background means he’ll look for stakeholder mapping, tradeoffs, and communication more than code details.
+> `Pete’s TPM background means he’ll look for stakeholder mapping, tradeoffs, and communication more than code details.`
+
 Example answer:  
 “At Safeway, I was leading the architecture for a real‑time personalization platform that impacted marketing, legal/compliance, and operations. Marketing wanted maximum personalization; legal was concerned about data privacy and consent.
 First, I made the **tradeoffs explicit in business terms** instead of technical jargon. I prepared two or three architectural options, each with:
@@ -28,9 +31,12 @@ The key was **framing the architecture as a set of business choices with clear r
 **3. Guiding Enterprise Architecture & Communicating Designs** 
 1. **“How do you develop and communicate architectural designs to both technical and non‑technical audiences?”**
 Example answer:  
+```
 “I usually think in three layers of communication:
 - For engineers, I go deep: sequence diagrams, component diagrams, tradeoffs between technologies, and non‑functional requirements like latency, throughput, and RTO/RPO.
 - For non‑technical leaders, I translate the same design into a **story about risks, benefits, and impact on workflows**.
+```
+
 Practically, I start with a concise one‑pager: problem statement, constraints (e.g., regulatory, SLA), options considered, recommendation, and impact. Then I attach more detailed diagrams for engineers.
 In reviews, I’ll open with a very simple conceptual diagram—boxes for ‘Prescribing System,’ ‘Order Management,’ ‘Fulfillment,’ ‘Quality & Compliance’—and one or two key flows, like ‘new prescription to shipment.’ That helps everyone anchor mentally. Then, with engineering, we drill into microservices, data contracts (REST/GraphQL), and event schemas.
 I’ve found that when stakeholders understand **the flow and why each component exists**, they’re much more comfortable signing off on the architecture, even if they don’t understand every technical detail.”
@@ -51,6 +57,7 @@ The result was a platform that allowed product teams to ship new content experie
 1. **“Walk me through how you would decompose a monolith into modular, decoupled microservices.”**
 Tie directly to their need for domain‑driven design and modularization.
 Example answer:  
+```
 - I approach monolith decomposition first as a **domain modeling exercise**, not a technology exercise.
 - I start by mapping domains and subdomains with business stakeholders: for a pharmacy‑like context, that might be ‘Prescriptions,’ ‘Inventory & Fulfillment,’ ‘Billing,’ ‘Quality & Compliance,’ and ‘User Management.’
 - Then I map existing modules, database tables, and workflows from the monolith into those domains, identifying cohesive boundaries and high‑churn or high‑risk areas.
@@ -58,6 +65,7 @@ Example answer:
 	- the domain is relatively well‑understood,
 	- there’s clear business value in moving faster, and
 	- coupling is manageable.
+```
 For each candidate service, I define clear APIs and data ownership: which service is the system of record for which entities, and how other services access that data (synchronous APIs vs. async events).
 I usually favor **event‑driven patterns** for cross‑domain communication: for example, ‘PrescriptionCreated,’ ‘OrderShipped,’ or ‘InventoryAdjusted’ events emitted over Kafka or similar. Other services subscribe and update their local projections or trigger workflows, which reduces tight coupling.
 We then execute iteratively: carve out one domain at a time, add strangler‑fig patterns at the edge of the monolith, route a small percentage of traffic, validate metrics and reliability, and then increase until we can retire the monolith component.
@@ -144,5 +152,7 @@ Example answer:
 For example, in a previous role we used ML‑based models for demand forecasting and personalization. I partnered with data science to define how those models surfaced as APIs: input features, latency requirements, and fallbacks when the model was unavailable.
 We built a ‘decision service’ that encapsulated the model call and business rules. The service exposed REST/GraphQL APIs to other applications, handled feature extraction, caching, and safe fallbacks (e.g., rule‑based defaults or last‑known‑good recommendations) if the model failed.
 We also instrumented the integration heavily: tracking model response times, error rates, and impact on downstream metrics like conversion.
+```
 I see similar opportunities in healthcare and pharmacy to use AI/ML for things like forecasting, triaging issues, or automating manual checks—always with appropriate **guardrails and human‑in‑the‑loop** where safety is a concern.”
+```
 These examples are meant as structured templates. Plug in your strongest, most relevant stories (Safeway personalization, Amazon Pharmacy APIs, JPMorgan billing, your event‑driven and DDD work), and align your language to their keywords: scalability, security, regulatory requirements, event‑driven architecture, microservices, and cross‑functional leadership.

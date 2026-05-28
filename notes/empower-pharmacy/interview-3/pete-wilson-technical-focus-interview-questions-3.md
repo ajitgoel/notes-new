@@ -29,7 +29,7 @@
  ```
 1. **Enterprise architecture & standards**
  ▫ “Describe an architecture you’ve driven that impacted multiple teams or domains. How did you get other teams to adopt your standards rather than building their own versions?”
- ``` hl:1-4
+ ``` hl:1-2
  - Content as a Service / Goals Studio became a reference architecture for personalization across Safeway’s health experience.
 - Standardized patterns: Next.js/React frontends, Spring Boot microservices, Kafka events, consistent error and config handling.
 - Created a “starter” service and UI, plus documentation and brown‑bag walkthroughs.
@@ -61,7 +61,7 @@
  1. **Customer and user focus**
  ▫ “Taking your Safeway health experience, how did you and the product team validate that the personalization rules and UI were actually helping customers, not just adding complexity?”
  ``` hl:1-4
- - • With product, defined “helping customers” as faster access to relevant health content and error‑free page loads, not just more widgets.
+ - With product, defined “helping customers” as faster access to relevant health content and error‑free page loads, not just more widgets.
 - Measured engagement signals on personalized modules (click‑through, scroll depth) vs generic content, plus error/latency metrics from the content API.
 - Ran limited rollouts / A‑style experiments: some traffic got baseline content, some got rules‑driven experiences; compared engagement and stability.
 - When certain rules made the UI noisy or slow, we simplified rule sets and caching strategies and confirmed improvement through both metrics and qualitative feedback from product.

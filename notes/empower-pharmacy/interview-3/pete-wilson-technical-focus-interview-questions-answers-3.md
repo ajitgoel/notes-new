@@ -38,12 +38,6 @@ Use the rules engine / Goals Studio project where product, compliance, and engin
 <mark style="background:rgba(163, 67, 31, 0.2)">- Delivered the internal rules engine, removed vendor lock‑in, and strengthened Product–Compliance–Engineering alignment.</mark>
 
 =======================================================================
-<mark style="background:rgba(163, 67, 31, 0.2)">- **Context:** Senior Staff Engineer at Safeway leading health & persuasion experiences (1.8B users) and the Content as a Service / Goals Studio platform; initial plan was a risky 8‑month integration with another team’s config platform.</mark>
-<mark style="background:rgba(163, 67, 31, 0.2)">- **Technical standards:** Frontend (Next.js layout, React Query, shared Material UI, Vitest/RTL); backend (opinionated Spring Boot template with consistent error model); delivery (mandatory unit tests and basic performance/security scans in CI).</mark>
-<mark style="background:rgba(163, 67, 31, 0.2)">- **Influence and adoption:** No direct reports, so I drove change via a reference implementation (Content as a Service API + Goals Studio frontend) with a shared caching layer so config changes appeared in live apps almost instantly.</mark>
-<mark style="background:rgba(163, 67, 31, 0.2)">- **Execution:** Used AI for rapid design and prototyping of APIs, data models, and UI flows, enabling fast stakeholder reviews and compressing delivery timelines versus the original integration plan.</mark>
-<mark style="background:rgba(163, 67, 31, 0.2)">- **Impact:** New health services bootstrapped from the template, with fewer production issues, faster time‑to‑first‑PR, simpler cross‑team handoffs, and broader reuse across the health platform, including the Food is Medicine initiative.</mark>
-=======================================================================
 
 Example answer:
 “At Safeway, one of the more complex cross‑functional efforts I led was replacing a vendor goals engine with an internally owned Java SpEL rules platform integrated into a Next.js–based Goals Studio UI. Product wanted very rapid experimentation, Compliance wanted tight control and auditability, and Engineering wanted to reduce operational risk and vendor lock-in.
