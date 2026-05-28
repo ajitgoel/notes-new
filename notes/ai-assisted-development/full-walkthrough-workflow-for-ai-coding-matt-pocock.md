@@ -1,3 +1,4 @@
+https://www.youtube.com/watch?v=-QFHIoCo-Ko
 Matt’s workflow is basically a **repeatable pipeline** you wire into your tools so AI behaves like a disciplined senior dev, not a vibes-only autocomplete. I’ll walk you through how to actually set it up and run it end‑to‑end.
 
 **0. Prerequisites and mental model** 
