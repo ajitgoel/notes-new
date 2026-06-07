@@ -286,3 +286,52 @@ Given your background and that you’re not limited to TypeScript:
 Once that’s in place, your “workflow for AI coding” stops being “prompt engineering” and becomes a **set of codified practices** that tools enforce.
 
 If you tell me which repo or stack you want to start with (e.g., your motel admin app, Java backend, Next.js front), I can sketch the exact files/commands for that project’s first AI‑driven feature.
+
+==============
+Based on the Matt Pocock workshop you’re watching, here’s the process for adding a new feature to an application that was already built from a PRD and issues:
+
+The Process (7 Phases) ￼
+
+1. Research & Prototyping
+
+Start by understanding the feature request. If it involves UI, have the AI generate throwaway prototypes you can visually evaluate before committing to a direction.
+
+2. The Grill Session
+
+Run a “grill me” session — have the AI interview you relentlessly about every aspect of the new feature. This builds a shared understanding (what Matt calls the “design concept”) between you and the AI. This is human-in-the-loop and can’t be skipped. You may need to loop in teammates or domain experts for questions you can’t answer.
+
+3. Write a New PRD
+
+Summarize the grill session into a new PRD (destination document). This captures user stories, implementation decisions, testing strategy, and out-of-scope items. Matt says he doesn’t even review the PRD closely — the alignment was built during the grill session; the PRD is just a summarization of it.
+
+4. Slice into Issues (Kanban Board)
+
+Break the PRD into vertical slices (tracer bullets), not horizontal layers. Each issue should cut through all layers of the stack (database → API → frontend) so you get feedback on the full flow immediately. Issues should have blocking relationships so they can be parallelized. Matt specifically warns against letting the AI create horizontal slices (e.g., “do all schema first, then all API, then all frontend”).
+
+5. Implementation (AFK)
+
+This is where the human steps back. Pass the issues to an AI agent (or multiple agents in parallel) using a loop script. Each agent picks a task from the backlog, explores the repo, implements using TDD (red-green-refactor), runs feedback loops (tests, type checks), and commits. The key insight: clear the context between tasks — don’t compact. Fresh context = smart zone.
+
+6. Automated Review
+
+After implementation, run a separate AI reviewer in a fresh context (smart zone). Push your coding standards to the reviewer so it checks the implementation against them. Matt uses Sonnet for implementation and Opus for review.
+
+7. Human QA & Code Review
+
+Manually test the feature. This is where you impose your taste back onto the codebase. Any bugs or improvements you find become new issues on the Kanban board, feeding back into the implementation loop.
+
+Key Principles ￼
+
+- Keep tasks in the “smart zone” (~100K tokens). Beyond that, AI gets dumber.
+
+- Prefer clearing context over compacting — fresh starts are predictable.
+
+- Vertical slices over horizontal — get end-to-end feedback fast.
+
+- Don’t keep old PRDs in the repo — they rot and mislead future AI sessions. Close the issues once done.
+
+- Design deep modules (small interface, lots of functionality inside) rather than many shallow ones. This makes the codebase easier for AI to navigate and test.
+
+- Push vs. Pull: Push coding standards to reviewers; let implementers pull them as needed via skills.
+
+The overall mental model: the planning phases (1–4) are your day shift where humans are in the loop. Implementation (5–6) is the night shift where agents work autonomously. QA (7) brings the human back to close the loop and queue more work.
