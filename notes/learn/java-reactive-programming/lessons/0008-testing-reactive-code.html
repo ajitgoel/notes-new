@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 8 — Testing Reactive Code</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;--highlight:#2a3556;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.75;font-size:16px;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:baseline;gap:2rem;}
+  .lesson-number{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .lesson-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:#fff;}
+  .progress-bar{height:3px;background:var(--border);position:relative;}
+  .progress-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+  .container{max-width:860px;margin:0 auto;padding:3rem 2rem;}
+  h2{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;margin:2.5rem 0 1rem;padding-left:1rem;border-left:3px solid var(--accent);}
+  h3{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent3);letter-spacing:.08em;text-transform:uppercase;margin:1.8rem 0 .6rem;}
+  p{margin-bottom:1rem;}
+  a{color:var(--accent);}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;overflow-x:auto;margin:1.2rem 0;font-family:'DM Mono',monospace;font-size:.85rem;line-height:1.6;}
+  code{font-family:'DM Mono',monospace;font-size:.85em;background:var(--code-bg);padding:.15em .4em;border-radius:3px;color:#c5d0f0;}
+  pre code{background:none;padding:0;}
+  .kw{color:#7aa2f7;}.ty{color:#bb9af7;}.str{color:#9ece6a;}.cm{color:#565f89;font-style:italic;}.num{color:#ff9e64;}.fn{color:#7dcfff;}.ann{color:#e0af68;}
+  .callout{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:1.2rem 1.5rem;margin:1.5rem 0;}
+  .callout.danger{border-left-color:var(--accent2);}
+  .callout.success{border-left-color:var(--accent3);}
+  .callout.warn{border-left-color:var(--accent4);}
+  .callout-label{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;color:var(--accent);}
+  .callout.danger .callout-label{color:var(--accent2);}
+  .callout.success .callout-label{color:var(--accent3);}
+  .callout.warn .callout-label{color:var(--accent4);}
+  .quiz-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2rem;margin:2.5rem 0;}
+  .quiz-q{font-family:'Fraunces',serif;font-size:1.1rem;color:#fff;margin-bottom:1.2rem;}
+  .quiz-options{display:flex;flex-direction:column;gap:.6rem;}
+  .quiz-opt{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1.2rem;cursor:pointer;transition:all .15s;font-size:.88rem;text-align:left;color:var(--text);width:100%;font-family:'DM Mono',monospace;}
+  .quiz-opt:hover{border-color:var(--accent);background:var(--highlight);}
+  .quiz-opt.correct{border-color:var(--accent3);background:#0e3322;color:var(--accent3);}
+  .quiz-opt.wrong{border-color:var(--accent2);background:#3e1520;color:var(--accent2);}
+  .quiz-feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:6px;font-size:.9rem;display:none;}
+  .quiz-feedback.show{display:block;}
+  .quiz-feedback.correct{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .quiz-feedback.wrong{background:#3e1520;color:#f0a0b0;border:1px solid var(--accent2);}
+  .footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;}
+  .complete-badge{background:linear-gradient(135deg,var(--accent),var(--accent3));color:#fff;font-family:'Fraunces',serif;font-size:1.2rem;padding:1.5rem 2rem;border-radius:10px;text-align:center;margin:2rem 0;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 08 / 08</span>
+  <span class="lesson-title">Testing Reactive Code</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <p>You cannot test reactive code with plain JUnit <code>assertEquals</code> — the stream is asynchronous and nothing executes until subscribed. Reactor ships <strong>StepVerifier</strong> for unit-testing publishers, and Spring provides <strong>WebTestClient</strong> for integration testing WebFlux endpoints. This is the last piece you need to ship production reactive code.</p>
+
+  <h2>StepVerifier: The Reactive Test DSL</h2>
+  <p>StepVerifier subscribes to a publisher and lets you declare expectations step-by-step. It blocks until the stream completes (or times out) — making async code testable synchronously.</p>
+
+  <pre><code><span class="cm">// Dependency</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;io.projectreactor&lt;/groupId&gt;
+  &lt;artifactId&gt;reactor-test&lt;/artifactId&gt;
+  &lt;scope&gt;test&lt;/scope&gt;
+&lt;/dependency&gt;</code></pre>
+
+  <h3>Testing a Mono</h3>
+
+  <pre><code><span class="ann">@Test</span>
+<span class="kw">void</span> <span class="fn">findById_shouldReturnPatient</span>() {
+    <span class="cm">// Given</span>
+    <span class="kw">when</span>(patientRepo.<span class="fn">findById</span>(<span class="num">1L</span>))
+        .<span class="fn">thenReturn</span>(<span class="ty">Mono</span>.<span class="fn">just</span>(<span class="kw">new</span> <span class="ty">Patient</span>(<span class="num">1L</span>, <span class="str">"Alice"</span>, <span class="kw">true</span>)));
+
+    <span class="cm">// When + Then</span>
+    <span class="ty">StepVerifier</span>.<span class="fn">create</span>(patientService.<span class="fn">findById</span>(<span class="num">1L</span>))
+        .<span class="fn">assertNext</span>(p -&gt; {
+            <span class="fn">assertThat</span>(p.<span class="fn">getName</span>()).<span class="fn">isEqualTo</span>(<span class="str">"Alice"</span>);
+            <span class="fn">assertThat</span>(p.<span class="fn">isActive</span>()).<span class="fn">isTrue</span>();
+        })
+        .<span class="fn">verifyComplete</span>();  <span class="cm">// asserts onComplete() fired, no error</span>
+}
+
+<span class="ann">@Test</span>
+<span class="kw">void</span> <span class="fn">findById_notFound_shouldReturnEmpty</span>() {
+    <span class="kw">when</span>(patientRepo.<span class="fn">findById</span>(<span class="num">99L</span>)).<span class="fn">thenReturn</span>(<span class="ty">Mono</span>.<span class="fn">empty</span>());
+
+    <span class="ty">StepVerifier</span>.<span class="fn">create</span>(patientService.<span class="fn">findById</span>(<span class="num">99L</span>))
+        .<span class="fn">verifyComplete</span>();  <span class="cm">// no items, just completion</span>
+}
+
+<span class="ann">@Test</span>
+<span class="kw">void</span> <span class="fn">fill_inactivePatient_shouldError</span>() {
+    <span class="kw">when</span>(patientRepo.<span class="fn">findById</span>(<span class="num">1L</span>))
+        .<span class="fn">thenReturn</span>(<span class="ty">Mono</span>.<span class="fn">just</span>(<span class="kw">new</span> <span class="ty">Patient</span>(<span class="num">1L</span>, <span class="str">"Bob"</span>, <span class="kw">false</span>)));  <span class="cm">// inactive!</span>
+
+    <span class="ty">StepVerifier</span>.<span class="fn">create</span>(fillService.<span class="fn">fill</span>(<span class="num">1L</span>, <span class="str">"12345678901"</span>, <span class="num">30</span>))
+        .<span class="fn">verifyError</span>(<span class="ty">InactivePatientException</span>.<span class="kw">class</span>);
+}</code></pre>
+
+  <h3>Testing a Flux</h3>
+
+  <pre><code><span class="ann">@Test</span>
+<span class="kw">void</span> <span class="fn">findByPatient_shouldReturnAllPrescriptions</span>() {
+    <span class="ty">List</span>&lt;<span class="ty">Prescription</span>&gt; rxList = <span class="ty">List</span>.<span class="fn">of</span>(
+        <span class="kw">new</span> <span class="ty">Prescription</span>(<span class="num">1L</span>, <span class="str">"Lisinopril"</span>),
+        <span class="kw">new</span> <span class="ty">Prescription</span>(<span class="num">2L</span>, <span class="str">"Metformin"</span>)
+    );
+    <span class="kw">when</span>(rxRepo.<span class="fn">findByPatientId</span>(<span class="num">42L</span>)).<span class="fn">thenReturn</span>(<span class="ty">Flux</span>.<span class="fn">fromIterable</span>(rxList));
+
+    <span class="ty">StepVerifier</span>.<span class="fn">create</span>(rxService.<span class="fn">findByPatient</span>(<span class="num">42L</span>))
+        .<span class="fn">expectNextMatches</span>(rx -&gt; rx.<span class="fn">getDrugName</span>().<span class="fn">equals</span>(<span class="str">"Lisinopril"</span>))
+        .<span class="fn">expectNextMatches</span>(rx -&gt; rx.<span class="fn">getDrugName</span>().<span class="fn">equals</span>(<span class="str">"Metformin"</span>))
+        .<span class="fn">verifyComplete</span>();
+}
+
+<span class="ann">@Test</span>
+<span class="kw">void</span> <span class="fn">findByPatient_countOnly</span>() {
+    <span class="kw">when</span>(rxRepo.<span class="fn">findByPatientId</span>(<span class="num">42L</span>)).<span class="fn">thenReturn</span>(<span class="ty">Flux</span>.<span class="fn">range</span>(<span class="num">1</span>, <span class="num">50</span>)
+        .<span class="fn">map</span>(i -&gt; <span class="kw">new</span> <span class="ty">Prescription</span>((long) i, <span class="str">"Drug"</span> + i)));
+
+    <span class="ty">StepVerifier</span>.<span class="fn">create</span>(rxService.<span class="fn">findByPatient</span>(<span class="num">42L</span>))
+        .<span class="fn">expectNextCount</span>(<span class="num">50</span>)
+        .<span class="fn">verifyComplete</span>();
+}</code></pre>
+
+  <h2>Testing Time-Based Operations</h2>
+  <p>For retries, timeouts, and delays — use <code>StepVerifier.withVirtualTime()</code> to skip clock time entirely:</p>
+
+  <pre><code><span class="ann">@Test</span>
+<span class="kw">void</span> <span class="fn">retryWith3Attempts_onTransientFailure</span>() {
+    <span class="ty">AtomicInteger</span> attempts = <span class="kw">new</span> <span class="ty">AtomicInteger</span>(<span class="num">0</span>);
+
+    <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; sendWithRetry = <span class="ty">Mono</span>.<span class="fn">fromRunnable</span>(() -&gt; {
+        <span class="kw">if</span> (attempts.<span class="fn">incrementAndGet</span>() &lt; <span class="num">3</span>)
+            <span class="kw">throw</span> <span class="kw">new</span> <span class="ty">TransientServiceBusException</span>(<span class="str">"transient"</span>);
+    }).<span class="fn">retryWhen</span>(<span class="ty">Retry</span>.<span class="fn">backoff</span>(<span class="num">3</span>, <span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">1</span>)));
+
+    <span class="ty">StepVerifier</span>.<span class="fn">withVirtualTime</span>(() -&gt; sendWithRetry)
+        .<span class="fn">thenAwait</span>(<span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">10</span>))  <span class="cm">// advance virtual clock</span>
+        .<span class="fn">verifyComplete</span>();
+
+    <span class="fn">assertThat</span>(attempts.<span class="fn">get</span>()).<span class="fn">isEqualTo</span>(<span class="num">3</span>);
+}
+
+<span class="ann">@Test</span>
+<span class="kw">void</span> <span class="fn">timeout_shouldErrorAfter3Seconds</span>() {
+    <span class="ty">Mono</span>&lt;<span class="ty">Coverage</span>&gt; slowFormulary = <span class="ty">Mono</span>.<span class="fn">never</span>()  <span class="cm">// never completes</span>
+        .<span class="fn">timeout</span>(<span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">3</span>));
+
+    <span class="ty">StepVerifier</span>.<span class="fn">withVirtualTime</span>(() -&gt; slowFormulary)
+        .<span class="fn">thenAwait</span>(<span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">4</span>))
+        .<span class="fn">verifyError</span>(<span class="ty">TimeoutException</span>.<span class="kw">class</span>);
+}</code></pre>
+
+  <h2>WebTestClient: Integration Testing WebFlux Endpoints</h2>
+
+  <pre><code><span class="ann">@SpringBootTest</span>(webEnvironment = <span class="ty">SpringBootTest</span>.<span class="ty">WebEnvironment</span>.<span class="fn">RANDOM_PORT</span>)
+<span class="kw">class</span> <span class="ty">PrescriptionControllerIT</span> {
+
+    <span class="ann">@Autowired</span>
+    <span class="kw">private</span> <span class="ty">WebTestClient</span> webClient;
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> <span class="fn">getById_shouldReturn200</span>() {
+        webClient.<span class="fn">get</span>().<span class="fn">uri</span>(<span class="str">"/api/v1/prescriptions/1"</span>)
+            .<span class="fn">exchange</span>()
+            .<span class="fn">expectStatus</span>().<span class="fn">isOk</span>()
+            .<span class="fn">expectBody</span>(<span class="ty">PrescriptionDTO</span>.<span class="kw">class</span>)
+            .<span class="fn">value</span>(dto -&gt; <span class="fn">assertThat</span>(dto.<span class="fn">getId</span>()).<span class="fn">isEqualTo</span>(<span class="num">1L</span>));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> <span class="fn">getByPatient_shouldReturnFlux</span>() {
+        webClient.<span class="fn">get</span>().<span class="fn">uri</span>(<span class="str">"/api/v1/prescriptions?patientId=42"</span>)
+            .<span class="fn">accept</span>(<span class="ty">MediaType</span>.<span class="fn">APPLICATION_NDJSON</span>)
+            .<span class="fn">exchange</span>()
+            .<span class="fn">expectStatus</span>().<span class="fn">isOk</span>()
+            .<span class="fn">expectBodyList</span>(<span class="ty">PrescriptionDTO</span>.<span class="kw">class</span>)
+            .<span class="fn">hasSize</span>(<span class="num">3</span>);
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> <span class="fn">create_shouldReturn201</span>() {
+        <span class="ty">FillRequest</span> req = <span class="kw">new</span> <span class="ty">FillRequest</span>(<span class="num">42L</span>, <span class="str">"00071015523"</span>, <span class="num">30</span>);
+
+        webClient.<span class="fn">post</span>().<span class="fn">uri</span>(<span class="str">"/api/v1/prescriptions"</span>)
+            .<span class="fn">bodyValue</span>(req)
+            .<span class="fn">exchange</span>()
+            .<span class="fn">expectStatus</span>().<span class="fn">isCreated</span>()
+            .<span class="fn">expectBody</span>(<span class="ty">PrescriptionDTO</span>.<span class="kw">class</span>)
+            .<span class="fn">value</span>(dto -&gt; {
+                <span class="fn">assertThat</span>(dto.<span class="fn">getNdc</span>()).<span class="fn">isEqualTo</span>(<span class="str">"00071015523"</span>);
+                <span class="fn">assertThat</span>(dto.<span class="fn">getStatus</span>()).<span class="fn">isEqualTo</span>(<span class="str">"FILLED"</span>);
+            });
+    }
+}</code></pre>
+
+  <h2>Mocking Reactive Repos with Mockito</h2>
+
+  <pre><code><span class="ann">@ExtendWith</span>(<span class="ty">MockitoExtension</span>.<span class="kw">class</span>)
+<span class="kw">class</span> <span class="ty">PrescriptionServiceTest</span> {
+
+    <span class="ann">@Mock</span> <span class="ty">PrescriptionR2dbcRepository</span> rxRepo;
+    <span class="ann">@Mock</span> <span class="ty">PatientR2dbcRepository</span>     patientRepo;
+    <span class="ann">@InjectMocks</span> <span class="ty">PrescriptionService</span> svc;
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> <span class="fn">cancel_shouldSetStatusCancelled</span>() {
+        <span class="ty">Prescription</span> rx = <span class="kw">new</span> <span class="ty">Prescription</span>(<span class="num">1L</span>, <span class="str">"PENDING"</span>);
+        <span class="kw">when</span>(rxRepo.<span class="fn">findById</span>(<span class="num">1L</span>)).<span class="fn">thenReturn</span>(<span class="ty">Mono</span>.<span class="fn">just</span>(rx));
+        <span class="kw">when</span>(rxRepo.<span class="fn">save</span>(<span class="fn">any</span>())).<span class="fn">thenAnswer</span>(inv -&gt; <span class="ty">Mono</span>.<span class="fn">just</span>(inv.<span class="fn">getArgument</span>(<span class="num">0</span>)));
+
+        <span class="ty">StepVerifier</span>.<span class="fn">create</span>(svc.<span class="fn">cancel</span>(<span class="num">1L</span>))
+            .<span class="fn">verifyComplete</span>();
+
+        <span class="fn">verify</span>(rxRepo).<span class="fn">save</span>(<span class="fn">argThat</span>(saved -&gt;
+            <span class="str">"CANCELLED"</span>.<span class="fn">equals</span>(saved.<span class="fn">getStatus</span>())));
+    }
+}</code></pre>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.1em;margin-bottom:1rem;">FINAL KNOWLEDGE CHECK</p>
+
+    <div id="q1">
+      <p class="quiz-q">How do you assert that a Mono completed without emitting any item and without error?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1',this,false)">StepVerifier.create(mono).expectNext(null).verifyComplete()</button>
+        <button class="quiz-opt" onclick="answer('q1',this,true)">StepVerifier.create(mono).verifyComplete()</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">StepVerifier.create(mono).expectNextCount(0).verifyComplete()</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">You're testing a retry with 3-second backoff delays. The test would take 9+ seconds. What do you use?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Thread.sleep(10000) before asserting</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">StepVerifier.create().timeout(Duration.ofSeconds(15))</button>
+        <button class="quiz-opt" onclick="answer('q2',this,true)">StepVerifier.withVirtualTime(() -> mono).thenAwait(Duration.ofSeconds(30))</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="complete-badge">
+    🎓 Curriculum Complete — 8/8 Lessons
+    <div style="font-size:.9rem;font-weight:300;margin-top:.4rem;opacity:.9;">You've covered the full reactive stack: Publisher/Subscriber contract → Operators → Error Handling → Schedulers → Backpressure → WebFlux → Service Bus → Testing</div>
+  </div>
+
+  <div class="callout success">
+    <div class="callout-label">What's Next</div>
+    The reference sheets in <code>/reference/</code> are your day-to-day cheat sheets. Bookmark the <a href="../reference/operators-cheatsheet.html">Operators Cheatsheet</a> and the <a href="../reference/glossary.html">Glossary</a>. Ask your teacher about Reactor Context (passing metadata through the pipeline), reactive transactions with <code>@Transactional</code> on WebFlux, or Micrometer reactive metrics.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 08 / 08 — Reactive Java @ Empower PMS</span>
+  <span style="color:var(--accent3);">✓ Course Complete</span>
+</div>
+
+<script>
+const fb={
+  q1:{w:"expectNext(null) expects an item whose value is null — that's different from empty. expectNextCount(0) is redundant before verifyComplete.",r:"Correct. verifyComplete() on its own asserts the stream completed with zero items and no error — that's the idiomatic way to test Mono.empty() or Mono<Void>."},
+  q2:{w:"Thread.sleep makes tests slow and brittle. timeout() controls how long StepVerifier waits, not the virtual clock.",r:"Correct. withVirtualTime() replaces Reactor's clock with a virtual one. thenAwait() advances it instantly — your 9-second retry test runs in milliseconds."}
+};
+function answer(qid,btn,correct){
+  const s=document.getElementById(qid);
+  s.querySelectorAll('.quiz-opt').forEach(o=>{o.disabled=true;});
+  btn.classList.add(correct?'correct':'wrong');
+  if(!correct)s.querySelectorAll('.quiz-opt').forEach(o=>{if(o.onclick.toString().includes('true'))o.classList.add('correct');});
+  const el=document.getElementById(qid+'-feedback');
+  el.textContent=(correct?'✓ ':'✗ ')+fb[qid][correct?'r':'w'];
+  el.className='quiz-feedback show '+(correct?'correct':'wrong');
+}
+</script>
+</body>
+</html>

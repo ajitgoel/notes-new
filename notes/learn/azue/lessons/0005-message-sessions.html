@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 5: Message Sessions — Ordered Processing &amp; Workflows</title>
+<style>
+  :root {
+    --bg: #fcfcfc; --text: #1a1a1a; --muted: #5a5a5a;
+    --accent: #0078d4; --accent-hover: #005a9e; --success: #107c10; --warn: #d83b01;
+    --border: #e1e1e1; --card-bg: #fff; --code-bg: #f4f4f4; --highlight: #fff4ce;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem;
+  }
+  h1 { font-size: 2rem; margin-bottom: 0.2rem; font-weight: 700; }
+  h2 { font-size: 1.35rem; margin: 2.5rem 0 0.8rem; font-weight: 600; color: #111; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.4rem; margin: 1rem 0;
+  }
+  .card.accent-left { border-left: 4px solid var(--accent); }
+  .card.warn-left { border-left: 4px solid var(--warn); }
+  .card.success-left { border-left: 4px solid var(--success); }
+  pre {
+    background: #1e1e1e; color: #d4d4d4; padding: 1.2rem 1.4rem;
+    border-radius: var(--radius); overflow-x: auto; font-size: 0.84rem;
+    line-height: 1.55; margin: 0.8rem 0;
+  }
+  :not(pre) > code {
+    background: var(--code-bg); padding: 0.15em 0.4em;
+    border-radius: 3px; color: #333; font-size: 0.88em;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem;
+  }
+  th {
+    text-align: left; font-weight: 600; padding: 0.6rem 0.8rem;
+    background: var(--code-bg); border-bottom: 2px solid var(--border);
+  }
+  td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .quiz .question {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0;
+  }
+  .quiz .q-label { font-weight: 600; margin-bottom: 0.8rem; display: block; }
+  .quiz label {
+    display: block; padding: 0.45rem 0.8rem; margin: 0.2rem 0;
+    border-radius: 6px; cursor: pointer; transition: background 0.15s;
+  }
+  .quiz label:hover { background: #f0f6ff; }
+  .quiz input[type="radio"] { margin-right: 0.5rem; }
+  .quiz .feedback {
+    margin-top: 0.7rem; padding: 0.7rem 1rem; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 500; display: none;
+  }
+  .quiz .feedback.correct {
+    display: block; background: #dff6dd; color: #0b4a0b; border: 1px solid #c6e6c4;
+  }
+  .quiz .feedback.incorrect {
+    display: block; background: #fde7e9; color: #8b1a1a; border: 1px solid #f5c6cb;
+  }
+  .quiz .check-btn {
+    background: var(--accent); color: white; border: none;
+    padding: 0.5rem 1.2rem; border-radius: 6px; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer; margin-top: 0.6rem;
+  }
+  .quiz .check-btn:hover { background: var(--accent-hover); }
+  .diagram {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin: 1.5rem 0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.8rem; line-height: 1.8; white-space: pre; overflow-x: auto;
+  }
+  .lesson-footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--border);
+    color: var(--muted); font-size: 0.9rem;
+  }
+  .lesson-footer a { color: var(--accent); }
+  .cite { font-size: 0.78rem; color: var(--muted); margin-left: 0.3rem; }
+  .cite a { color: var(--muted); text-decoration: underline; text-decoration-style: dotted; }
+  @media print {
+    body { font-size: 11pt; max-width: 100%; }
+    pre { background: #f4f4f4; color: #1a1a1a; border: 1px solid #ddd; }
+    .quiz { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Lesson 5: Message Sessions — Ordered Processing &amp; Workflows</h1>
+<p class="meta">Estimated time: 20–25 minutes &nbsp;|&nbsp; Focus: FIFO, Session State, Request-Response</p>
+
+<div class="card accent-left">
+  <strong>🎯 What you'll learn</strong><br>
+  How to use <strong>message sessions</strong> to guarantee FIFO processing within related message groups, manage <strong>session state</strong> for workflow recovery, implement the <strong>request-response pattern</strong>, and use the Java session processor API.
+</div>
+
+<h2>The Problem Sessions Solve</h2>
+
+<p>Standard queues guarantee FIFO <em>ordering</em> but not FIFO <em>processing</em>. With multiple consumers, messages 1, 2, 3 can be processed in any order depending on which consumer is fastest. Sessions enforce that <strong>all messages with the same SessionId are processed sequentially by the same consumer</strong>.<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-sessions" target="_blank">[source]</a></span></p>
+
+<div class="diagram">
+  WITHOUT SESSIONS:                  WITH SESSIONS:
+  Queue: [1A, 1B, 2A, 1C, 2B]      Queue: [1A, 1B, 2A, 1C, 2B]
+                                      │                │
+  Consumer 1 gets 1A                 Session "1" ──► Consumer A
+  Consumer 2 gets 1B   ← WRONG!      Session "2" ──► Consumer B
+  Consumer 1 gets 2A                 │                │
+  Consumer 2 gets 1C   ← WRONG!      1A → 1B → 1C   (strict order)
+  Consumer 1 gets 2B                 2A → 2B          (strict order)
+
+  Result: 1A, 2A processed           Each session is a virtual
+  before 1B, 1C — order broken       sub-queue with its own lock
+</div>
+
+<h2>How Sessions Work</h2>
+
+<ol style="padding-left:1.3rem;">
+  <li><strong>Enable sessions</strong> on the queue or subscription at creation time (cannot be changed later).</li>
+  <li>Senders set <code>SessionId</code> on messages. All messages with the same <code>SessionId</code> form a session.</li>
+  <li>A consumer <strong>accepts a session</strong> — it gets an exclusive lock on that session ID across all messages (past and future).</li>
+  <li>Messages within the session are delivered FIFO. Only one consumer holds the session lock.</li>
+  <li>When the consumer closes the session or the lock expires, another consumer can accept it.</li>
+</ol>
+
+<div class="card warn-left">
+  <strong>⚠️ When sessions are enabled, ALL messages MUST have a SessionId.</strong> You can't send regular non-session messages to a session-enabled queue. This is a hard requirement — the send will fail if SessionId is null.
+</div>
+
+<h2>Java API: Session Sender</h2>
+
+<pre>SessionSender.java
+import com.azure.messaging.servicebus.*;
+import reactor.core.publisher.Mono;
+
+public class SessionSender {
+
+    private final ServiceBusSenderAsyncClient sender;
+
+    public SessionSender(String connectionString, String queueName) {
+        this.sender = new ServiceBusClientBuilder()
+            .connectionString(connectionString)
+            .sender()
+            .queueName(queueName)
+            .buildAsyncClient();
+    }
+
+    // All messages for the same order share a SessionId
+    public Mono&lt;Void&gt; sendOrderWorkflow(String orderId, String step, String payload) {
+        return sender.sendMessage(new ServiceBusMessage(payload)
+            .setMessageId(orderId + "-" + step)
+            .setSessionId(orderId)          // <-- ties messages together
+            .setSubject("order/" + step)    // e.g., "order/created", "order/paid"
+            .setContentType("application/json"));
+    }
+}</pre>
+
+<h2>Java API: Session Receiver (Accept Any Session)</h2>
+
+<pre>SessionReceiver.java
+import com.azure.messaging.servicebus.*;
+import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
+import reactor.core.publisher.Mono;
+
+public class SessionReceiver {
+
+    private final ServiceBusClientBuilder builder;
+
+    public SessionReceiver(String connectionString) {
+        this.builder = new ServiceBusClientBuilder()
+            .connectionString(connectionString);
+    }
+
+    // Accept the next available session (any SessionId)
+    public Mono&lt;Void&gt; processNextSession(String queueName) {
+        ServiceBusSessionReceiverAsyncClient sessionReceiver = builder
+            .sessionReceiver()                       // <-- session receiver
+            .queueName(queueName)
+            .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+            .buildAsyncClient();
+
+        return sessionReceiver.receiveMessages()
+            .flatMap(message -&gt; {
+                System.out.printf("[Session: %s] %s: %s%n",
+                    message.getSessionId(),
+                    message.getSubject(),
+                    message.getBody().toString());
+
+                // Process in order — guaranteed within this session
+                return processBusinessLogic(message)
+                    .then(sessionReceiver.complete(message));
+            })
+            .then(Mono.fromRunnable(sessionReceiver::close));
+    }
+}</pre>
+
+<h2>Java API: Session Processor (Production-Ready)</h2>
+
+<p>The <code>ServiceBusSessionProcessorClient</code> manages multiple sessions concurrently — it auto-accepts available sessions and distributes them across a thread pool.<span class="cite"><a href="https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/samples/java/com/azure/messaging/servicebus/ServiceBusSessionProcessorSample.java" target="_blank">[sample]</a></span></p>
+
+<pre>SessionProcessorService.java
+import com.azure.messaging.servicebus.*;
+import com.azure.messaging.servicebus.models.*;
+
+public class SessionProcessorService {
+
+    private final ServiceBusSessionProcessorClient processor;
+
+    public SessionProcessorService(String connectionString, String queueName) {
+        processor = new ServiceBusClientBuilder()
+            .connectionString(connectionString)
+            .sessionProcessor()                           // <-- session processor
+            .queueName(queueName)
+            .maxConcurrentSessions(5)                     // process 5 sessions in parallel
+            .maxConcurrentCalls(2)                        // max 2 concurrent msgs per session
+            .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+            .autoComplete(false)
+            .processMessage(ctx -&gt; handleSessionMessage(ctx))
+            .processError(ctx -&gt; log.error("Error: {}",
+                ctx.getException().getMessage()))
+            .buildSessionProcessorClient();
+    }
+
+    private void handleSessionMessage(ServiceBusSessionReceiverMessageContext ctx) {
+        ServiceBusReceivedMessage msg = ctx.getMessage();
+
+        try {
+            // Session state: checkpoint where we are in the workflow
+            byte[] currentState = ctx.getSessionReceiver().getSessionState();
+            String lastStep = currentState != null
+                ? new String(currentState) : "none";
+
+            log.info("[Session: {}] Processing {} (last completed: {})",
+                msg.getSessionId(), msg.getSubject(), lastStep);
+
+            processStep(msg);
+
+            // Save session state for recovery
+            ctx.getSessionReceiver().setSessionState(
+                msg.getSubject().getBytes());
+
+            ctx.complete();
+
+        } catch (FatalException e) {
+            ctx.deadLetter(new DeadLetterOptions()
+                .setDeadLetterReason("SessionFatal:" + e.getMessage()));
+        } catch (Exception e) {
+            ctx.abandon();  // transient — retry within session
+        }
+    }
+
+    public void start() { processor.start(); }
+    public void close() { processor.close(); }
+}</pre>
+
+<h2>Session State: The Recovery Superpower</h2>
+
+<p>Session state is an opaque binary blob stored on the broker (256 KB Standard, 100 MB Premium). It persists even after all messages in the session are consumed. Use it to checkpoint workflow progress.<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-sessions" target="_blank">[source]</a></span></p>
+
+<div class="diagram">
+  Session "order-12345"
+  ┌────────────────────────────────────────────────┐
+  │ Messages:  [created] → [payment-cleared] → [shipped]
+  │ SessionState: "step=payment-cleared"
+  └────────────────────────────────────────────────┘
+
+  If consumer crashes after processing "payment-cleared" but
+  before "shipped", the NEW consumer reads session state and
+  knows to skip to "shipped" — no duplicate processing.
+</div>
+
+<h2>Pattern: Request-Response with Sessions</h2>
+
+<p>Sessions enable request-response without creating temporary reply queues. The requester uses a unique SessionId (a GUID) and waits on a session receiver for the reply.<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-sessions" target="_blank">[source]</a></span></p>
+
+<pre>RequestResponseService.java
+import com.azure.messaging.servicebus.*;
+import reactor.core.publisher.Mono;
+import java.util.UUID;
+import java.time.Duration;
+
+public class RequestResponseService {
+
+    private final ServiceBusSenderAsyncClient requestSender;
+    private final ServiceBusClientBuilder builder;
+    private static final String REQUEST_QUEUE = "requests";
+    private static final String RESPONSE_QUEUE = "responses"; // session-enabled
+
+    public RequestResponseService(String connectionString) {
+        this.requestSender = new ServiceBusClientBuilder()
+            .connectionString(connectionString)
+            .sender().queueName(REQUEST_QUEUE).buildAsyncClient();
+        this.builder = new ServiceBusClientBuilder()
+            .connectionString(connectionString);
+    }
+
+    // --- REQUESTER sends request and waits for reply ---
+    public Mono&lt;String&gt; sendRequestAndWaitForReply(String requestBody) {
+        String correlationId = UUID.randomUUID().toString();
+
+        // Send request with a ReplyToSessionId the responder will use
+        return requestSender.sendMessage(new ServiceBusMessage(requestBody)
+            .setMessageId(correlationId)
+            .setReplyToSessionId(correlationId)  // responder sets this as SessionId on reply
+            .setReplyTo(RESPONSE_QUEUE))
+            .then(receiveReply(RESPONSE_QUEUE, correlationId));
+    }
+
+    private Mono&lt;String&gt; receiveReply(String queueName, String sessionId) {
+        ServiceBusSessionReceiverAsyncClient sessionReceiver = builder
+            .sessionReceiver()
+            .queueName(queueName)
+            .sessionId(sessionId)          // wait for THIS specific session
+            .buildAsyncClient();
+
+        return sessionReceiver.receiveMessage()
+            .flatMap(msg -&gt;
+                sessionReceiver.complete(msg)
+                    .thenReturn(msg.getBody().toString()))
+            .timeout(Duration.ofSeconds(30))
+            .doFinally(sig -&gt; sessionReceiver.close());
+    }
+
+    // --- RESPONDER: processes request, sends reply ---
+    public void startResponder() {
+        ServiceBusSessionProcessorClient processor = builder
+            .sessionProcessor()
+            .queueName(REQUEST_QUEUE)
+            .maxConcurrentSessions(10)
+            .processMessage(ctx -&gt; {
+                ServiceBusReceivedMessage request = ctx.getMessage();
+                String reply = processRequest(request.getBody().toString());
+
+                // Send reply using the request's ReplyToSessionId as the SessionId
+                ServiceBusSenderAsyncClient replySender = builder
+                    .sender().queueName(request.getReplyTo()).buildAsyncClient();
+
+                replySender.sendMessage(new ServiceBusMessage(reply)
+                    .setSessionId(request.getReplyToSessionId())
+                    .setCorrelationId(request.getMessageId()))
+                    .block();  // fire-and-block in this callback context
+
+                ctx.complete();
+                replySender.close();
+            })
+            .processError(ctx -&gt; log.error("Error", ctx.getException()))
+            .buildSessionProcessorClient();
+        processor.start();
+    }
+}</pre>
+
+<h2>Session vs. Non-Session: When to Use Which</h2>
+
+<table>
+  <thead>
+    <tr><th></th><th>Sessions</th><th>No Sessions</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Message ordering</td><td>FIFO within session</td><td>FIFO enqueue order, any process order</td></tr>
+    <tr><td>Concurrency</td><td>One consumer per session; many sessions in parallel</td><td>Many consumers compete freely</td></tr>
+    <tr><td>State storage</td><td>Broker-side session state</td><td>Must use external store</td></tr>
+    <tr><td>Througput</td><td>Lower per-session (serial), higher overall (many sessions)</td><td>Highest (no session overhead)</td></tr>
+    <tr><td>Use when</td><td>Ordered workflows, state machines, request-reply</td><td>Independent tasks, load leveling, fire-and-forget</td></tr>
+  </tbody>
+</table>
+
+<div class="card accent-left">
+  <strong>🧭 Pro tip:</strong> Sessions impose CPU overhead on the broker. If you have a high-throughput scenario (1,000s msg/sec), consider whether you genuinely need sessions. Often, designing messages to be <em>independently processable</em> (each message is self-contained, doesn't depend on order) is simpler and faster.
+</div>
+
+<h2>Check Your Understanding</h2>
+
+<div class="quiz" id="quiz">
+
+  <div class="question" id="q1">
+    <span class="q-label">Q1. A session-enabled queue has messages with SessionIds "A", "B", and "A". Consumer1 accepts an open session and gets "A". Consumer2 tries to receive. What happens?</span>
+    <label><input type="radio" name="q1" value="a"> Consumer2 gets message from session "B"</label>
+    <label><input type="radio" name="q1" value="b"> Consumer2 waits until a session becomes available or Consumer1 releases "A"</label>
+    <label><input type="radio" name="q1" value="c"> Consumer2 also gets messages from "A" — both consumers compete</label>
+    <div class="feedback" id="q1-fb"></div>
+    <button class="check-btn" onclick="checkQ1()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q2">
+    <span class="q-label">Q2. You need to process 100 concurrent order workflows. Each workflow has 5–20 sequential steps that must be ordered. How do you model this?</span>
+    <label><input type="radio" name="q2" value="a"> One queue, no sessions — let competing consumers handle it</label>
+    <label><input type="radio" name="q2" value="b"> One session-enabled queue, SessionId = orderId, maxConcurrentSessions=100</label>
+    <label><input type="radio" name="q2" value="c"> 100 separate queues — one per order</label>
+    <div class="feedback" id="q2-fb"></div>
+    <button class="check-btn" onclick="checkQ2()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q3">
+    <span class="q-label">Q3. What happens to session state after all messages in the session are consumed and completed?</span>
+    <label><input type="radio" name="q3" value="a"> It's automatically deleted</label>
+    <label><input type="radio" name="q3" value="b"> It persists until explicitly cleared by calling setSessionState(null)</label>
+    <label><input type="radio" name="q3" value="c"> It expires after the session lock timeout</label>
+    <div class="feedback" id="q3-fb"></div>
+    <button class="check-btn" onclick="checkQ3()">Check Answer</button>
+  </div>
+
+</div>
+
+<script>
+function showFeedback(qId, isCorrect, correctMsg, incorrectMsg) {
+  const fb = document.getElementById(qId + '-fb');
+  fb.style.display = 'block';
+  if (isCorrect) {
+    fb.textContent = '✅ Correct! ' + correctMsg;
+    fb.className = 'feedback correct';
+  } else {
+    fb.textContent = '❌ ' + incorrectMsg;
+    fb.className = 'feedback incorrect';
+  }
+}
+
+function checkQ1() {
+  const sel = document.querySelector('input[name="q1"]:checked');
+  if (!sel) return;
+  showFeedback('q1', sel.value === 'a',
+    'Correct! Since Consumer1 holds the exclusive session lock on "A", Consumer2 cannot touch those messages. Consumer2 can accept session "B" instead (or wait if no other sessions exist). Sessions act as independent sub-queues.',
+    sel.value === 'b' ? 'Not quite. Consumer2 can accept a different session — in this case session "B" is available. Session receivers don\'t wait for a specific session unless you request one by SessionId. If no sessions were available, then Consumer2 would need to wait.' : 'No — sessions provide exclusive locks. Only one consumer can hold a session at a time. Both consumers cannot process messages from session "A" simultaneously.'
+  );
+}
+
+function checkQ2() {
+  const sel = document.querySelector('input[name="q2"]:checked');
+  if (!sel) return;
+  showFeedback('q2', sel.value === 'b',
+    'Correct. A single session-enabled queue with orderId as SessionId gives each workflow its own session. maxConcurrentSessions=100 means 100 workflows can process in parallel, while each individual workflow processes sequentially. This is the canonical session use case.',
+    sel.value === 'a' ? 'Without sessions, messages from different workflows interleave — step 5 of order A might process before step 2 of order A, breaking your business logic.' : '100 queues is a management nightmare and hits namespace limits. Sessions are specifically designed for this pattern — each SessionId is a virtual sub-queue.'
+  );
+}
+
+function checkQ3() {
+  const sel = document.querySelector('input[name="q3"]:checked');
+  if (!sel) return;
+  showFeedback('q3', sel.value === 'b',
+    'Correct. Session state persists until you explicitly clear it with setSessionState(null). It even survives all messages being consumed. This is by design — state is your workflow checkpoint, and you might need it even after the last message to verify completion. Remember to clean it up to avoid storage charges.',
+    sel.value === 'a' ? 'No — session state is NOT auto-deleted. It persists until you explicitly call setSessionState(null). This is intentional: the state is your application\'s checkpoint.' : 'No — session state persists independently of the lock. It remains until explicitly cleared.'
+  );
+}
+</script>
+
+<h2>Key Takeaways</h2>
+
+<div class="card success-left">
+  <ul style="padding-left:1.3rem;">
+    <li><strong>Sessions = FIFO processing, not just FIFO ordering.</strong> Without sessions, messages are in order in the queue but may be processed out of order by competing consumers.</li>
+    <li><strong>Session lock is exclusive.</strong> Only one consumer processes a given SessionId at a time. This is the mechanism that guarantees ordering.</li>
+    <li><strong>Session state survives message consumption.</strong> Use it for workflow checkpoints — but remember to clear it when the workflow is complete.</li>
+    <li><strong>SessionProcessor is the production choice.</strong> Use maxConcurrentSessions to control parallelism across sessions while maintaining per-session ordering.</li>
+    <li><strong>Request-response via sessions avoids temporary queues.</strong> The requester creates a unique SessionId and waits on a session receiver; the responder sets that as the reply's SessionId.</li>
+  </ul>
+</div>
+
+<div class="lesson-footer">
+  <p><strong>📚 References:</strong>
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-sessions" target="_blank">Message Sessions</a> ·
+    <a href="https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/samples/java/com/azure/messaging/servicebus/ServiceBusSessionProcessorSample.java" target="_blank">Session Processor Sample (Java)</a> ·
+    <a href="../reference/glossary.html" target="_blank">Glossary</a>
+  </p>
+  <p><strong>❓ Questions?</strong> Ask me about session throughput trade-offs, dead-lettering behavior in sessions, or how sessions compare to Kafka partitions.</p>
+  <p><strong>📂 Next lesson:</strong> <em>Lesson 6: Security — SAS, RBAC, Managed Identity &amp; Network Security</em></p>
+</div>
+
+</body>
+</html>

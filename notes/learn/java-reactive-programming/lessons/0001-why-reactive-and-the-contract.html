@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 1 — Why Reactive & The Publisher/Subscriber Contract</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1c2030;
+    --border: #252a38;
+    --accent: #5b8dee;
+    --accent2: #e85d75;
+    --accent3: #52d9a4;
+    --text: #d4daf0;
+    --muted: #6b7594;
+    --code-bg: #0a0c10;
+    --highlight: #2a3556;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+    font-size: 16px;
+  }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: baseline;
+    gap: 2rem;
+  }
+
+  .lesson-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .lesson-title {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    position: relative;
+  }
+  .progress-bar::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; height: 100%;
+    width: 12.5%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 2.5rem 0 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 1.8rem 0 0.6rem;
+  }
+
+  p { margin-bottom: 1rem; }
+
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+  a:hover { border-bottom-color: var(--accent); }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin: 1.2rem 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  code {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: #c5d0f0;
+  }
+
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .kw { color: #7aa2f7; }
+  .ty { color: #bb9af7; }
+  .str { color: #9ece6a; }
+  .cm { color: #565f89; font-style: italic; }
+  .num { color: #ff9e64; }
+  .fn { color: #7dcfff; }
+  .ann { color: #e0af68; }
+
+  .callout {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .callout.danger { border-left-color: var(--accent2); }
+  .callout.success { border-left-color: var(--accent3); }
+
+  .callout-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    color: var(--accent);
+  }
+  .callout.danger .callout-label { color: var(--accent2); }
+  .callout.success .callout-label { color: var(--accent3); }
+
+  .marble {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    padding: 1rem;
+    background: var(--code-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .marble-line {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    position: relative;
+  }
+
+  .timeline {
+    height: 2px;
+    background: var(--muted);
+    flex: 1;
+    position: relative;
+  }
+
+  .event {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    flex-shrink: 0;
+    border: 2px solid;
+    position: relative;
+    z-index: 1;
+  }
+
+  .event.blue { background: #1a2a5e; border-color: var(--accent); color: var(--accent); }
+  .event.green { background: #0e3322; border-color: var(--accent3); color: var(--accent3); }
+  .event.red { background: #3e1520; border-color: var(--accent2); color: var(--accent2); }
+  .event.complete { font-size: 1rem; }
+
+  .label-left {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    white-space: nowrap;
+    min-width: 80px;
+  }
+
+  .quiz-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2rem;
+    margin: 2.5rem 0;
+  }
+
+  .quiz-q {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    color: #fff;
+    margin-bottom: 1.2rem;
+  }
+
+  .quiz-options { display: flex; flex-direction: column; gap: 0.6rem; }
+
+  .quiz-opt {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.95rem;
+    text-align: left;
+    color: var(--text);
+    width: 100%;
+  }
+
+  .quiz-opt:hover { border-color: var(--accent); background: var(--highlight); }
+  .quiz-opt.correct { border-color: var(--accent3); background: #0e3322; color: var(--accent3); }
+  .quiz-opt.wrong { border-color: var(--accent2); background: #3e1520; color: var(--accent2); }
+
+  .quiz-feedback {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: #0e3322; color: var(--accent3); border: 1px solid var(--accent3); }
+  .quiz-feedback.wrong { background: #3e1520; color: #f0a0b0; border: 1px solid var(--accent2); }
+
+  .tag {
+    display: inline-block;
+    background: var(--highlight);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    margin: 0 0.2em;
+    border: 1px solid var(--border);
+  }
+
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.2rem 0;
+  }
+
+  .compare-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem;
+  }
+
+  .compare-card h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .compare-card.imperative h4 { color: var(--accent2); }
+  .compare-card.reactive h4 { color: var(--accent3); }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .next-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.6rem 1.4rem;
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 600px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    .header { flex-direction: column; gap: 0.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 01 / 08</span>
+  <span class="lesson-title">Why Reactive & The Publisher/Subscriber Contract</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <h2>The Problem With Blocking</h2>
+  <p>Consider a prescription request hitting your Empower PMS API. It must: validate the patient, check drug interactions, call a formulary service, persist the record, and publish an event to Azure Service Bus. On a traditional thread-per-request model, a single Tomcat thread is <strong>parked</strong> for every one of those network calls — doing nothing, consuming 512KB of stack, waiting.</p>
+
+  <div class="compare-grid">
+    <div class="compare-card imperative">
+      <h4>⛔ Blocking / Imperative</h4>
+      <pre><code><span class="cm">// Thread is BLOCKED here</span>
+<span class="ty">Patient</span> p = db.findPatient(id); <span class="cm">// ~5ms wait</span>
+<span class="ty">Drug</span> d = formulary.lookup(ndc); <span class="cm">// ~20ms wait</span>
+repo.save(prescription);          <span class="cm">// ~8ms wait</span>
+bus.publish(event);               <span class="cm">// ~15ms wait</span>
+<span class="cm">// 200 concurrent requests = 200 parked threads</span></code></pre>
+    </div>
+    <div class="compare-card reactive">
+      <h4>✅ Reactive / Non-blocking</h4>
+      <pre><code><span class="cm">// Thread is NEVER parked — it returns</span>
+<span class="cm">// to the pool between each step</span>
+<span class="fn">findPatient</span>(id)
+  .<span class="fn">flatMap</span>(p -&gt; <span class="fn">lookup</span>(p.ndc()))
+  .<span class="fn">flatMap</span>(d -&gt; repo.<span class="fn">save</span>(rx))
+  .<span class="fn">flatMap</span>(saved -&gt; bus.<span class="fn">publish</span>(event));
+<span class="cm">// 200 concurrent requests, ~8 threads</span></code></pre>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Key Insight</div>
+    Reactive doesn't make individual operations <em>faster</em>. It makes the JVM able to handle <strong>dramatically more concurrent operations</strong> with the same hardware, because threads are never idle-waiting.
+  </div>
+
+  <h2>The Reactive Streams Specification</h2>
+  <p>Before Project Reactor, before RxJava — there's a 4-interface spec every reactive library implements. It lives at <a href="https://github.com/reactive-streams/reactive-streams-jvm" target="_blank">reactive-streams/reactive-streams-jvm</a> and was folded into Java 9 as <code>java.util.concurrent.Flow</code>.</p>
+
+  <pre><code><span class="cm">// The 4 interfaces of the Reactive Streams spec</span>
+<span class="kw">public interface</span> <span class="ty">Publisher</span>&lt;<span class="ty">T</span>&gt; {
+    <span class="kw">void</span> <span class="fn">subscribe</span>(<span class="ty">Subscriber</span>&lt;? <span class="kw">super</span> <span class="ty">T</span>&gt; subscriber);
+}
+
+<span class="kw">public interface</span> <span class="ty">Subscriber</span>&lt;<span class="ty">T</span>&gt; {
+    <span class="kw">void</span> <span class="fn">onSubscribe</span>(<span class="ty">Subscription</span> s);   <span class="cm">// called first, gives you the tap</span>
+    <span class="kw">void</span> <span class="fn">onNext</span>(<span class="ty">T</span> item);                  <span class="cm">// called for each item</span>
+    <span class="kw">void</span> <span class="fn">onError</span>(<span class="ty">Throwable</span> t);            <span class="cm">// terminal — no more items</span>
+    <span class="kw">void</span> <span class="fn">onComplete</span>();                    <span class="cm">// terminal — stream exhausted</span>
+}
+
+<span class="kw">public interface</span> <span class="ty">Subscription</span> {
+    <span class="kw">void</span> <span class="fn">request</span>(<span class="kw">long</span> n);  <span class="cm">// downstream pulls n items — backpressure!</span>
+    <span class="kw">void</span> <span class="fn">cancel</span>();
+}
+
+<span class="kw">public interface</span> <span class="ty">Processor</span>&lt;<span class="ty">T</span>, <span class="ty">R</span>&gt; <span class="kw">extends</span> <span class="ty">Subscriber</span>&lt;<span class="ty">T</span>&gt;, <span class="ty">Publisher</span>&lt;<span class="ty">R</span>&gt; {}</code></pre>
+
+  <h3>The protocol is a handshake</h3>
+  <p>Nothing flows until <code>Subscription.request(n)</code> is called. That's the key to backpressure — a downstream that's slow can tell the upstream "give me only 10 items" rather than drowning.</p>
+
+  <!-- Marble diagram simulation -->
+  <div style="margin: 1.5rem 0;">
+    <p style="font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); margin-bottom:0.6rem;">SUBSCRIBER SIGNALS (time →)</p>
+    <div style="display:flex; flex-direction:column; gap:0.8rem; background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:1.2rem;">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);min-width:110px;">subscribe()</span>
+        <div style="height:2px;background:var(--border);flex:1;position:relative;">
+          <div style="position:absolute;left:0;top:-9px;width:18px;height:18px;border-radius:50%;background:#1a2a5e;border:2px solid var(--accent);"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);min-width:110px;">onSubscribe(s)</span>
+        <div style="height:2px;background:var(--border);flex:1;position:relative;">
+          <div style="position:absolute;left:30px;top:-9px;width:18px;height:18px;border-radius:50%;background:#2a1a5e;border:2px solid #bb9af7;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);min-width:110px;">request(n)</span>
+        <div style="height:2px;background:var(--border);flex:1;position:relative;">
+          <div style="position:absolute;left:60px;top:-9px;width:18px;height:18px;border-radius:50%;background:#1a2a5e;border:2px solid var(--accent);"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);min-width:110px;">onNext(item)×n</span>
+        <div style="height:2px;background:var(--border);flex:1;position:relative;">
+          <div style="position:absolute;left:90px;top:-9px;width:18px;height:18px;border-radius:50%;background:#0e3322;border:2px solid var(--accent3);display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--accent3);">1</div>
+          <div style="position:absolute;left:120px;top:-9px;width:18px;height:18px;border-radius:50%;background:#0e3322;border:2px solid var(--accent3);display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--accent3);">2</div>
+          <div style="position:absolute;left:150px;top:-9px;width:18px;height:18px;border-radius:50%;background:#0e3322;border:2px solid var(--accent3);display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--accent3);">3</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);min-width:110px;">onComplete()</span>
+        <div style="height:2px;background:var(--border);flex:1;position:relative;">
+          <div style="position:absolute;left:185px;top:-9px;width:18px;height:18px;border-radius:50%;background:#1a1a1a;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:var(--muted);">|</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Reactor's Two Types: Mono and Flux</h2>
+  <p>Project Reactor is Spring's implementation of the Reactive Streams spec. It gives you two publisher types you'll use constantly:</p>
+
+  <pre><code><span class="cm">// Mono — 0 or 1 item. Like Optional but async.</span>
+<span class="ty">Mono</span>&lt;<span class="ty">Patient</span>&gt;   <span class="cm">// "I will eventually produce a Patient, or nothing, or an error"</span>
+<span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt;     <span class="cm">// "I will signal completion (or error), emit nothing"</span>
+
+<span class="cm">// Flux — 0 to N items. Like Stream but async + backpressure-aware.</span>
+<span class="ty">Flux</span>&lt;<span class="ty">Prescription</span>&gt;  <span class="cm">// "I will stream N prescriptions"</span>
+<span class="ty">Flux</span>&lt;<span class="ty">DrugEvent</span>&gt;     <span class="cm">// "I will stream events from Azure Service Bus forever"</span></code></pre>
+
+  <div class="callout danger">
+    <div class="callout-label">Critical Rule</div>
+    <strong>Nothing happens until you subscribe.</strong> A <code>Mono</code> or <code>Flux</code> is a <em>description</em> of a computation — a recipe. Calling <code>findPatient(id)</code> that returns a <code>Mono&lt;Patient&gt;</code> does <strong>not</strong> hit the database. Only <code>.subscribe()</code> (or Spring WebFlux's framework subscribe) triggers execution.
+  </div>
+
+  <h3>Your first Mono and Flux</h3>
+
+  <pre><code><span class="kw">import</span> reactor.core.publisher.Flux;
+<span class="kw">import</span> reactor.core.publisher.Mono;
+
+<span class="cm">// Creating publishers</span>
+<span class="ty">Mono</span>&lt;<span class="ty">String</span>&gt; greeting = <span class="ty">Mono</span>.<span class="fn">just</span>(<span class="str">"Hello, Empower"</span>);
+<span class="ty">Mono</span>&lt;<span class="ty">String</span>&gt; empty    = <span class="ty">Mono</span>.<span class="fn">empty</span>();
+<span class="ty">Mono</span>&lt;<span class="ty">String</span>&gt; failed   = <span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">RuntimeException</span>(<span class="str">"no patient"</span>));
+
+<span class="ty">Flux</span>&lt;<span class="ty">Integer</span>&gt; nums    = <span class="ty">Flux</span>.<span class="fn">just</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>);
+<span class="ty">Flux</span>&lt;<span class="ty">Integer</span>&gt; range   = <span class="ty">Flux</span>.<span class="fn">range</span>(<span class="num">1</span>, <span class="num">100</span>);
+
+<span class="cm">// Nothing happens yet. Add a subscriber:</span>
+greeting.<span class="fn">subscribe</span>(
+    value -&gt; <span class="ty">System</span>.out.<span class="fn">println</span>(<span class="str">"Got: "</span> + value),
+    error -&gt; <span class="ty">System</span>.err.<span class="fn">println</span>(<span class="str">"Error: "</span> + error),
+    ()    -&gt; <span class="ty">System</span>.out.<span class="fn">println</span>(<span class="str">"Done"</span>)
+);
+<span class="cm">// Output: Got: Hello, Empower</span>
+<span class="cm">//         Done</span></code></pre>
+
+  <div class="callout success">
+    <div class="callout-label">Spring WebFlux Note</div>
+    In a Spring WebFlux controller, you <strong>return</strong> the <code>Mono</code> or <code>Flux</code> — Spring subscribes for you. You will almost never call <code>.subscribe()</code> manually in application code. The subscription is the framework's job.
+  </div>
+
+  <h2>Cold vs Hot Publishers</h2>
+  <p>This trips up almost every developer new to reactive:</p>
+
+  <pre><code><span class="cm">// COLD publisher — each subscriber gets their own execution</span>
+<span class="ty">Mono</span>&lt;<span class="ty">Patient</span>&gt; dbLookup = patientRepo.<span class="fn">findById</span>(id);
+<span class="cm">// Subscriber A → triggers a DB query</span>
+<span class="cm">// Subscriber B → triggers ANOTHER DB query (independent execution)</span>
+
+<span class="cm">// HOT publisher — shares a single execution with all subscribers</span>
+<span class="ty">Flux</span>&lt;<span class="ty">DrugEvent</span>&gt; eventStream = serviceBusReceiver.<span class="fn">receiveMessages</span>();
+<span class="cm">// Both subscriber A and B see the SAME messages</span>
+<span class="cm">// A message is not replayed for late subscribers</span></code></pre>
+
+  <p>Most reactive sources you'll create (DB queries, HTTP calls) are <strong>cold</strong>. Azure Service Bus event streams are <strong>hot</strong>. You'll need <code>.share()</code> or <code>.publish()</code> to multicast a cold source.</p>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--accent);letter-spacing:0.1em;margin-bottom:1rem;">KNOWLEDGE CHECK</p>
+    <div id="q1">
+      <p class="quiz-q">You write: <code>Mono&lt;Patient&gt; m = patientRepo.findById(123L);</code> — and then do nothing else. How many database queries have been executed?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1', this, false)">One — the query runs when you create the Mono</button>
+        <button class="quiz-opt" onclick="answer('q1', this, true)">Zero — nothing happens until subscribe()</button>
+        <button class="quiz-opt" onclick="answer('q1', this, false)">Depends on whether the repository is blocking or reactive</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">In your Empower PMS WebFlux controller, you return a <code>Mono&lt;ResponseEntity&lt;Prescription&gt;&gt;</code>. Who calls <code>.subscribe()</code>?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2', this, false)">You do, in the controller method</button>
+        <button class="quiz-opt" onclick="answer('q2', this, true)">Spring WebFlux framework subscribes on your behalf</button>
+        <button class="quiz-opt" onclick="answer('q2', this, false)">The HTTP client that made the request</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q3">
+      <p class="quiz-q">Which type would you use to represent "find a patient by ID" — where the patient may or may not exist?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q3', this, true)">Mono&lt;Patient&gt;</button>
+        <button class="quiz-opt" onclick="answer('q3', this, false)">Flux&lt;Patient&gt;</button>
+        <button class="quiz-opt" onclick="answer('q3', this, false)">Flux&lt;Patient&gt; with .take(1)</button>
+      </div>
+      <div id="q3-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Ask your teacher</div>
+    Anything unclear? Type your question in the chat — your teacher is right there.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 01 / 08 — Reactive Java @ Empower PMS</span>
+  <span>Next: <strong>Lesson 02 — Core Operators</strong></span>
+</div>
+
+<script>
+const feedback = {
+  q1: {
+    wrong: "Not quite. A Mono (or Flux) is a description — a lazy recipe. The DB call only fires when something subscribes.",
+    right: "Correct! This is the single most important thing to internalize. Reactive code is lazy. Zero DB queries."
+  },
+  q2: {
+    wrong: "Calling .subscribe() yourself in a WebFlux controller is an anti-pattern — it blocks the reactive chain and you lose backpressure.",
+    right: "Exactly. Return the Mono/Flux from your @GetMapping method and Spring handles the subscription. This is what makes WebFlux scale."
+  },
+  q3: {
+    wrong: "Flux is for 0..N items. A patient lookup returns at most one record — Mono is the right type. Mono.empty() handles the not-found case.",
+    right: "Right. Mono&lt;Patient&gt; says '0 or 1 patient'. Mono.empty() is the idiomatic way to signal not-found in a reactive repository."
+  }
+};
+
+function answer(qid, btn, correct) {
+  const section = document.getElementById(qid);
+  const opts = section.querySelectorAll('.quiz-opt');
+  opts.forEach(o => { o.disabled = true; });
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  if (!correct) {
+    opts.forEach(o => { if (o.onclick.toString().includes('true')) o.classList.add('correct'); });
+  }
+  const fb = document.getElementById(qid + '-feedback');
+  fb.textContent = correct ? '✓ ' + feedback[qid].right : '✗ ' + feedback[qid].wrong;
+  fb.className = 'quiz-feedback show ' + (correct ? 'correct' : 'wrong');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reactive Java Glossary</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700&family=DM+Sans:wght@300;400&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;font-size:15px;}
+  h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;color:#fff;padding:1.5rem 2rem .5rem;}
+  .subtitle{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);padding:.3rem 2rem 1.5rem;border-bottom:1px solid var(--border);}
+  .container{max-width:900px;margin:0 auto;padding:1.5rem 2rem;}
+  .letter-group{margin:1.5rem 0;}
+  .letter{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:.3rem;margin-bottom:.8rem;}
+  .term{margin:.8rem 0;padding:.8rem 1rem;background:var(--surface);border-radius:6px;border:1px solid var(--border);}
+  .term-name{font-family:'DM Mono',monospace;font-size:.9rem;color:#fff;font-weight:500;margin-bottom:.3rem;}
+  .term-def{font-size:.88rem;color:var(--text);line-height:1.6;}
+  .term-def code{font-family:'DM Mono',monospace;font-size:.83em;background:var(--code-bg);padding:.1em .3em;border-radius:2px;color:#9ece6a;}
+  .see-also{font-size:.78rem;color:var(--muted);margin-top:.3rem;}
+  .see-also span{color:var(--accent);}
+</style>
+</head>
+<body>
+<h1>Reactive Java Glossary</h1>
+<div class="subtitle">Project Reactor 3.x · Spring WebFlux · Azure Service Bus · Empower PMS</div>
+
+<div class="container">
+
+  <div class="letter-group">
+    <div class="letter">B</div>
+    <div class="term">
+      <div class="term-name">Backpressure</div>
+      <div class="term-def">The mechanism by which a slow downstream subscriber signals an upstream publisher to slow emission. In Reactive Streams, implemented via <code>Subscription.request(n)</code> — the subscriber controls how many items it is ready to receive. Without backpressure, a fast producer can overwhelm a slow consumer causing OOM errors.</div>
+      <div class="see-also">See also: <span>Subscription, Publisher, onBackpressureBuffer</span></div>
+    </div>
+    <div class="term">
+      <div class="term-name">BlockHound</div>
+      <div class="term-def">A Reactor tool (<code>io.projectreactor.tools:blockhound</code>) that instruments the JVM to detect blocking calls (e.g. Thread.sleep, JDBC) executed on non-blocking threads at runtime. Install in test profiles to catch violations early.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">boundedElastic Scheduler</div>
+      <div class="term-def">A Reactor scheduler backed by an elastic thread pool capped at 10× CPU count (default). Safe for blocking I/O — each blocking task gets its own thread. Use with <code>Mono.fromCallable().subscribeOn(Schedulers.boundedElastic())</code> to wrap legacy blocking code.</div>
+      <div class="see-also">See also: <span>subscribeOn, parallel Scheduler</span></div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">C</div>
+    <div class="term">
+      <div class="term-name">Cold Publisher</div>
+      <div class="term-def">A publisher that starts a fresh execution for each subscriber. Each subscriber gets the full sequence independently. Most reactive data sources (DB queries, HTTP calls) are cold. Contrast with Hot Publisher.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">concatMap</div>
+      <div class="term-def">Like <code>flatMap</code> but subscribes to inner publishers sequentially — waits for each to complete before starting the next. Preserves order. Lower throughput than <code>flatMap</code>. Use when order matters and inner publishers can't run concurrently.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">Context (Reactor)</div>
+      <div class="term-def">Reactor's immutable, per-subscription key-value store — the reactive equivalent of ThreadLocal. Used to pass metadata (user ID, trace ID, tenant) through a pipeline without parameter threading. Access with <code>Mono.deferContextual()</code> and set with <code>.contextWrite()</code>.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">D</div>
+    <div class="term">
+      <div class="term-name">Dead Letter Queue (DLQ)</div>
+      <div class="term-def">In Azure Service Bus, a sub-queue that holds messages that couldn't be processed successfully. In reactive consumers, call <code>receiver.deadLetter(message)</code> on processing failure rather than swallowing the error or crashing the consumer stream.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">defer (Mono.defer / Flux.defer)</div>
+      <div class="term-def">Creates a publisher lazily — the factory lambda runs per subscription, not at creation time. Critical when your publisher captures mutable state (e.g. current time, current user context). <code>Mono.just(x)</code> captures <code>x</code> eagerly; <code>Mono.defer(() -> Mono.just(x))</code> captures it per subscription.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">F</div>
+    <div class="term">
+      <div class="term-name">flatMap</div>
+      <div class="term-def">The most-used reactive operator. Takes each item, applies a function returning a <code>Mono</code> or <code>Flux</code>, subscribes to each inner publisher concurrently, and merges results into the outer stream. Order is NOT guaranteed. Use <code>flatMap(fn, concurrency)</code> to bound parallel subscriptions.</div>
+      <div class="see-also">See also: <span>concatMap, flatMapSequential, map</span></div>
+    </div>
+    <div class="term">
+      <div class="term-name">Flux</div>
+      <div class="term-def">Project Reactor's implementation of a reactive stream of 0..N items. Terminates with <code>onComplete()</code> or <code>onError()</code>. Implements the Reactive Streams <code>Publisher&lt;T&gt;</code> interface. Use for: collections, event streams, paginated results, SSE/streaming endpoints.</div>
+      <div class="see-also">See also: <span>Mono, Publisher</span></div>
+    </div>
+    <div class="term">
+      <div class="term-name">fromCallable</div>
+      <div class="term-def"><code>Mono.fromCallable(Callable&lt;T&gt;)</code> — wraps a potentially blocking or exception-throwing supplier in a Mono. Unlike <code>Mono.just()</code>, the callable is NOT called at creation time but at subscription time. Always pair with <code>.subscribeOn(Schedulers.boundedElastic())</code> if the callable blocks.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">H</div>
+    <div class="term">
+      <div class="term-name">Hot Publisher</div>
+      <div class="term-def">A publisher that emits items regardless of whether anyone is subscribed. Late subscribers miss past items. Azure Service Bus message streams, Sinks.Many multicasts, and SSE event streams are hot. Contrast with Cold Publisher.</div>
+      <div class="see-also">See also: <span>Sinks.Many, Cold Publisher</span></div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">M</div>
+    <div class="term">
+      <div class="term-name">map</div>
+      <div class="term-def">Synchronous 1:1 transformation. The mapping function must not perform I/O, block, or return a publisher. If it does, use <code>flatMap</code> instead. Using <code>map</code> when the function returns a <code>Mono</code> produces <code>Flux&lt;Mono&lt;T&gt;&gt;</code> — a stream of unsubscribed publishers.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">Mono</div>
+      <div class="term-def">Project Reactor's publisher of 0 or 1 item. The reactive equivalent of <code>Optional</code> but asynchronous. Use for: single-resource lookups, POST/PUT operations, fire-and-forget (<code>Mono&lt;Void&gt;</code>). Terminates with onNext+onComplete (item present), onComplete alone (empty), or onError.</div>
+      <div class="see-also">See also: <span>Flux, Publisher</span></div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">O</div>
+    <div class="term">
+      <div class="term-name">onErrorResume</div>
+      <div class="term-def">Catches an error signal and switches to a fallback publisher. The error is consumed — it does not propagate further. The fallback can be async (another DB lookup, another service call). Use type-targeted overload: <code>.onErrorResume(SpecificException.class, fn)</code> to leave other exceptions unhandled.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">Operator</div>
+      <div class="term-def">A function that takes a publisher, transforms it, and returns a new publisher without subscribing. Operators are lazy and composable — they build a description of a pipeline. No work is done until subscription. Examples: <code>map</code>, <code>flatMap</code>, <code>filter</code>, <code>retry</code>.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">P</div>
+    <div class="term">
+      <div class="term-name">parallel Scheduler</div>
+      <div class="term-def">A Reactor scheduler backed by a fixed pool of CPU-count threads. Designed for non-blocking, CPU-bound work (transformations, crypto, serialisation). Do NOT use for blocking I/O — use <code>boundedElastic</code> for that.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">Processor</div>
+      <div class="term-def">A Reactive Streams component that is both a Publisher and a Subscriber. Reactor has deprecated raw Processor usage; the modern replacement is <code>Sinks.Many</code> or <code>Sinks.One</code>.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">Publisher</div>
+      <div class="term-def">The Reactive Streams interface with a single method: <code>subscribe(Subscriber)</code>. Both <code>Mono</code> and <code>Flux</code> implement <code>Publisher&lt;T&gt;</code>. A Publisher is a lazy description of a computation — it does nothing until subscribed.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">publishOn</div>
+      <div class="term-def">Switches the execution thread for all downstream operators from the point of insertion to the next <code>publishOn</code> or end of chain. Multiple <code>publishOn</code> calls in one pipeline are valid and switch threads at each point. Contrast with <code>subscribeOn</code>.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">R</div>
+    <div class="term">
+      <div class="term-name">R2DBC</div>
+      <div class="term-def">Reactive Relational Database Connectivity — the non-blocking SQL driver spec. Replaces JDBC in reactive stacks. Spring Data R2DBC provides repositories extending <code>ReactiveCrudRepository&lt;T, ID&gt;</code>. Note: no lazy loading, no @OneToMany — joins require explicit reactive queries.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">Reactive Streams Specification</div>
+      <div class="term-def">A 4-interface Java specification (<code>Publisher</code>, <code>Subscriber</code>, <code>Subscription</code>, <code>Processor</code>) defining asynchronous, backpressure-capable streaming. Implemented by Project Reactor, RxJava, Akka Streams, and incorporated into Java 9 as <code>java.util.concurrent.Flow</code>.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">retry / retryWhen</div>
+      <div class="term-def"><code>.retry(n)</code> re-subscribes to the upstream n times on any error. <code>.retryWhen(Retry.backoff(n, duration))</code> adds exponential backoff, jitter, and per-exception filtering. Important: retry replays the ENTIRE upstream chain including source creation — scope it tightly around the operation that can fail.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">S</div>
+    <div class="term">
+      <div class="term-name">Sinks.Many</div>
+      <div class="term-def">Reactor's thread-safe programmatic publisher. Replaces the deprecated <code>FluxProcessor</code>. Use <code>Sinks.many().multicast()</code> to push events from imperative code into a reactive Flux (e.g. from a REST endpoint into a Service Bus publisher). Always use <code>tryEmitNext()</code> from concurrent code.</div>
+      <div class="see-also">See also: <span>Hot Publisher</span></div>
+    </div>
+    <div class="term">
+      <div class="term-name">StepVerifier</div>
+      <div class="term-def">Reactor Test DSL for asserting publisher behavior. Subscribes to the publisher and lets you declare expected items, errors, and completion in sequence. Blocks until the stream terminates. Use <code>withVirtualTime()</code> for time-based tests (retry delays, timeouts) without real waiting.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">subscribeOn</div>
+      <div class="term-def">Specifies the Scheduler on which the subscription (source creation) executes. Only the <em>first</em> <code>subscribeOn</code> in a chain has effect. Used to move a blocking source (legacy JDBC, file I/O) off the event-loop thread onto a <code>boundedElastic</code> pool. Contrast with <code>publishOn</code>.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">subscribe()</div>
+      <div class="term-def">The terminal operation that triggers execution of a reactive pipeline. A pipeline with no subscriber never executes. In Spring WebFlux, you return the publisher from the controller and the framework calls <code>subscribe()</code> for you. Never call <code>subscribe()</code> directly inside a reactive chain — use <code>flatMap</code> or <code>then()</code> instead.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">Subscription</div>
+      <div class="term-def">The link between a Publisher and a Subscriber. Created during <code>onSubscribe()</code>. The Subscriber calls <code>subscription.request(n)</code> to pull n items — this is the backpressure signal. The Subscriber calls <code>subscription.cancel()</code> to stop receiving items and release resources.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">switchIfEmpty</div>
+      <div class="term-def">Replaces an empty publisher with a fallback publisher. Useful pattern: <code>repo.findById(id).switchIfEmpty(Mono.error(new NotFoundException(id)))</code> — converts "not found" (empty) into a domain error. The fallback is lazy: it's only subscribed if the original emits nothing.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">W</div>
+    <div class="term">
+      <div class="term-name">WebClient</div>
+      <div class="term-def">Spring's non-blocking HTTP client. Returns <code>Mono&lt;T&gt;</code> or <code>Flux&lt;T&gt;</code>. Replaces <code>RestTemplate</code> in reactive stacks. Supports <code>.retrieve().bodyToMono(T)</code> for single responses and <code>.bodyToFlux(T)</code> for streaming NDJSON. Can be configured with retry, timeout, and error mapping.</div>
+    </div>
+    <div class="term">
+      <div class="term-name">WebFlux</div>
+      <div class="term-def">Spring's reactive web framework. Runs on Netty (non-blocking event loop) instead of Tomcat. Controllers return <code>Mono&lt;T&gt;</code> or <code>Flux&lt;T&gt;</code>. Spring subscribes to the returned publisher — you never call <code>.subscribe()</code> in a controller. Requires <code>spring-boot-starter-webflux</code>, not <code>spring-boot-starter-web</code>.</div>
+    </div>
+  </div>
+
+  <div class="letter-group">
+    <div class="letter">Z</div>
+    <div class="term">
+      <div class="term-name">zip / zipWith</div>
+      <div class="term-def"><code>Mono.zip(a, b)</code> subscribes to both publishers simultaneously and emits a <code>Tuple2</code> when both complete. The total latency is <code>max(a, b)</code>, not <code>a + b</code>. Use for parallel independent lookups. On a Flux, <code>zipWith</code> pairs items by position — stops when the shorter Flux completes.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

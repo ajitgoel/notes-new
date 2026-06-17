@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 6 — Workspaces & Multi-Environment Patterns</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#120d0a;--surface:#1e1510;--border:#3d2a1e;--accent:#ffa657;--accent2:#3fb950;--accent3:#f78166;--accent4:#58a6ff;--text:#e6edf3;--muted:#8b949e;--code-bg:#150f0a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7}
+.hero{background:linear-gradient(135deg,#120d0a,#1e1208,#120d0a);border-bottom:1px solid var(--border);padding:60px 48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:350px;height:350px;background:radial-gradient(circle,rgba(255,166,87,.07),transparent 70%);border-radius:50%}
+.lesson-meta{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.tag{background:#3d2a1e;color:var(--accent);padding:4px 12px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid rgba(255,166,87,.3)}
+.tag.g{background:#1a3a22;color:var(--accent2);border-color:rgba(63,185,80,.3)}
+h1{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1.1;margin-bottom:12px}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:1rem;max-width:600px}
+.wrap{max-width:860px;margin:0 auto;padding:48px}
+h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:600;color:var(--accent4);margin:24px 0 10px}
+p{color:var(--muted);margin-bottom:14px}
+p strong{color:var(--text)}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px 24px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;margin:16px 0 24px;position:relative}
+.lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;position:absolute;top:-1px;right:12px}
+.k{color:#ff7b72}.s{color:#a5d6ff}.c{color:#4d3a28;font-style:italic}.f{color:#d2a8ff}.v{color:#79c0ff}.var{color:#ffa657}.r{color:#7ee787}.a{color:#3fb950}
+.box{border-radius:8px;padding:16px 20px;margin:20px 0;border-left:3px solid}
+.box.i{background:rgba(88,166,255,.06);border-color:var(--accent4)}
+.box.w{background:rgba(247,129,102,.06);border-color:var(--accent3)}
+.box.t{background:rgba(255,166,87,.06);border-color:var(--accent)}
+.bt{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.box.i .bt{color:var(--accent4)}.box.w .bt{color:var(--accent3)}.box.t .bt{color:var(--accent)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px}
+.card h4{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:600;color:var(--accent);margin-bottom:8px}
+.card p{font-size:13px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}
+.chead{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;padding:10px 16px;border-radius:6px 6px 0 0;text-align:center}
+.cbody{background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;padding:16px}
+.cbody li{font-size:13px;color:var(--muted);margin-bottom:6px;list-style:none;padding-left:0}
+.cbody li::before{margin-right:8px}
+.cbody li.pro::before{content:'✓';color:var(--accent2)}
+.cbody li.con::before{content:'✗';color:var(--accent3)}
+.qs{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;margin:48px 0}
+.qs h2{border:none;margin-top:0}
+.q{margin-bottom:28px}
+.q p{color:var(--text);font-weight:500;margin-bottom:12px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:10px 16px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;transition:all .2s;color:var(--text)}
+.opt:hover{border-color:var(--accent);color:var(--accent)}
+.opt.ok{border-color:var(--accent2)!important;background:rgba(63,185,80,.1)!important;color:var(--accent2)!important}
+.opt.no{border-color:var(--accent3)!important;background:rgba(247,129,102,.1)!important;color:var(--accent3)!important}
+.fb{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:4px;display:none}
+.fb.on{display:block}
+.fb.ok{background:rgba(63,185,80,.1);color:var(--accent2)}
+.fb.no{background:rgba(247,129,102,.1);color:var(--accent3)}
+.pb{background:var(--border);border-radius:4px;height:4px;margin-bottom:40px}
+.pf{background:var(--accent);border-radius:4px;height:100%;width:75%}
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:13px}
+footer a{color:var(--accent);text-decoration:none}
+code{background:var(--code-bg);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent4)}
+ul{padding-left:20px;color:var(--muted);margin-bottom:14px}
+li{margin-bottom:4px}
+li strong{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="lesson-meta">
+    <span class="tag">LESSON 06 / 08</span>
+    <span class="tag g">ENVIRONMENTS</span>
+    <span class="tag">~30 MIN</span>
+  </div>
+  <h1>Workspaces &amp;<br><span>Multi-Env Patterns</span></h1>
+  <p class="sub">Two competing strategies for managing dev/staging/prod — Terraform workspaces vs directory-per-environment — and when each is right for Empower PMS.</p>
+</div>
+<div class="wrap">
+  <div class="pb"><div class="pf"></div></div>
+
+  <h2>⚖️ Two Strategies</h2>
+  <p>The most common Terraform architecture question is: how do I manage multiple environments? There are two dominant approaches:</p>
+
+  <div class="compare">
+    <div>
+      <div class="chead" style="background:#1a2e4a;color:var(--accent4)">Terraform Workspaces</div>
+      <div class="cbody">
+        <ul>
+          <li class="pro">Single codebase, multiple state files</li>
+          <li class="pro">Fast to set up for simple cases</li>
+          <li class="pro">Built into Terraform core</li>
+          <li class="con">Same config for all envs — hard to vary resources</li>
+          <li class="con">Easy to accidentally apply to wrong env</li>
+          <li class="con">Workspace name leaks into all resource naming logic</li>
+          <li class="con">Not suited for major structural differences between envs</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="chead" style="background:#1a3a22;color:var(--accent2)">Directory Per Environment</div>
+      <div class="cbody">
+        <ul>
+          <li class="pro">Explicit separation — impossible to confuse envs</li>
+          <li class="pro">Prod can have completely different resources</li>
+          <li class="pro">Independent state files with clear paths</li>
+          <li class="pro">Industry standard for HIPAA / regulated systems</li>
+          <li class="con">Some duplication in tfvars across envs</li>
+          <li class="con">Slightly more initial setup</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="box t">
+    <div class="bt">Recommendation for Empower PMS</div>
+    <p>Use <strong>directory-per-environment</strong>. For a HIPAA-regulated pharmacy system, the blast radius of an accidental prod apply must be minimized. Directories make environment boundaries explicit and auditable. Workspaces are fine for simple SaaS; not right here.</p>
+  </div>
+
+  <h2>🗂️ Workspaces — How They Work</h2>
+  <p>Even if you don't use workspaces as your primary strategy, you'll encounter them and the patterns are useful:</p>
+
+<pre><span class="lbl">workspace commands</span><span class="c"># List workspaces (default = always exists)</span>
+terraform workspace list
+
+<span class="c"># Create and switch to a new workspace</span>
+terraform workspace new staging
+
+<span class="c"># Switch between existing workspaces</span>
+terraform workspace select prod
+
+<span class="c"># Show current workspace</span>
+terraform workspace show
+
+<span class="c"># Delete a workspace (must not be selected)</span>
+terraform workspace delete staging</pre>
+
+<pre><span class="lbl">using terraform.workspace in config</span><span class="k">locals</span> {
+  <span class="c"># Workspace name becomes part of resource naming</span>
+  env = terraform.workspace
+
+  <span class="c"># Map workspace to Azure region</span>
+  region = {
+    default = <span class="s">"westus2"</span>
+    staging = <span class="s">"westus2"</span>
+    prod    = <span class="s">"westus2"</span>  <span class="c"># could differ for DR</span>
+  }[terraform.workspace]
+
+  <span class="c"># Different AKS node counts per workspace</span>
+  aks_nodes = {
+    default = <span class="v">1</span>
+    staging = <span class="v">2</span>
+    prod    = <span class="v">3</span>
+  }[terraform.workspace]
+}
+
+<span class="c"># State is stored at: tfstate/env:/staging/empower.tfstate</span></pre>
+
+  <h2>📁 Directory-Per-Env Pattern (Recommended)</h2>
+  <p>Each environment is a fully independent root module. They share modules but have separate state, separate tfvars, and separate backends:</p>
+
+<pre><span class="lbl">environments/prod/providers.tf</span><span class="k">terraform</span> {
+  required_version = <span class="s">">= 1.6.0"</span>
+  required_providers {
+    azurerm = { source = <span class="s">"hashicorp/azurerm"</span>; version = <span class="s">"~> 3.100"</span> }
+  }
+
+  backend <span class="s">"azurerm"</span> {
+    resource_group_name  = <span class="s">"rg-tfstate-global"</span>
+    storage_account_name = <span class="s">"empowerpmsstate"</span>
+    container_name       = <span class="s">"tfstate"</span>
+    key                  = <span class="s">"prod/core.tfstate"</span>  <span class="c"># unique key per env</span>
+    use_azuread_auth     = <span class="v">true</span>
+  }
+}
+
+<span class="k">provider</span> <span class="s">"azurerm"</span> {
+  features {}
+  subscription_id = <span class="var">var</span>.subscription_id
+}</pre>
+
+<pre><span class="lbl">environments/prod/terraform.tfvars</span>environment      = <span class="s">"prod"</span>
+location         = <span class="s">"westus2"</span>
+subscription_id  = <span class="s">"&lt;prod-subscription-id&gt;"</span>
+
+aks_node_pool = {
+  vm_size    = <span class="s">"Standard_D8s_v3"</span>   <span class="c"># larger in prod</span>
+  node_count = <span class="v">5</span>
+}
+
+tags = {
+  Environment = <span class="s">"prod"</span>
+  Compliance  = <span class="s">"HIPAA"</span>
+  CostCenter  = <span class="s">"pharmacy-ops"</span>
+}</pre>
+
+  <h2>🔒 Separate Subscriptions Per Environment</h2>
+  <p>For serious compliance postures (HIPAA, SOC2), go one step further: separate Azure subscriptions per environment. This gives you hard blast-radius isolation — a prod credential compromise can't touch dev infra:</p>
+
+<pre><span class="lbl">multi-subscription pattern</span><span class="c"># environments/prod — different subscription_id in tfvars
+# environments/dev  — different subscription_id in tfvars
+# Each subscription has its own RBAC, policies, budget alerts</span>
+
+<span class="c"># In Azure DevOps: separate service connections per subscription
+# Pipeline variable groups:
+# - empower-pms-dev-vars (dev subscription SPN)
+# - empower-pms-prod-vars (prod subscription SPN with MFA/PIM)</span></pre>
+
+  <h2>🚀 CI/CD Pipeline Pattern</h2>
+  <p>A typical Azure DevOps pipeline for Terraform in a regulated environment:</p>
+
+<pre><span class="lbl">azure-pipelines.yml (simplified)</span>stages:
+  - stage: plan
+    jobs:
+      - job: terraform_plan
+        steps:
+          - script: |
+              cd environments/$(TARGET_ENV)
+              terraform init
+              terraform plan -out=tfplan -var-file=terraform.tfvars
+          - publish: tfplan       <span class="c"># save plan artifact</span>
+
+  - stage: apply
+    dependsOn: plan
+    <span class="c"># Requires manual approval for staging/prod</span>
+    jobs:
+      - deployment: terraform_apply
+        environment: $(TARGET_ENV)   <span class="c"># Azure DevOps approval gate</span>
+        steps:
+          - download: current
+          - script: |
+              cd environments/$(TARGET_ENV)
+              terraform init
+              terraform apply -auto-approve tfplan</pre>
+
+  <div class="box i">
+    <div class="bt">Plan → Approve → Apply</div>
+    <p>Always separate plan from apply in pipelines. The plan artifact ensures you apply <em>exactly what was reviewed</em>, not a potentially different plan generated at apply time. Azure DevOps Environments provide the approval gate.</p>
+  </div>
+
+  <div class="qs">
+    <h2>🧠 Knowledge Check</h2>
+    <p style="color:var(--muted);margin-bottom:28px">Three questions on multi-environment strategy.</p>
+
+    <div class="q" id="q1">
+      <p>1. Why is directory-per-environment safer than workspaces for a HIPAA system?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q1',this,false)">A. Directories encrypt state automatically; workspaces don't</div>
+        <div class="opt" onclick="ans('q1',this,true)">B. Separate directories with separate backends make it impossible to accidentally apply prod config — you must physically cd into the prod directory</div>
+        <div class="opt" onclick="ans('q1',this,false)">C. Workspaces share the same state file; directories don't</div>
+        <div class="opt" onclick="ans('q1',this,false)">D. Workspaces are deprecated in Terraform 1.6+</div>
+      </div>
+      <div class="fb" id="q1-fb"></div>
+    </div>
+
+    <div class="q" id="q2">
+      <p>2. What is the <code>key</code> argument in the Azure backend block?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q2',this,false)">A. The storage account access key</div>
+        <div class="opt" onclick="ans('q2',this,true)">B. The blob path within the container — the filename of the state file</div>
+        <div class="opt" onclick="ans('q2',this,false)">C. An encryption key for the state</div>
+        <div class="opt" onclick="ans('q2',this,false)">D. The Azure region key alias</div>
+      </div>
+      <div class="fb" id="q2-fb"></div>
+    </div>
+
+    <div class="q" id="q3">
+      <p>3. In a CI/CD pipeline, why save the plan output as an artifact and apply it later, rather than running <code>terraform plan && terraform apply</code> in sequence?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q3',this,false)">A. Performance — it's faster to apply a saved plan</div>
+        <div class="opt" onclick="ans('q3',this,true)">B. To guarantee the applied changes are exactly what was reviewed and approved — state can change between plan and apply if run separately</div>
+        <div class="opt" onclick="ans('q3',this,false)">C. Terraform requires a plan file to run apply</div>
+        <div class="opt" onclick="ans('q3',this,false)">D. The plan file contains provider credentials needed for apply</div>
+      </div>
+      <div class="fb" id="q3-fb"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div><strong style="color:var(--text)">Terraform Course</strong> — Lesson 6 of 8 &nbsp;|&nbsp; <a href="https://developer.hashicorp.com/terraform/language/state/workspaces" target="_blank">Workspaces Docs ↗</a></div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px">Next → <code>open 0007-azure-core-resources.html</code></div>
+</footer>
+<script>
+const ex={
+  q1:{ok:"Correct. Physical directory separation plus a different backend key means you have to be in the right directory with the right credentials. A workspace switch is a single command that can be done by accident.",no:"The key safety property: with directories, you must physically navigate to the prod folder and have prod credentials. A workspace is just terraform workspace select prod — one command away from disaster."},
+  q2:{ok:"Correct. The key is the blob name (path) within the container. Using env-prefixed paths like prod/core.tfstate keeps multiple environments' state files organized in one container.",no:"The key is the blob path/filename — e.g. prod/core.tfstate. It has nothing to do with encryption or access keys."},
+  q3:{ok:"Correct. Between plan and apply, someone else might have applied changes that invalidate your plan. Applying the saved plan file guarantees you're applying exactly what was reviewed, not a new plan computed against changed state.",no:"The reason is correctness and auditability. A plan computed at time T and applied at time T+30min could be against a different state if something else ran in between. Saved plans lock the intent."}
+};
+function ans(qid,el,ok){
+  const q=document.getElementById(qid);
+  if(q.querySelector('.ok')||q.querySelector('.no')) return;
+  el.classList.add(ok?'ok':'no');
+  const fb=document.getElementById(qid+'-fb');
+  fb.textContent=(ok?'✓ ':'✗ ')+(ok?ex[qid].ok:ex[qid].no);
+  fb.className='fb on '+(ok?'ok':'no');
+}
+</script>
+</body>
+</html>

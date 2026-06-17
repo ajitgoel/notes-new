@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 4 — Schedulers & Threading</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;--highlight:#2a3556;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.75;font-size:16px;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:baseline;gap:2rem;}
+  .lesson-number{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .lesson-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:#fff;}
+  .progress-bar{height:3px;background:var(--border);position:relative;}
+  .progress-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:50%;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+  .container{max-width:860px;margin:0 auto;padding:3rem 2rem;}
+  h2{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;margin:2.5rem 0 1rem;padding-left:1rem;border-left:3px solid var(--accent);}
+  h3{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent3);letter-spacing:.08em;text-transform:uppercase;margin:1.8rem 0 .6rem;}
+  p{margin-bottom:1rem;}
+  a{color:var(--accent);}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;overflow-x:auto;margin:1.2rem 0;font-family:'DM Mono',monospace;font-size:.85rem;line-height:1.6;}
+  code{font-family:'DM Mono',monospace;font-size:.85em;background:var(--code-bg);padding:.15em .4em;border-radius:3px;color:#c5d0f0;}
+  pre code{background:none;padding:0;}
+  .kw{color:#7aa2f7;}.ty{color:#bb9af7;}.str{color:#9ece6a;}.cm{color:#565f89;font-style:italic;}.num{color:#ff9e64;}.fn{color:#7dcfff;}.ann{color:#e0af68;}
+  .callout{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:1.2rem 1.5rem;margin:1.5rem 0;}
+  .callout.danger{border-left-color:var(--accent2);}
+  .callout.success{border-left-color:var(--accent3);}
+  .callout.warn{border-left-color:var(--accent4);}
+  .callout-label{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;color:var(--accent);}
+  .callout.danger .callout-label{color:var(--accent2);}
+  .callout.success .callout-label{color:var(--accent3);}
+  .callout.warn .callout-label{color:var(--accent4);}
+  .scheduler-table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.88rem;}
+  .scheduler-table th{background:var(--surface2);color:var(--accent);font-family:'DM Mono',monospace;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:.8rem 1rem;text-align:left;border-bottom:1px solid var(--border);}
+  .scheduler-table td{padding:.75rem 1rem;border-bottom:1px solid var(--border);vertical-align:top;}
+  .scheduler-table tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;background:var(--highlight);color:var(--accent);font-family:'DM Mono',monospace;font-size:.72rem;padding:.15em .5em;border-radius:4px;border:1px solid var(--accent);}
+  .badge.green{color:var(--accent3);border-color:var(--accent3);background:#0e3322;}
+  .badge.orange{color:var(--accent4);border-color:var(--accent4);background:#3d2200;}
+  .badge.red{color:var(--accent2);border-color:var(--accent2);background:#3e1520;}
+  .thread-diagram{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin:1.2rem 0;overflow-x:auto;}
+  .thread-row{display:flex;align-items:center;gap:.5rem;margin:.5rem 0;min-width:500px;}
+  .thread-label{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);min-width:120px;}
+  .thread-segment{height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:'DM Mono',monospace;white-space:nowrap;padding:0 .4rem;}
+  .ts-blue{background:#1a2a5e;border:1px solid var(--accent);color:var(--accent);}
+  .ts-green{background:#0e3322;border:1px solid var(--accent3);color:var(--accent3);}
+  .ts-orange{background:#3d2200;border:1px solid var(--accent4);color:var(--accent4);}
+  .ts-gray{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+  .quiz-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2rem;margin:2.5rem 0;}
+  .quiz-q{font-family:'Fraunces',serif;font-size:1.1rem;color:#fff;margin-bottom:1.2rem;}
+  .quiz-options{display:flex;flex-direction:column;gap:.6rem;}
+  .quiz-opt{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1.2rem;cursor:pointer;transition:all .15s;font-size:.88rem;text-align:left;color:var(--text);width:100%;font-family:'DM Mono',monospace;}
+  .quiz-opt:hover{border-color:var(--accent);background:var(--highlight);}
+  .quiz-opt.correct{border-color:var(--accent3);background:#0e3322;color:var(--accent3);}
+  .quiz-opt.wrong{border-color:var(--accent2);background:#3e1520;color:var(--accent2);}
+  .quiz-feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:6px;font-size:.9rem;display:none;}
+  .quiz-feedback.show{display:block;}
+  .quiz-feedback.correct{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .quiz-feedback.wrong{background:#3e1520;color:#f0a0b0;border:1px solid var(--accent2);}
+  .footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 04 / 08</span>
+  <span class="lesson-title">Schedulers & Threading</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <p>Reactive code doesn't automatically run on the right thread — <em>you</em> decide where each part of a pipeline executes. Get this wrong and you'll block event-loop threads (killing throughput) or starve bounded thread pools (killing parallelism). This is where Reactor's <code>Schedulers</code> come in.</p>
+
+  <h2>The Scheduler Types</h2>
+
+  <table class="scheduler-table">
+    <tr>
+      <th>Scheduler</th>
+      <th>Thread pool</th>
+      <th>Use for</th>
+    </tr>
+    <tr>
+      <td><code>Schedulers.parallel()</code></td>
+      <td>Fixed, CPU-count threads</td>
+      <td>CPU-bound work: transformations, in-memory computation. <span class="badge">Non-blocking only</span></td>
+    </tr>
+    <tr>
+      <td><code>Schedulers.boundedElastic()</code></td>
+      <td>Elastic, capped (10× CPU)</td>
+      <td>Blocking I/O that can't be made reactive: legacy JDBC, file I/O, blocking HTTP clients. <span class="badge orange">Blocking OK</span></td>
+    </tr>
+    <tr>
+      <td><code>Schedulers.single()</code></td>
+      <td>Single thread, reused</td>
+      <td>Serialized work, periodic tasks. Not for blocking.</td>
+    </tr>
+    <tr>
+      <td><code>Schedulers.immediate()</code></td>
+      <td>Caller's thread</td>
+      <td>Testing. Synchronous execution on the current thread.</td>
+    </tr>
+    <tr>
+      <td><code>Schedulers.fromExecutor(exec)</code></td>
+      <td>Your executor</td>
+      <td>Custom thread pools (e.g. Spring's task executor).</td>
+    </tr>
+  </table>
+
+  <h2>subscribeOn vs publishOn</h2>
+  <p>These two operators are the most misunderstood in Reactor. They do different things:</p>
+
+  <div class="callout">
+    <div class="callout-label">subscribeOn</div>
+    <strong>subscribeOn(scheduler)</strong> — affects where the <em>subscription</em> (source creation) happens. Controls the thread that runs the upstream source. Only the first <code>subscribeOn</code> matters; later ones are ignored.
+  </div>
+
+  <div class="callout success">
+    <div class="callout-label">publishOn</div>
+    <strong>publishOn(scheduler)</strong> — affects everything <em>downstream</em> from where it appears. Switches the thread for all subsequent operators until another <code>publishOn</code>.
+  </div>
+
+  <!-- Thread flow diagram -->
+  <div class="thread-diagram">
+    <p style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:1rem;">THREAD EXECUTION TIMELINE</p>
+    <div class="thread-row">
+      <span class="thread-label">netty-http-1</span>
+      <div class="thread-segment ts-blue" style="width:100px;">request arrives</div>
+      <div class="thread-segment ts-gray" style="width:20px;">→</div>
+      <div class="thread-segment ts-blue" style="width:80px;">subscribe()</div>
+    </div>
+    <div class="thread-row">
+      <span class="thread-label">boundedElastic-1</span>
+      <div class="thread-segment ts-gray" style="width:210px;"></div>
+      <div class="thread-segment ts-orange" style="width:120px;">legacy JDBC call</div>
+      <div class="thread-segment ts-gray" style="width:20px;">→</div>
+    </div>
+    <div class="thread-row">
+      <span class="thread-label">parallel-2</span>
+      <div class="thread-segment ts-gray" style="width:360px;"></div>
+      <div class="thread-segment ts-green" style="width:80px;">.map() .filter()</div>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:.5rem;font-family:'DM Mono',monospace;">
+      subscribeOn(boundedElastic) ↑  |  publishOn(parallel) ↑
+    </div>
+  </div>
+
+  <pre><code><span class="cm">// Pattern: blocking legacy JDBC with subscribeOn</span>
+<span class="ty">Mono</span>&lt;<span class="ty">List</span>&lt;<span class="ty">Patient</span>&gt;&gt; patients = <span class="ty">Mono</span>.<span class="fn">fromCallable</span>(
+        () -&gt; legacyJdbcRepo.<span class="fn">findAll</span>()  <span class="cm">// blocking call</span>
+    )
+    .<span class="fn">subscribeOn</span>(<span class="ty">Schedulers</span>.<span class="fn">boundedElastic</span>());
+<span class="cm">// The JDBC call runs on boundedElastic, freeing the event-loop thread</span>
+
+<span class="cm">// Pattern: CPU transform on parallel scheduler</span>
+prescriptions
+    .<span class="fn">publishOn</span>(<span class="ty">Schedulers</span>.<span class="fn">parallel</span>())
+    .<span class="fn">map</span>(rx -&gt; heavyCryptoSignature(rx))    <span class="cm">// CPU-bound, runs on parallel pool</span>
+    .<span class="fn">publishOn</span>(<span class="ty">Schedulers</span>.<span class="fn">boundedElastic</span>())
+    .<span class="fn">flatMap</span>(rx -&gt; rxRepo.<span class="fn">save</span>(rx));         <span class="cm">// DB on elastic pool</span></code></pre>
+
+  <div class="callout danger">
+    <div class="callout-label">Never Block an Event Loop Thread</div>
+    If your code runs on a Netty/Reactor event-loop thread (e.g. in a WebFlux handler) and you call a blocking method directly — <code>Thread.sleep()</code>, JDBC, <code>Future.get()</code> — you'll starve the event loop. All incoming requests on that reactor thread stall. Use <code>Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())</code> to escape to a blocking-safe pool.
+  </div>
+
+  <h2>Reactor's BlockHound</h2>
+  <p>Reactor ships <a href="https://github.com/reactor/BlockHound" target="_blank">BlockHound</a> — a Java agent that detects blocking calls on non-blocking threads at runtime. Install it in your test profile:</p>
+
+  <pre><code><span class="cm">// pom.xml (test scope)</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;io.projectreactor.tools&lt;/groupId&gt;
+  &lt;artifactId&gt;blockhound&lt;/artifactId&gt;
+  &lt;version&gt;1.0.8.RELEASE&lt;/version&gt;
+  &lt;scope&gt;test&lt;/scope&gt;
+&lt;/dependency&gt;
+
+<span class="cm">// In your test setup or main():</span>
+<span class="ty">BlockHound</span>.<span class="fn">install</span>();
+<span class="cm">// Throws BlockingOperationError if a blocking call happens on a reactor thread</span>
+<span class="cm">// Add to Spring Boot tests — catches violations immediately</span></code></pre>
+
+  <h2>Wrapping Blocking Code: The Empower Pattern</h2>
+  <p>Empower PMS currently uses a blocking SQL Server JDBC driver while R2DBC support is being added. Here's the correct pattern for wrapping it:</p>
+
+  <pre><code><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="ty">LegacyPatientAdapter</span> {
+
+    <span class="kw">private final</span> <span class="ty">PatientJdbcRepository</span> jdbcRepo;
+
+    <span class="cm">// Wrap blocking JDBC in a reactive publisher</span>
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">Patient</span>&gt; <span class="fn">findById</span>(<span class="ty">Long</span> id) {
+        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">fromCallable</span>(() -&gt; jdbcRepo.<span class="fn">findById</span>(id)
+                .<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> <span class="ty">PatientNotFoundException</span>(id)))
+            .<span class="fn">subscribeOn</span>(<span class="ty">Schedulers</span>.<span class="fn">boundedElastic</span>());
+    }
+
+    <span class="cm">// For collections</span>
+    <span class="kw">public</span> <span class="ty">Flux</span>&lt;<span class="ty">Patient</span>&gt; <span class="fn">findByFacility</span>(<span class="ty">String</span> facilityCode) {
+        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">fromCallable</span>(() -&gt; jdbcRepo.<span class="fn">findByFacilityCode</span>(facilityCode))
+            .<span class="fn">subscribeOn</span>(<span class="ty">Schedulers</span>.<span class="fn">boundedElastic</span>())
+            .<span class="fn">flatMapMany</span>(<span class="ty">Flux</span>::<span class="fn">fromIterable</span>);
+    }
+}</code></pre>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.1em;margin-bottom:1rem;">KNOWLEDGE CHECK</p>
+
+    <div id="q1">
+      <p class="quiz-q">You have a CPU-intensive drug interaction algorithm and a blocking SQL Server JDBC call in the same pipeline. Where does each run?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1',this,true)">CPU algo → Schedulers.parallel(); JDBC call → Schedulers.boundedElastic()</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">Both on Schedulers.parallel()</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">Both on Schedulers.boundedElastic()</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">What is the key difference between <code>subscribeOn</code> and <code>publishOn</code>?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2',this,false)">They are identical — just different API styles</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">publishOn affects the source; subscribeOn affects downstream operators</button>
+        <button class="quiz-opt" onclick="answer('q2',this,true)">subscribeOn affects where the source runs; publishOn switches the thread for downstream operators from that point</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q3">
+      <p class="quiz-q">You're wrapping a blocking JDBC call in Reactor. What is the correct pattern?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q3',this,false)">Mono.just(jdbcRepo.findById(id))</button>
+        <button class="quiz-opt" onclick="answer('q3',this,false)">Flux.defer(() -> Flux.just(jdbcRepo.findById(id)))</button>
+        <button class="quiz-opt" onclick="answer('q3',this,true)">Mono.fromCallable(() -> jdbcRepo.findById(id)).subscribeOn(Schedulers.boundedElastic())</button>
+      </div>
+      <div id="q3-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Ask your teacher</div>
+    Questions about Reactor Context (the reactive equivalent of ThreadLocal), or how schedulers interact with Spring's @Async? Ask in chat.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 04 / 08 — Reactive Java @ Empower PMS</span>
+  <span>Next: <strong>Lesson 05 — Backpressure</strong></span>
+</div>
+
+<script>
+const fb={
+  q1:{w:"parallel() is for non-blocking CPU work only — running blocking JDBC there will starve the pool. Use boundedElastic for blocking I/O.",r:"Correct. parallel() is for non-blocking CPU-bound work. boundedElastic absorbs blocking I/O by providing a thread-per-task model with a cap."},
+  q2:{w:"",r:"Correct. subscribeOn tells Reactor where to start (subscribe to) the source. publishOn is a downstream switch — everything after it runs on the new scheduler."},
+  q3:{w:"Mono.just() evaluates the argument eagerly — the JDBC call happens on the calling thread before Reactor even sees it.",r:"Right. fromCallable() wraps the blocking call lazily, and subscribeOn(boundedElastic) ensures it runs on a thread that can block safely."}
+};
+function answer(qid,btn,correct){
+  const s=document.getElementById(qid);
+  s.querySelectorAll('.quiz-opt').forEach(o=>{o.disabled=true;});
+  btn.classList.add(correct?'correct':'wrong');
+  if(!correct)s.querySelectorAll('.quiz-opt').forEach(o=>{if(o.onclick.toString().includes('true'))o.classList.add('correct');});
+  const el=document.getElementById(qid+'-feedback');
+  el.textContent=(correct?'✓ ':'✗ ')+fb[qid][correct?'r':'w'];
+  el.className='quiz-feedback show '+(correct?'correct':'wrong');
+}
+</script>
+</body>
+</html>

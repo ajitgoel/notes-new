@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 1 — HCL Fundamentals & Project Structure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --accent4: #d2a8ff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --code-bg: #1c2128;
+    --tag-bg: #1f3a5f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; }
+
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 50%, #0d1628 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 48px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -40px; right: -40px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(88,166,255,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .lesson-meta { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tag {
+    background: var(--tag-bg); color: var(--accent);
+    padding: 4px 12px; border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.5px;
+    border: 1px solid rgba(88,166,255,0.3);
+  }
+  .tag.green { background: #1a3a2a; color: var(--accent2); border-color: rgba(63,185,80,0.3); }
+  .tag.red { background: #3a1a1a; color: var(--accent3); border-color: rgba(247,129,102,0.3); }
+  h1 { font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800; line-height: 1.1; margin-bottom: 12px; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 1rem; max-width: 600px; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 48px 48px; }
+
+  h2 {
+    font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700;
+    color: var(--text); margin: 40px 0 16px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2 .icon { font-size: 1rem; }
+  h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--accent4); margin: 24px 0 10px; }
+  p { color: var(--muted); margin-bottom: 14px; }
+  p strong { color: var(--text); }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px 24px; overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6;
+    margin: 16px 0 24px; position: relative;
+  }
+  .code-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 8px; position: absolute; top: -1px; right: 12px;
+  }
+  .kw { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .comment { color: #6e7681; font-style: italic; }
+  .fn { color: #d2a8ff; }
+  .val { color: #79c0ff; }
+  .var { color: #ffa657; }
+  .ref { color: #7ee787; }
+
+  .callout {
+    border-radius: 8px; padding: 16px 20px; margin: 20px 0;
+    border-left: 3px solid;
+  }
+  .callout.info { background: rgba(88,166,255,0.06); border-color: var(--accent); }
+  .callout.warn { background: rgba(247,129,102,0.06); border-color: var(--accent3); }
+  .callout.tip { background: rgba(63,185,80,0.06); border-color: var(--accent2); }
+  .callout-title { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .callout.info .callout-title { color: var(--accent); }
+  .callout.warn .callout-title { color: var(--accent3); }
+  .callout.tip .callout-title { color: var(--accent2); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px;
+  }
+  .card h4 { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+  .card p { font-size: 13px; }
+
+  .file-tree {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8;
+    margin: 16px 0 24px;
+  }
+  .file-tree .dir { color: var(--accent); font-weight: 600; }
+  .file-tree .file { color: var(--text); }
+  .file-tree .note { color: var(--muted); font-style: italic; }
+
+  .quiz-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px; margin: 48px 0;
+  }
+  .quiz-section h2 { border: none; margin-top: 0; }
+  .question { margin-bottom: 28px; }
+  .question p { color: var(--text); font-weight: 500; margin-bottom: 12px; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 16px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    transition: all 0.2s; color: var(--text);
+  }
+  .option:hover { border-color: var(--accent); color: var(--accent); }
+  .option.correct { border-color: var(--accent2) !important; background: rgba(63,185,80,0.1) !important; color: var(--accent2) !important; }
+  .option.wrong { border-color: var(--accent3) !important; background: rgba(247,129,102,0.1) !important; color: var(--accent3) !important; }
+  .feedback { font-size: 13px; margin-top: 8px; padding: 8px 12px; border-radius: 4px; display: none; }
+  .feedback.show { display: block; }
+  .feedback.correct { background: rgba(63,185,80,0.1); color: var(--accent2); }
+  .feedback.wrong { background: rgba(247,129,102,0.1); color: var(--accent3); }
+
+  .progress-bar {
+    background: var(--border); border-radius: 4px; height: 4px; margin-bottom: 40px;
+  }
+  .progress-fill { background: var(--accent); border-radius: 4px; height: 100%; width: 12.5%; }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 32px 48px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    color: var(--muted); font-size: 13px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  .nav-hint { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="lesson-meta">
+    <span class="tag">LESSON 01 / 08</span>
+    <span class="tag green">FOUNDATION</span>
+    <span class="tag">~30 MIN</span>
+  </div>
+  <h1>HCL Fundamentals &amp;<br><span>Project Structure</span></h1>
+  <p class="subtitle">The shape of a Terraform project — files, blocks, types, expressions, and the mental model that makes everything else click.</p>
+</div>
+
+<div class="container">
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+
+  <h2><span class="icon">🗂</span> The Standard File Layout</h2>
+  <p>Terraform doesn't enforce a file structure, but the community has converged on one. Every project you touch will follow this pattern:</p>
+
+  <div class="file-tree">
+    <span class="dir">my-infra/</span><br>
+    &nbsp;&nbsp;├── <span class="file">main.tf</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># core resources — what you're building</span><br>
+    &nbsp;&nbsp;├── <span class="file">variables.tf</span> &nbsp;&nbsp;<span class="note"># input declarations (no values here)</span><br>
+    &nbsp;&nbsp;├── <span class="file">outputs.tf</span> &nbsp;&nbsp;&nbsp;<span class="note"># values to export after apply</span><br>
+    &nbsp;&nbsp;├── <span class="file">providers.tf</span> &nbsp;<span class="note"># provider config &amp; required_providers</span><br>
+    &nbsp;&nbsp;├── <span class="file">locals.tf</span> &nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># computed/derived values (optional)</span><br>
+    &nbsp;&nbsp;├── <span class="file">terraform.tfvars</span> <span class="note"># actual values — gitignored for secrets</span><br>
+    &nbsp;&nbsp;└── <span class="file">.terraform.lock.hcl</span> <span class="note"># provider lock file — commit this</span>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Convention</div>
+    <p>For a root module &lt; 300 lines, everything can live in <code>main.tf</code>. Split into separate files as soon as it becomes hard to scan. Terraform sees all <code>.tf</code> files in a directory as one configuration — file names are purely organizational.</p>
+  </div>
+
+  <h2><span class="icon">🧱</span> The Four Block Types You Must Know</h2>
+  <p>HCL is built around <strong>blocks</strong>. There are four you'll use constantly:</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>terraform {}</h4>
+      <p>Required version constraints, backend config, and required_providers. One per project.</p>
+    </div>
+    <div class="card">
+      <h4>provider {}</h4>
+      <p>Configures a provider (azurerm, aws, google). Credentials, subscription ID, default tags.</p>
+    </div>
+    <div class="card">
+      <h4>resource {}</h4>
+      <p>Declares an infrastructure object to create/manage. This is 80% of your code.</p>
+    </div>
+    <div class="card">
+      <h4>data {}</h4>
+      <p>Read-only lookup of existing resources. Doesn't create anything — fetches IDs and attributes.</p>
+    </div>
+  </div>
+
+  <pre><span class="code-label">providers.tf</span><span class="kw">terraform</span> {
+  required_version = <span class="str">">= 1.6.0"</span>
+
+  required_providers {
+    azurerm = {
+      source  = <span class="str">"hashicorp/azurerm"</span>
+      version = <span class="str">"~> 3.100"</span>   <span class="comment"># ~> means: >= 3.100, < 4.0</span>
+    }
+  }
+
+  backend <span class="str">"azurerm"</span> {
+    resource_group_name  = <span class="str">"rg-tfstate"</span>
+    storage_account_name = <span class="str">"empowerpmsstate"</span>
+    container_name       = <span class="str">"tfstate"</span>
+    key                  = <span class="str">"dev/empower-pms.tfstate"</span>
+  }
+}
+
+<span class="kw">provider</span> <span class="str">"azurerm"</span> {
+  features {}  <span class="comment"># required even if empty</span>
+  subscription_id = <span class="var">var</span>.subscription_id
+}</pre>
+
+  <h2><span class="icon">🔤</span> HCL Types & Expressions</h2>
+  <p>Terraform's type system is simple but strict. Know these cold:</p>
+
+  <pre><span class="code-label">variables.tf</span><span class="comment"># Primitive types</span>
+<span class="kw">variable</span> <span class="str">"environment"</span>  { type = <span class="fn">string</span> }
+<span class="kw">variable</span> <span class="str">"node_count"</span>    { type = <span class="fn">number</span>; default = <span class="val">3</span> }
+<span class="kw">variable</span> <span class="str">"enable_https"</span>  { type = <span class="fn">bool</span>;   default = <span class="val">true</span> }
+
+<span class="comment"># Collection types</span>
+<span class="kw">variable</span> <span class="str">"allowed_ips"</span> {
+  type    = <span class="fn">list</span>(<span class="fn">string</span>)
+  default = [<span class="str">"10.0.0.1"</span>, <span class="str">"10.0.0.2"</span>]
+}
+
+<span class="kw">variable</span> <span class="str">"tags"</span> {
+  type = <span class="fn">map</span>(<span class="fn">string</span>)
+  default = {
+    Environment = <span class="str">"dev"</span>
+    Owner       = <span class="str">"platform-team"</span>
+  }
+}
+
+<span class="comment"># Object type — structured, typed</span>
+<span class="kw">variable</span> <span class="str">"aks_config"</span> {
+  type = <span class="fn">object</span>({
+    vm_size    = <span class="fn">string</span>
+    node_count = <span class="fn">number</span>
+    zones      = <span class="fn">list</span>(<span class="fn">string</span>)
+  })
+}</pre>
+
+  <h2><span class="icon">🔗</span> References & Expressions</h2>
+  <p>Terraform builds an implicit dependency graph from <strong>references</strong>. When you reference one resource in another, Terraform knows to create the first one first — no <code>depends_on</code> needed in most cases.</p>
+
+  <pre><span class="code-label">main.tf</span><span class="kw">resource</span> <span class="str">"azurerm_resource_group"</span> <span class="str">"main"</span> {
+  name     = <span class="str">"rg-empower-</span><span class="var">${var.environment}</span><span class="str">"</span>   <span class="comment"># string interpolation</span>
+  location = <span class="var">var</span>.location
+  tags     = <span class="var">var</span>.tags
+}
+
+<span class="kw">resource</span> <span class="str">"azurerm_key_vault"</span> <span class="str">"main"</span> {
+  name                = <span class="str">"kv-empower-</span><span class="var">${var.environment}</span><span class="str">"</span>
+  location            = <span class="ref">azurerm_resource_group.main.location</span>  <span class="comment"># reference!</span>
+  resource_group_name = <span class="ref">azurerm_resource_group.main.name</span>       <span class="comment"># reference!</span>
+  tenant_id           = <span class="fn">data</span>.azurerm_client_config.current.tenant_id
+  sku_name            = <span class="str">"standard"</span>
+}
+
+<span class="comment"># data source — reads existing AAD config, creates nothing</span>
+<span class="kw">data</span> <span class="str">"azurerm_client_config"</span> <span class="str">"current"</span> {}</pre>
+
+  <div class="callout tip">
+    <div class="callout-title">Reference Pattern</div>
+    <p>The reference syntax is always: <code>TYPE.NAME.ATTRIBUTE</code> — e.g. <code>azurerm_resource_group.main.name</code>. For data sources it's <code>data.TYPE.NAME.ATTRIBUTE</code>. Memorize this.</p>
+  </div>
+
+  <h2><span class="icon">📤</span> Outputs & Locals</h2>
+  <pre><span class="code-label">locals.tf + outputs.tf</span><span class="comment"># locals.tf — computed values, referenced as local.&lt;name&gt;</span>
+<span class="kw">locals</span> {
+  name_prefix = <span class="str">"empower-</span><span class="var">${var.environment}</span><span class="str">"</span>
+  common_tags = <span class="fn">merge</span>(<span class="var">var</span>.tags, {
+    ManagedBy = <span class="str">"Terraform"</span>
+    UpdatedAt = <span class="fn">timestamp</span>()
+  })
+}
+
+<span class="comment"># outputs.tf — values exposed after apply</span>
+<span class="kw">output</span> <span class="str">"resource_group_id"</span> {
+  value       = <span class="ref">azurerm_resource_group.main.id</span>
+  description = <span class="str">"Resource group ARM resource ID"</span>
+}
+
+<span class="kw">output</span> <span class="str">"key_vault_uri"</span> {
+  value     = <span class="ref">azurerm_key_vault.main.vault_uri</span>
+  sensitive = <span class="val">true</span>   <span class="comment"># redacted in terminal, still in state</span>
+}</pre>
+
+  <h2><span class="icon">⚡</span> The Core Workflow</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>terraform init</h4>
+      <p>Downloads providers, initializes backend. Run once per project, and again when providers change.</p>
+    </div>
+    <div class="card">
+      <h4>terraform plan</h4>
+      <p>Shows what will change. The <code>+</code> / <code>~</code> / <code>-</code> output is your diff. <strong>Always review before apply.</strong></p>
+    </div>
+    <div class="card">
+      <h4>terraform apply</h4>
+      <p>Executes the plan. Prompts for confirmation unless <code>-auto-approve</code>. Never use auto-approve on prod.</p>
+    </div>
+    <div class="card">
+      <h4>terraform destroy</h4>
+      <p>Tears down everything in state. Use <code>-target</code> to destroy a single resource selectively.</p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-title">State is sacred</div>
+    <p>Terraform's <strong>state file</strong> is the source of truth about what it manages. It maps your HCL to real cloud resources. Never edit it manually. Store it remotely (Azure Blob Storage). Lock it to prevent concurrent applies.</p>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="quiz-section">
+    <h2><span class="icon">🧠</span> Knowledge Check</h2>
+    <p style="color:var(--muted); margin-bottom: 28px;">Four questions. Click to answer — feedback is immediate.</p>
+
+    <div class="question" id="q1">
+      <p>1. You reference <code>azurerm_resource_group.main.name</code> inside a Key Vault resource. What does Terraform do with this?</p>
+      <div class="options">
+        <div class="option" onclick="answer('q1',this,false)">A. Throws an error — you must use depends_on explicitly</div>
+        <div class="option" onclick="answer('q1',this,true)">B. Infers a dependency: creates the resource group before the key vault</div>
+        <div class="option" onclick="answer('q1',this,false)">C. Copies the literal string "azurerm_resource_group.main.name"</div>
+        <div class="option" onclick="answer('q1',this,false)">D. Requires a data source block to look up the resource group first</div>
+      </div>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+
+    <div class="question" id="q2">
+      <p>2. What is the difference between a <code>variable</code> block and a <code>locals</code> block?</p>
+      <div class="options">
+        <div class="option" onclick="answer('q2',this,false)">A. Variables are for strings; locals are for numbers</div>
+        <div class="option" onclick="answer('q2',this,true)">B. Variables are external inputs (passed in); locals are internal computed values</div>
+        <div class="option" onclick="answer('q2',this,false)">C. They are interchangeable — just naming convention</div>
+        <div class="option" onclick="answer('q2',this,false)">D. Locals are exported as outputs; variables are not</div>
+      </div>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <div class="question" id="q3">
+      <p>3. A <code>data</code> block for <code>azurerm_client_config</code> with no arguments — what does it do?</p>
+      <div class="options">
+        <div class="option" onclick="answer('q3',this,false)">A. Creates a new Azure AD client application</div>
+        <div class="option" onclick="answer('q3',this,false)">B. Deletes the default client config</div>
+        <div class="option" onclick="answer('q3',this,true)">C. Reads the current authentication context (tenant ID, subscription ID, object ID) — creates nothing</div>
+        <div class="option" onclick="answer('q3',this,false)">D. Requires a client_id argument — errors without it</div>
+      </div>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+
+    <div class="question" id="q4">
+      <p>4. Which file should you <strong>always commit</strong> to git?</p>
+      <div class="options">
+        <div class="option" onclick="answer('q4',this,false)">A. <code>terraform.tfvars</code></div>
+        <div class="option" onclick="answer('q4',this,true)">B. <code>.terraform.lock.hcl</code></div>
+        <div class="option" onclick="answer('q4',this,false)">C. <code>terraform.tfstate</code></div>
+        <div class="option" onclick="answer('q4',this,false)">D. <code>.terraform/</code> directory</div>
+      </div>
+      <div class="feedback" id="q4-fb"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div>
+    <strong style="color:var(--text)">Terraform Course</strong> — Lesson 1 of 8 &nbsp;|&nbsp;
+    <a href="https://developer.hashicorp.com/terraform/docs" target="_blank">Official Docs ↗</a>
+  </div>
+  <div class="nav-hint">Next → <code>open 0002-providers-state.html</code></div>
+</footer>
+
+<script>
+const explanations = {
+  q1: { correct: "Correct. Terraform builds an implicit dependency graph from references. No depends_on needed unless the dependency is not expressed through an attribute reference.", wrong: "Incorrect. References automatically create dependencies. depends_on is only for hidden dependencies (e.g. IAM permission timing)." },
+  q2: { correct: "Exactly. Variables are the 'API surface' of your module — callers pass them in. Locals are internal: computed from other values, not settable by callers.", wrong: "Not quite. Variables = external inputs with validation. Locals = internal computed values. Completely different semantics." },
+  q3: { correct: "Correct. data blocks never create resources — they read. azurerm_client_config reads your current ARM authentication context, giving you tenant_id, subscription_id, and object_id.", wrong: "data blocks are read-only. They query existing state; they never mutate anything." },
+  q4: { correct: "Yes. The lock file pins provider versions for reproducibility. tfvars may contain secrets (gitignore it). tfstate belongs in remote storage. .terraform/ is generated.", wrong: "The lock file (.terraform.lock.hcl) is what you commit. tfvars may have secrets. State must go in remote storage. .terraform/ is auto-generated." }
+};
+function answer(qid, el, isCorrect) {
+  const q = document.getElementById(qid);
+  if (q.querySelector('.correct') || q.querySelector('.wrong')) return;
+  el.classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) q.querySelectorAll('.option').forEach(o => { if (o !== el) o.onclick = function() { answer(qid, o, true) } });
+  const fb = document.getElementById(qid + '-fb');
+  fb.textContent = isCorrect ? '✓ ' + explanations[qid].correct : '✗ ' + explanations[qid].wrong;
+  fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+}
+</script>
+</body>
+</html>

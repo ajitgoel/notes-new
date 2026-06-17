@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 6 — Spring WebFlux Integration</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;--highlight:#2a3556;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.75;font-size:16px;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:baseline;gap:2rem;}
+  .lesson-number{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .lesson-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:#fff;}
+  .progress-bar{height:3px;background:var(--border);position:relative;}
+  .progress-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:75%;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+  .container{max-width:860px;margin:0 auto;padding:3rem 2rem;}
+  h2{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;margin:2.5rem 0 1rem;padding-left:1rem;border-left:3px solid var(--accent);}
+  h3{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent3);letter-spacing:.08em;text-transform:uppercase;margin:1.8rem 0 .6rem;}
+  p{margin-bottom:1rem;}
+  a{color:var(--accent);}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;overflow-x:auto;margin:1.2rem 0;font-family:'DM Mono',monospace;font-size:.85rem;line-height:1.6;}
+  code{font-family:'DM Mono',monospace;font-size:.85em;background:var(--code-bg);padding:.15em .4em;border-radius:3px;color:#c5d0f0;}
+  pre code{background:none;padding:0;}
+  .kw{color:#7aa2f7;}.ty{color:#bb9af7;}.str{color:#9ece6a;}.cm{color:#565f89;font-style:italic;}.num{color:#ff9e64;}.fn{color:#7dcfff;}.ann{color:#e0af68;}
+  .callout{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:1.2rem 1.5rem;margin:1.5rem 0;}
+  .callout.danger{border-left-color:var(--accent2);}
+  .callout.success{border-left-color:var(--accent3);}
+  .callout.warn{border-left-color:var(--accent4);}
+  .callout-label{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;color:var(--accent);}
+  .callout.danger .callout-label{color:var(--accent2);}
+  .callout.success .callout-label{color:var(--accent3);}
+  .callout.warn .callout-label{color:var(--accent4);}
+  .tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin:1.5rem 0 0;}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;padding:.7rem 1.3rem;font-family:'DM Mono',monospace;font-size:.78rem;color:var(--muted);cursor:pointer;letter-spacing:.05em;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab-content{display:none;background:var(--code-bg);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:1.5rem;font-family:'DM Mono',monospace;font-size:.85rem;line-height:1.6;overflow-x:auto;}
+  .tab-content.active{display:block;}
+  .quiz-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2rem;margin:2.5rem 0;}
+  .quiz-q{font-family:'Fraunces',serif;font-size:1.1rem;color:#fff;margin-bottom:1.2rem;}
+  .quiz-options{display:flex;flex-direction:column;gap:.6rem;}
+  .quiz-opt{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1.2rem;cursor:pointer;transition:all .15s;font-size:.88rem;text-align:left;color:var(--text);width:100%;font-family:'DM Mono',monospace;}
+  .quiz-opt:hover{border-color:var(--accent);background:var(--highlight);}
+  .quiz-opt.correct{border-color:var(--accent3);background:#0e3322;color:var(--accent3);}
+  .quiz-opt.wrong{border-color:var(--accent2);background:#3e1520;color:var(--accent2);}
+  .quiz-feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:6px;font-size:.9rem;display:none;}
+  .quiz-feedback.show{display:block;}
+  .quiz-feedback.correct{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .quiz-feedback.wrong{background:#3e1520;color:#f0a0b0;border:1px solid var(--accent2);}
+  .footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;}
+  .arch-row{display:flex;align-items:center;gap:.5rem;margin:.3rem 0;font-family:'DM Mono',monospace;font-size:.78rem;}
+  .arch-box{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.3rem .8rem;white-space:nowrap;}
+  .arch-box.blue{border-color:var(--accent);color:var(--accent);}
+  .arch-box.green{border-color:var(--accent3);color:var(--accent3);}
+  .arch-box.orange{border-color:var(--accent4);color:var(--accent4);}
+  .arch-arr{color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 06 / 08</span>
+  <span class="lesson-title">Spring WebFlux Integration</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <p>Spring WebFlux is the reactive web stack built on Reactor and Netty. It replaces Spring MVC's Tomcat thread-per-request model with an event-loop model. Your Empower PMS API layer lives here. This lesson covers controllers, reactive repositories (R2DBC), and WebClient for outbound HTTP.</p>
+
+  <h2>WebFlux vs Spring MVC — Stack Comparison</h2>
+
+  <div style="background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin:1.2rem 0;">
+    <div class="arch-row">
+      <span style="color:var(--muted);min-width:90px;font-family:'DM Mono',monospace;font-size:.7rem;">MVC</span>
+      <div class="arch-box">Tomcat</div><span class="arch-arr">→</span>
+      <div class="arch-box">DispatcherServlet</div><span class="arch-arr">→</span>
+      <div class="arch-box">@Controller (blocking)</div><span class="arch-arr">→</span>
+      <div class="arch-box">JDBC</div>
+    </div>
+    <div class="arch-row" style="margin-top:.8rem;">
+      <span style="color:var(--muted);min-width:90px;font-family:'DM Mono',monospace;font-size:.7rem;">WebFlux</span>
+      <div class="arch-box blue">Netty</div><span class="arch-arr">→</span>
+      <div class="arch-box blue">DispatcherHandler</div><span class="arch-arr">→</span>
+      <div class="arch-box green">@Controller (Mono/Flux)</div><span class="arch-arr">→</span>
+      <div class="arch-box green">R2DBC</div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-label">Key Dependency</div>
+    You need <code>spring-boot-starter-webflux</code> — NOT <code>spring-boot-starter-web</code>. Having both on the classpath will default to MVC. Add <code>spring-boot-starter-data-r2dbc</code> and the r2dbc-mssql driver for SQL Server.
+  </div>
+
+  <pre><code><span class="cm">&lt;!-- pom.xml --&gt;</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-webflux&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-data-r2dbc&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;io.r2dbc&lt;/groupId&gt;
+  &lt;artifactId&gt;r2dbc-mssql&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+
+  <h2>Reactive Controllers</h2>
+  <p>WebFlux controllers look almost identical to MVC controllers — the only difference is the return type: <code>Mono&lt;T&gt;</code> or <code>Flux&lt;T&gt;</code> instead of <code>T</code>.</p>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('controller')">Controller</button>
+    <button class="tab" onclick="switchTab('repository')">R2DBC Repository</button>
+    <button class="tab" onclick="switchTab('service')">Service Layer</button>
+  </div>
+
+  <div id="tab-controller" class="tab-content active">
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/api/v1/prescriptions"</span>)
+<span class="kw">public class</span> <span class="ty">PrescriptionController</span> {
+
+    <span class="kw">private final</span> <span class="ty">PrescriptionService</span> svc;
+
+    <span class="cm">// GET single — returns Mono</span>
+    <span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">ResponseEntity</span>&lt;<span class="ty">PrescriptionDTO</span>&gt;&gt; <span class="fn">getById</span>(<span class="ann">@PathVariable</span> <span class="ty">Long</span> id) {
+        <span class="kw">return</span> svc.<span class="fn">findById</span>(id)
+            .<span class="fn">map</span>(<span class="ty">ResponseEntity</span>::<span class="fn">ok</span>)
+            .<span class="fn">defaultIfEmpty</span>(<span class="ty">ResponseEntity</span>.<span class="fn">notFound</span>().<span class="fn">build</span>());
+    }
+
+    <span class="cm">// GET many — returns Flux (streams as NDJSON or SSE)</span>
+    <span class="ann">@GetMapping</span>(produces = <span class="ty">MediaType</span>.<span class="fn">APPLICATION_NDJSON_VALUE</span>)
+    <span class="kw">public</span> <span class="ty">Flux</span>&lt;<span class="ty">PrescriptionDTO</span>&gt; <span class="fn">getByPatient</span>(<span class="ann">@RequestParam</span> <span class="ty">Long</span> patientId) {
+        <span class="kw">return</span> svc.<span class="fn">findByPatient</span>(patientId);
+    }
+
+    <span class="cm">// POST — returns Mono of created resource</span>
+    <span class="ann">@PostMapping</span>
+    <span class="ann">@ResponseStatus</span>(<span class="ty">HttpStatus</span>.<span class="fn">CREATED</span>)
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">PrescriptionDTO</span>&gt; <span class="fn">create</span>(<span class="ann">@RequestBody</span> <span class="ty">Mono</span>&lt;<span class="ty">FillRequest</span>&gt; body) {
+        <span class="kw">return</span> body.<span class="fn">flatMap</span>(svc::<span class="fn">fill</span>);
+    }
+
+    <span class="cm">// DELETE — returns Mono&lt;Void&gt;</span>
+    <span class="ann">@DeleteMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="ann">@ResponseStatus</span>(<span class="ty">HttpStatus</span>.<span class="fn">NO_CONTENT</span>)
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; <span class="fn">cancel</span>(<span class="ann">@PathVariable</span> <span class="ty">Long</span> id) {
+        <span class="kw">return</span> svc.<span class="fn">cancel</span>(id);
+    }
+
+    <span class="cm">// SSE endpoint — infinite stream pushed to browser/client</span>
+    <span class="ann">@GetMapping</span>(value = <span class="str">"/stream"</span>, produces = <span class="ty">MediaType</span>.<span class="fn">TEXT_EVENT_STREAM_VALUE</span>)
+    <span class="kw">public</span> <span class="ty">Flux</span>&lt;<span class="ty">ServerSentEvent</span>&lt;<span class="ty">PrescriptionDTO</span>&gt;&gt; <span class="fn">stream</span>() {
+        <span class="kw">return</span> svc.<span class="fn">liveStream</span>()
+            .<span class="fn">map</span>(dto -&gt; <span class="ty">ServerSentEvent</span>.&lt;<span class="ty">PrescriptionDTO</span>&gt;<span class="fn">builder</span>()
+                .<span class="fn">event</span>(<span class="str">"prescription"</span>)
+                .<span class="fn">data</span>(dto)
+                .<span class="fn">build</span>());
+    }
+}
+  </div>
+
+  <div id="tab-repository" class="tab-content">
+<span class="cm">// R2DBC reactive repository — no JDBC, fully non-blocking</span>
+<span class="ann">@Repository</span>
+<span class="kw">public interface</span> <span class="ty">PrescriptionR2dbcRepository</span>
+    <span class="kw">extends</span> <span class="ty">ReactiveCrudRepository</span>&lt;<span class="ty">Prescription</span>, <span class="ty">Long</span>&gt; {
+
+    <span class="cm">// Derived queries work just like Spring Data JPA</span>
+    <span class="ty">Flux</span>&lt;<span class="ty">Prescription</span>&gt; <span class="fn">findByPatientId</span>(<span class="ty">Long</span> patientId);
+    <span class="ty">Flux</span>&lt;<span class="ty">Prescription</span>&gt; <span class="fn">findByDeaScheduleIsNotNull</span>();
+    <span class="ty">Mono</span>&lt;<span class="ty">Long</span>&gt; <span class="fn">countByStatus</span>(<span class="ty">String</span> status);
+
+    <span class="cm">// Custom query with @Query</span>
+    <span class="ann">@Query</span>(<span class="str">"""
+        SELECT p.* FROM prescriptions p
+        JOIN patients pt ON p.patient_id = pt.id
+        WHERE pt.facility_code = :facilityCode
+          AND p.status = 'PENDING'
+        ORDER BY p.created_at ASC
+    """</span>)
+    <span class="ty">Flux</span>&lt;<span class="ty">Prescription</span>&gt; <span class="fn">findPendingByFacility</span>(<span class="ann">@Param</span>(<span class="str">"facilityCode"</span>) <span class="ty">String</span> code);
+}
+
+<span class="cm">// Entity — annotated with Spring Data R2DBC annotations</span>
+<span class="ann">@Table</span>(<span class="str">"prescriptions"</span>)
+<span class="kw">public class</span> <span class="ty">Prescription</span> {
+    <span class="ann">@Id</span> <span class="kw">private</span> <span class="ty">Long</span> id;
+    <span class="kw">private</span> <span class="ty">Long</span> patientId;
+    <span class="kw">private</span> <span class="ty">String</span> ndc;
+    <span class="kw">private</span> <span class="ty">String</span> status;
+    <span class="kw">private</span> <span class="ty">String</span> deaSchedule;
+    <span class="kw">private</span> <span class="ty">LocalDateTime</span> createdAt;
+    <span class="cm">// Note: NO @OneToMany — R2DBC has no lazy loading. Joins are explicit queries.</span>
+}
+  </div>
+
+  <div id="tab-service" class="tab-content">
+<span class="ann">@Service</span>
+<span class="ann">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="ty">PrescriptionService</span> {
+
+    <span class="kw">private final</span> <span class="ty">PrescriptionR2dbcRepository</span> rxRepo;
+    <span class="kw">private final</span> <span class="ty">PatientR2dbcRepository</span>     patientRepo;
+    <span class="kw">private final</span> <span class="ty">FormularyWebClient</span>           formulary;
+
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">PrescriptionDTO</span>&gt; <span class="fn">findById</span>(<span class="ty">Long</span> id) {
+        <span class="kw">return</span> rxRepo.<span class="fn">findById</span>(id)
+            .<span class="fn">flatMap</span>(rx -&gt; <span class="ty">Mono</span>.<span class="fn">zip</span>(
+                <span class="ty">Mono</span>.<span class="fn">just</span>(rx),
+                patientRepo.<span class="fn">findById</span>(rx.<span class="fn">getPatientId</span>())
+            ))
+            .<span class="fn">map</span>(t -&gt; <span class="ty">PrescriptionDTO</span>.<span class="fn">of</span>(t.<span class="fn">getT1</span>(), t.<span class="fn">getT2</span>()));
+    }
+
+    <span class="kw">public</span> <span class="ty">Flux</span>&lt;<span class="ty">PrescriptionDTO</span>&gt; <span class="fn">findByPatient</span>(<span class="ty">Long</span> patientId) {
+        <span class="kw">return</span> patientRepo.<span class="fn">findById</span>(patientId)
+            .<span class="fn">switchIfEmpty</span>(<span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">NotFoundException</span>(<span class="str">"Patient"</span>, patientId)))
+            .<span class="fn">flatMapMany</span>(p -&gt; rxRepo.<span class="fn">findByPatientId</span>(p.<span class="fn">getId</span>()))
+            .<span class="fn">map</span>(rx -&gt; <span class="ty">PrescriptionDTO</span>.<span class="fn">of</span>(rx, <span class="cm">/* patient already in rx DTO */</span> <span class="kw">null</span>));
+    }
+}
+  </div>
+
+  <h2>WebClient: Reactive Outbound HTTP</h2>
+  <p>For calling the formulary service, insurance verification, or any external API — use <code>WebClient</code>, not <code>RestTemplate</code>. RestTemplate is blocking.</p>
+
+  <pre><code><span class="ann">@Configuration</span>
+<span class="kw">public class</span> <span class="ty">WebClientConfig</span> {
+    <span class="ann">@Bean</span>
+    <span class="kw">public</span> <span class="ty">WebClient</span> <span class="fn">formularyWebClient</span>() {
+        <span class="kw">return</span> <span class="ty">WebClient</span>.<span class="fn">builder</span>()
+            .<span class="fn">baseUrl</span>(<span class="str">"https://formulary.internal.empower"</span>)
+            .<span class="fn">defaultHeader</span>(<span class="str">"X-Service"</span>, <span class="str">"empower-pms"</span>)
+            .<span class="fn">build</span>();
+    }
+}
+
+<span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="ty">FormularyWebClient</span> {
+
+    <span class="kw">private final</span> <span class="ty">WebClient</span> client;
+
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">Coverage</span>&gt; <span class="fn">getCoverage</span>(<span class="ty">Long</span> patientId, <span class="ty">String</span> ndc) {
+        <span class="kw">return</span> client.<span class="fn">get</span>()
+            .<span class="fn">uri</span>(<span class="str">"/coverage/{patientId}/{ndc}"</span>, patientId, ndc)
+            .<span class="fn">retrieve</span>()
+            .<span class="fn">onStatus</span>(<span class="ty">HttpStatusCode</span>::<span class="fn">is4xxClientError</span>,
+                res -&gt; <span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">FormularyException</span>(<span class="str">"Coverage not found"</span>)))
+            .<span class="fn">bodyToMono</span>(<span class="ty">Coverage</span>.<span class="kw">class</span>)
+            .<span class="fn">retryWhen</span>(<span class="ty">Retry</span>.<span class="fn">backoff</span>(<span class="num">2</span>, <span class="ty">Duration</span>.<span class="fn">ofMillis</span>(<span class="num">300</span>))
+                .<span class="fn">filter</span>(ex -&gt; ex <span class="kw">instanceof</span> <span class="ty">WebClientRequestException</span>))
+            .<span class="fn">timeout</span>(<span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">3</span>));
+    }
+
+    <span class="cm">// Streaming response from formulary bulk endpoint</span>
+    <span class="kw">public</span> <span class="ty">Flux</span>&lt;<span class="ty">DrugInfo</span>&gt; <span class="fn">streamDrugCatalog</span>() {
+        <span class="kw">return</span> client.<span class="fn">get</span>()
+            .<span class="fn">uri</span>(<span class="str">"/drugs/catalog"</span>)
+            .<span class="fn">retrieve</span>()
+            .<span class="fn">bodyToFlux</span>(<span class="ty">DrugInfo</span>.<span class="kw">class</span>);  <span class="cm">// streams NDJSON line by line</span>
+    }
+}</code></pre>
+
+  <h2>Global Error Handling with @ControllerAdvice</h2>
+
+  <pre><code><span class="ann">@RestControllerAdvice</span>
+<span class="kw">public class</span> <span class="ty">ReactiveExceptionHandler</span> {
+
+    <span class="ann">@ExceptionHandler</span>(<span class="ty">NotFoundException</span>.<span class="kw">class</span>)
+    <span class="ann">@ResponseStatus</span>(<span class="ty">HttpStatus</span>.<span class="fn">NOT_FOUND</span>)
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">ErrorResponse</span>&gt; <span class="fn">handleNotFound</span>(<span class="ty">NotFoundException</span> ex) {
+        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">just</span>(<span class="kw">new</span> <span class="ty">ErrorResponse</span>(ex.<span class="fn">getMessage</span>(), <span class="num">404</span>));
+    }
+
+    <span class="ann">@ExceptionHandler</span>(<span class="ty">WebExchangeBindException</span>.<span class="kw">class</span>)
+    <span class="ann">@ResponseStatus</span>(<span class="ty">HttpStatus</span>.<span class="fn">BAD_REQUEST</span>)
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">ErrorResponse</span>&gt; <span class="fn">handleValidation</span>(<span class="ty">WebExchangeBindException</span> ex) {
+        <span class="ty">String</span> msg = ex.<span class="fn">getBindingResult</span>().<span class="fn">getFieldErrors</span>().<span class="fn">stream</span>()
+            .<span class="fn">map</span>(fe -&gt; fe.<span class="fn">getField</span>() + <span class="str">": "</span> + fe.<span class="fn">getDefaultMessage</span>())
+            .<span class="fn">collect</span>(<span class="ty">Collectors</span>.<span class="fn">joining</span>(<span class="str">"; "</span>));
+        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">just</span>(<span class="kw">new</span> <span class="ty">ErrorResponse</span>(msg, <span class="num">400</span>));
+    }
+}</code></pre>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.1em;margin-bottom:1rem;">KNOWLEDGE CHECK</p>
+
+    <div id="q1">
+      <p class="quiz-q">A GET endpoint returns a list of prescriptions — what return type should the controller method use?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1',this,false)">Mono&lt;List&lt;PrescriptionDTO&gt;&gt;</button>
+        <button class="quiz-opt" onclick="answer('q1',this,true)">Flux&lt;PrescriptionDTO&gt;</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">List&lt;PrescriptionDTO&gt;</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">R2DBC entity has no <code>@OneToMany</code>. How do you load a prescription with its associated patient?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Add @OneToMany to the entity — R2DBC supports it</button>
+        <button class="quiz-opt" onclick="answer('q2',this,true)">Issue two separate reactive queries and zip/flatMap them together</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Use FetchType.LAZY — R2DBC handles it automatically</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q3">
+      <p class="quiz-q">You need to call the formulary service from your prescription service. Which HTTP client do you use?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q3',this,false)">RestTemplate — it's the standard Spring HTTP client</button>
+        <button class="quiz-opt" onclick="answer('q3',this,false)">HttpClient (java.net) with async mode</button>
+        <button class="quiz-opt" onclick="answer('q3',this,true)">WebClient — the only non-blocking HTTP client in Spring</button>
+      </div>
+      <div id="q3-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Ask your teacher</div>
+    How does WebFlux handle reactive security (Spring Security with reactive context)? How do you propagate tenant/user identity through a reactive chain? Ask in chat.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 06 / 08 — Reactive Java @ Empower PMS</span>
+  <span>Next: <strong>Lesson 07 — Azure Service Bus Integration</strong></span>
+</div>
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+const fb={
+  q1:{w:"Mono<List<T>> works but buffers everything in memory before responding. Flux<T> is idiomatic and enables streaming — clients start receiving data before all records are loaded.",r:"Correct. Flux<T> lets WebFlux stream items to the client as they are produced. Use Mono<List<T>> only when the client explicitly needs all items at once (e.g. JSON array — use produces=APPLICATION_JSON)."},
+  q2:{w:"R2DBC has no JPA-style lazy loading or @OneToMany. It is intentionally simple — no ORM magic.",r:"Right. Explicit reactive queries composed with zip or flatMap is the R2DBC way. It's more verbose than JPA but there are no N+1 surprises."},
+  q3:{w:"RestTemplate is a blocking synchronous client — using it in a WebFlux pipeline blocks the event-loop thread.",r:"Correct. WebClient is non-blocking and integrates naturally with Mono/Flux. RestTemplate is deprecated for new development in Spring 6."}
+};
+function answer(qid,btn,correct){
+  const s=document.getElementById(qid);
+  s.querySelectorAll('.quiz-opt').forEach(o=>{o.disabled=true;});
+  btn.classList.add(correct?'correct':'wrong');
+  if(!correct)s.querySelectorAll('.quiz-opt').forEach(o=>{if(o.onclick.toString().includes('true'))o.classList.add('correct');});
+  const el=document.getElementById(qid+'-feedback');
+  el.textContent=(correct?'✓ ':'✗ ')+fb[qid][correct?'r':'w'];
+  el.className='quiz-feedback show '+(correct?'correct':'wrong');
+}
+</script>
+</body>
+</html>

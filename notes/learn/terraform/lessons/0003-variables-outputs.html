@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 3 — Variables, Outputs & Locals</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0a14;--surface:#1a1124;--border:#2d1f3d;--accent:#d2a8ff;--accent2:#3fb950;--accent3:#f78166;--accent4:#58a6ff;--text:#e6edf3;--muted:#8b949e;--code-bg:#130d1c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7}
+.hero{background:linear-gradient(135deg,#0f0a14,#1a0f28,#0f0d1a);border-bottom:1px solid var(--border);padding:60px 48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:350px;height:350px;background:radial-gradient(circle,rgba(210,168,255,.07),transparent 70%);border-radius:50%}
+.lesson-meta{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.tag{background:#2d1f3d;color:var(--accent);padding:4px 12px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid rgba(210,168,255,.3)}
+.tag.g{background:#1a3a22;color:var(--accent2);border-color:rgba(63,185,80,.3)}
+h1{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1.1;margin-bottom:12px}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:1rem;max-width:600px}
+.wrap{max-width:860px;margin:0 auto;padding:48px}
+h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:600;color:var(--accent4);margin:24px 0 10px}
+p{color:var(--muted);margin-bottom:14px}
+p strong,li strong{color:var(--text)}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px 24px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;margin:16px 0 24px;position:relative}
+.lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;position:absolute;top:-1px;right:12px}
+.k{color:#ff7b72}.s{color:#a5d6ff}.c{color:#4a3d5c;font-style:italic}.f{color:#d2a8ff}.v{color:#79c0ff}.var{color:#ffa657}.r{color:#7ee787}.a{color:#3fb950}
+.box{border-radius:8px;padding:16px 20px;margin:20px 0;border-left:3px solid}
+.box.i{background:rgba(88,166,255,.06);border-color:var(--accent4)}
+.box.w{background:rgba(247,129,102,.06);border-color:var(--accent3)}
+.box.t{background:rgba(210,168,255,.06);border-color:var(--accent)}
+.bt{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.box.i .bt{color:var(--accent4)}.box.w .bt{color:var(--accent3)}.box.t .bt{color:var(--accent)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px}
+.card h4{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:600;color:var(--accent);margin-bottom:8px}
+.card p{font-size:13px}
+.flow{display:flex;margin:24px 0;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.fs{flex:1;padding:16px;background:var(--surface);text-align:center}
+.fs+.fs{border-left:1px solid var(--border)}
+.fs .fi{font-size:1.5rem;margin-bottom:6px}
+.fs .fl{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px}
+.fs .fd{font-size:12px;color:var(--muted);margin-top:4px}
+.prow{display:flex;gap:16px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center}
+.prow:last-child{border-bottom:none}
+.pnum{background:var(--code-bg);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);min-width:28px;text-align:center}
+.pnum.hi{color:var(--accent)}
+.ptxt{font-size:14px;color:var(--muted)}
+.ptxt strong{color:var(--text)}
+.qs{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;margin:48px 0}
+.qs h2{border:none;margin-top:0}
+.q{margin-bottom:28px}
+.q p{color:var(--text);font-weight:500;margin-bottom:12px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:10px 16px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;transition:all .2s;color:var(--text)}
+.opt:hover{border-color:var(--accent);color:var(--accent)}
+.opt.ok{border-color:var(--accent2)!important;background:rgba(63,185,80,.1)!important;color:var(--accent2)!important}
+.opt.no{border-color:var(--accent3)!important;background:rgba(247,129,102,.1)!important;color:var(--accent3)!important}
+.fb{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:4px;display:none}
+.fb.on{display:block}
+.fb.ok{background:rgba(63,185,80,.1);color:var(--accent2)}
+.fb.no{background:rgba(247,129,102,.1);color:var(--accent3)}
+.pb{background:var(--border);border-radius:4px;height:4px;margin-bottom:40px}
+.pf{background:var(--accent);border-radius:4px;height:100%;width:37.5%}
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:13px}
+footer a{color:var(--accent);text-decoration:none}
+code{background:var(--code-bg);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent4)}
+ul{padding-left:20px;color:var(--muted);margin-bottom:14px}
+li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="lesson-meta">
+    <span class="tag">LESSON 03 / 08</span>
+    <span class="tag g">INPUTS &amp; OUTPUTS</span>
+    <span class="tag">~30 MIN</span>
+  </div>
+  <h1>Variables, Outputs<br>&amp; <span>Locals</span></h1>
+  <p class="sub">The complete data flow of a Terraform module — how values enter, how they're computed internally, and what gets exported after apply.</p>
+</div>
+<div class="wrap">
+  <div class="pb"><div class="pf"></div></div>
+
+  <div class="flow">
+    <div class="fs"><div class="fi">📥</div><div class="fl">variable</div><div class="fd">External inputs<br>from caller / tfvars</div></div>
+    <div class="fs"><div class="fi">⚙️</div><div class="fl">locals</div><div class="fd">Internal derived<br>values &amp; transforms</div></div>
+    <div class="fs"><div class="fi">🏗️</div><div class="fl">resource / data</div><div class="fd">Actual infra<br>being managed</div></div>
+    <div class="fs"><div class="fi">📤</div><div class="fl">output</div><div class="fd">Values exported<br>to callers</div></div>
+  </div>
+
+  <h2>📥 Variables: Full Anatomy</h2>
+  <p>The <code>variable</code> block is the public API surface of your module. Every attribute matters for production-grade configs:</p>
+<pre><span class="lbl">variables.tf</span><span class="k">variable</span> <span class="s">"environment"</span> {
+  <span class="a">type</span>        = <span class="f">string</span>
+  <span class="a">description</span> = <span class="s">"Deployment environment: dev, staging, prod"</span>
+
+  <span class="a">validation</span> {
+    condition     = <span class="f">contains</span>([<span class="s">"dev"</span>, <span class="s">"staging"</span>, <span class="s">"prod"</span>], <span class="var">var</span>.environment)
+    error_message = <span class="s">"environment must be dev, staging, or prod."</span>
+  }
+}
+
+<span class="k">variable</span> <span class="s">"location"</span> {
+  <span class="a">type</span>    = <span class="f">string</span>
+  <span class="a">default</span> = <span class="s">"westus2"</span>
+}
+
+<span class="k">variable</span> <span class="s">"aks_node_pool"</span> {
+  <span class="a">description</span> = <span class="s">"AKS system node pool configuration"</span>
+  <span class="a">type</span> = <span class="f">object</span>({
+    vm_size    = <span class="f">string</span>
+    node_count = <span class="f">number</span>
+    os_disk_gb = <span class="f">optional</span>(<span class="f">number</span>, <span class="v">128</span>)  <span class="c"># TF 1.3+: optional with default</span>
+  })
+}
+
+<span class="k">variable</span> <span class="s">"sql_admin_password"</span> {
+  <span class="a">type</span>      = <span class="f">string</span>
+  <span class="a">sensitive</span> = <span class="v">true</span>   <span class="c"># redacted in plan/apply output and logs</span>
+}</pre>
+
+  <h2>🔢 Variable Precedence (last wins)</h2>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin:16px 0 24px">
+    <div class="prow"><span class="pnum">1</span><span class="ptxt"><strong>default</strong> in the variable block — lowest precedence</span></div>
+    <div class="prow"><span class="pnum">2</span><span class="ptxt"><strong>terraform.tfvars</strong> — auto-loaded if present</span></div>
+    <div class="prow"><span class="pnum">3</span><span class="ptxt"><strong>*.auto.tfvars</strong> — auto-loaded, alphabetical order</span></div>
+    <div class="prow"><span class="pnum">4</span><span class="ptxt"><strong>-var-file="prod.tfvars"</strong> — explicit CLI flag</span></div>
+    <div class="prow"><span class="pnum">5</span><span class="ptxt"><strong>-var="key=value"</strong> — individual CLI override</span></div>
+    <div class="prow"><span class="pnum hi">6</span><span class="ptxt"><strong>TF_VAR_name</strong> — environment variables — highest precedence</span></div>
+  </div>
+
+<pre><span class="lbl">terraform.tfvars</span><span class="c"># Safe values — commit this. Never put secrets here.</span>
+environment = <span class="s">"dev"</span>
+location    = <span class="s">"westus2"</span>
+
+aks_node_pool = {
+  vm_size    = <span class="s">"Standard_D4s_v3"</span>
+  node_count = <span class="v">3</span>
+}
+
+<span class="c"># Inject secrets via env var or CI pipeline secret store:</span>
+<span class="c"># export TF_VAR_sql_admin_password="$(az keyvault secret show ...)"</span></pre>
+
+  <h2>⚙️ Locals: Internal Derived Values</h2>
+  <p>Locals are computed inside the module. Callers can't set them. Use them to DRY up naming conventions and encode environment-specific logic:</p>
+<pre><span class="lbl">locals.tf</span><span class="k">locals</span> {
+  <span class="c"># Single naming convention — defined once, used everywhere</span>
+  name_prefix = <span class="s">"empower-${var.environment}"</span>
+
+  <span class="c"># Merge caller tags with mandatory platform tags</span>
+  common_tags = <span class="f">merge</span>(<span class="var">var</span>.tags, {
+    ManagedBy   = <span class="s">"Terraform"</span>
+    Environment = <span class="var">var</span>.environment
+    CostCenter  = <span class="s">"empower-pms"</span>
+  })
+
+  <span class="c"># Conditional expression — ternary syntax</span>
+  key_vault_sku = <span class="var">var</span>.environment == <span class="s">"prod"</span> ? <span class="s">"premium"</span> : <span class="s">"standard"</span>
+
+  <span class="c"># Lookup from a map — elegant env-based config</span>
+  aks_node_count = {
+    dev     = <span class="v">1</span>
+    staging = <span class="v">2</span>
+    prod    = <span class="v">3</span>
+  }[<span class="var">var</span>.environment]
+}
+
+<span class="c"># Reference: local.name_prefix, local.common_tags, etc.</span></pre>
+
+  <div class="box t">
+    <div class="bt">locals vs variables</div>
+    <p>If a caller should be able to override it → <code>variable</code>. If it's derived from other values and callers shouldn't control it → <code>local</code>. Naming conventions, tag merges, and conditional logic all belong in locals.</p>
+  </div>
+
+  <h2>📤 Outputs: Exporting Values</h2>
+  <p>Outputs serve two purposes: display values after <code>apply</code>, and expose values to parent modules that call this one.</p>
+<pre><span class="lbl">outputs.tf</span><span class="k">output</span> <span class="s">"resource_group_name"</span> {
+  <span class="a">value</span>       = <span class="r">azurerm_resource_group.main.name</span>
+  <span class="a">description</span> = <span class="s">"Name of the core resource group"</span>
+}
+
+<span class="k">output</span> <span class="s">"aks_cluster_id"</span> {
+  <span class="a">value</span>       = <span class="r">azurerm_kubernetes_cluster.main.id</span>
+  <span class="a">description</span> = <span class="s">"ARM resource ID of the AKS cluster"</span>
+}
+
+<span class="k">output</span> <span class="s">"key_vault_uri"</span> {
+  <span class="a">value</span>       = <span class="r">azurerm_key_vault.main.vault_uri</span>
+  <span class="a">sensitive</span>   = <span class="v">true</span>   <span class="c"># redacted in terminal; still accessible in state</span>
+}
+
+<span class="k">output</span> <span class="s">"service_bus_connection"</span> {
+  <span class="a">value</span>       = <span class="r">azurerm_servicebus_namespace.main.default_primary_connection_string</span>
+  <span class="a">sensitive</span>   = <span class="v">true</span>
+}</pre>
+
+<pre><span class="lbl">reading outputs</span><span class="c"># Show all outputs</span>
+terraform output
+
+<span class="c"># Plain text — pipe into scripts</span>
+terraform output -raw resource_group_name
+
+<span class="c"># Reveal sensitive output</span>
+terraform output -raw key_vault_uri
+
+<span class="c"># JSON — for CI pipelines and automation</span>
+terraform output -json</pre>
+
+  <div class="box w">
+    <div class="bt">sensitive = true gotcha</div>
+    <p>Marking an output <code>sensitive</code> only redacts it from the terminal. The value is still stored in plaintext in the state file. Encrypt your state backend — do not mistake <code>sensitive = true</code> for actual encryption.</p>
+  </div>
+
+  <div class="qs">
+    <h2>🧠 Knowledge Check</h2>
+    <p style="color:var(--muted);margin-bottom:28px">Four questions on variables, locals, and outputs.</p>
+
+    <div class="q" id="q1">
+      <p>1. A variable has <code>default = "westus2"</code> and there is also a <code>TF_VAR_location=eastus</code> env var set. What value does Terraform use?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q1',this,false)">A. westus2 — defaults take precedence</div>
+        <div class="opt" onclick="ans('q1',this,true)">B. eastus — env vars have highest precedence</div>
+        <div class="opt" onclick="ans('q1',this,false)">C. Terraform errors — conflicting sources</div>
+        <div class="opt" onclick="ans('q1',this,false)">D. It prompts you to choose</div>
+      </div>
+      <div class="fb" id="q1-fb"></div>
+    </div>
+
+    <div class="q" id="q2">
+      <p>2. What is the correct way to reference a local named <code>name_prefix</code> inside a resource block?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q2',this,false)">A. <code>var.name_prefix</code></div>
+        <div class="opt" onclick="ans('q2',this,true)">B. <code>local.name_prefix</code></div>
+        <div class="opt" onclick="ans('q2',this,false)">C. <code>locals.name_prefix</code></div>
+        <div class="opt" onclick="ans('q2',this,false)">D. <code>module.name_prefix</code></div>
+      </div>
+      <div class="fb" id="q2-fb"></div>
+    </div>
+
+    <div class="q" id="q3">
+      <p>3. An output is marked <code>sensitive = true</code>. What does this guarantee?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q3',this,false)">A. The value is encrypted in the state file</div>
+        <div class="opt" onclick="ans('q3',this,false)">B. The value is never stored in state</div>
+        <div class="opt" onclick="ans('q3',this,true)">C. The value is redacted from terminal/log output but still stored in plaintext in state</div>
+        <div class="opt" onclick="ans('q3',this,false)">D. The value can only be read by the root module</div>
+      </div>
+      <div class="fb" id="q3-fb"></div>
+    </div>
+
+    <div class="q" id="q4">
+      <p>4. You want prod to use <code>Premium</code> Key Vault SKU and all other envs to use <code>Standard</code>. Where should this logic live?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q4',this,false)">A. Duplicate the resource block with <code>count</code></div>
+        <div class="opt" onclick="ans('q4',this,false)">B. In <code>variables.tf</code> as a default value</div>
+        <div class="opt" onclick="ans('q4',this,true)">C. In <code>locals.tf</code> as a conditional expression: <code>var.environment == "prod" ? "Premium" : "Standard"</code></div>
+        <div class="opt" onclick="ans('q4',this,false)">D. In <code>terraform.tfvars</code> with hardcoded SKU per env file</div>
+      </div>
+      <div class="fb" id="q4-fb"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div><strong style="color:var(--text)">Terraform Course</strong> — Lesson 3 of 8 &nbsp;|&nbsp; <a href="https://developer.hashicorp.com/terraform/language/values" target="_blank">Values Docs ↗</a></div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px">Next → <code>open 0004-expressions-functions.html</code></div>
+</footer>
+
+<script>
+const ex={
+  q1:{ok:"Correct. TF_VAR_* environment variables are the highest precedence source. They override defaults, tfvars files, and everything except an explicit -var flag at the same level.",no:"Environment variables (TF_VAR_*) win. The precedence order from lowest to highest: default → tfvars → auto.tfvars → -var-file → -var → TF_VAR_*"},
+  q2:{ok:"Correct. locals is the block type; local (singular) is the reference namespace. local.name_prefix, not locals.name_prefix.",no:"The reference is local.name_prefix (singular). The block is locals{} but you access values as local.<name>."},
+  q3:{ok:"Exactly right. sensitive=true is a display filter, not encryption. It keeps secrets out of logs and plan output. State encryption is separate — handle it at the storage backend level.",no:"sensitive=true only affects terminal output. The value is stored plaintext in state. To protect it, encrypt the state file at rest (Azure Blob supports this with CMK)."},
+  q4:{ok:"Correct. This is textbook locals usage — environment-conditional logic derived from var.environment. Callers shouldn't control which SKU is used; it's derived from the environment they declared.",no:"Conditional SKU selection belongs in locals.tf as a ternary: local.key_vault_sku = var.environment == 'prod' ? 'Premium' : 'Standard'. This centralizes the logic."}
+};
+function ans(qid,el,ok){
+  const q=document.getElementById(qid);
+  if(q.querySelector('.ok')||q.querySelector('.no')) return;
+  el.classList.add(ok?'ok':'no');
+  const fb=document.getElementById(qid+'-fb');
+  fb.textContent=(ok?'✓ ':'✗ ')+(ok?ex[qid].ok:ex[qid].no);
+  fb.className='fb on '+(ok?'ok':'no');
+}
+</script>
+</body>
+</html>

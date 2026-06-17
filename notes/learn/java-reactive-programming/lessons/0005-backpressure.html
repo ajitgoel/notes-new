@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 5 — Backpressure: Controlling the Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;--highlight:#2a3556;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.75;font-size:16px;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:baseline;gap:2rem;}
+  .lesson-number{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .lesson-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:#fff;}
+  .progress-bar{height:3px;background:var(--border);position:relative;}
+  .progress-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:62.5%;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+  .container{max-width:860px;margin:0 auto;padding:3rem 2rem;}
+  h2{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;margin:2.5rem 0 1rem;padding-left:1rem;border-left:3px solid var(--accent);}
+  h3{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent3);letter-spacing:.08em;text-transform:uppercase;margin:1.8rem 0 .6rem;}
+  p{margin-bottom:1rem;}
+  a{color:var(--accent);}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;overflow-x:auto;margin:1.2rem 0;font-family:'DM Mono',monospace;font-size:.85rem;line-height:1.6;}
+  code{font-family:'DM Mono',monospace;font-size:.85em;background:var(--code-bg);padding:.15em .4em;border-radius:3px;color:#c5d0f0;}
+  pre code{background:none;padding:0;}
+  .kw{color:#7aa2f7;}.ty{color:#bb9af7;}.str{color:#9ece6a;}.cm{color:#565f89;font-style:italic;}.num{color:#ff9e64;}.fn{color:#7dcfff;}.ann{color:#e0af68;}
+  .callout{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:1.2rem 1.5rem;margin:1.5rem 0;}
+  .callout.danger{border-left-color:var(--accent2);}
+  .callout.success{border-left-color:var(--accent3);}
+  .callout.warn{border-left-color:var(--accent4);}
+  .callout-label{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;color:var(--accent);}
+  .callout.danger .callout-label{color:var(--accent2);}
+  .callout.success .callout-label{color:var(--accent3);}
+  .callout.warn .callout-label{color:var(--accent4);}
+  .bp-visual{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin:1.2rem 0;}
+  .bp-row{display:flex;align-items:center;gap:.5rem;margin:.4rem 0;font-family:'DM Mono',monospace;font-size:.78rem;}
+  .bp-label{min-width:100px;color:var(--muted);}
+  .bp-items{display:flex;gap:3px;}
+  .bp-item{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6rem;}
+  .bp-fast{background:#1a2a5e;border:1px solid var(--accent);color:var(--accent);}
+  .bp-slow{background:#0e3322;border:1px solid var(--accent3);color:var(--accent3);}
+  .bp-dropped{background:#3e1520;border:1px dashed var(--accent2);color:var(--accent2);}
+  .bp-buffered{background:#3d2200;border:1px solid var(--accent4);color:var(--accent4);}
+  .strategy-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.2rem 0;}
+  .strategy-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1.2rem;}
+  .strategy-card h4{font-family:'DM Mono',monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;}
+  .quiz-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2rem;margin:2.5rem 0;}
+  .quiz-q{font-family:'Fraunces',serif;font-size:1.1rem;color:#fff;margin-bottom:1.2rem;}
+  .quiz-options{display:flex;flex-direction:column;gap:.6rem;}
+  .quiz-opt{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1.2rem;cursor:pointer;transition:all .15s;font-size:.88rem;text-align:left;color:var(--text);width:100%;font-family:'DM Mono',monospace;}
+  .quiz-opt:hover{border-color:var(--accent);background:var(--highlight);}
+  .quiz-opt.correct{border-color:var(--accent3);background:#0e3322;color:var(--accent3);}
+  .quiz-opt.wrong{border-color:var(--accent2);background:#3e1520;color:var(--accent2);}
+  .quiz-feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:6px;font-size:.9rem;display:none;}
+  .quiz-feedback.show{display:block;}
+  .quiz-feedback.correct{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .quiz-feedback.wrong{background:#3e1520;color:#f0a0b0;border:1px solid var(--accent2);}
+  .footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;}
+  @media(max-width:600px){.strategy-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 05 / 08</span>
+  <span class="lesson-title">Backpressure: Controlling the Flow</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <p>Backpressure is the mechanism by which a slow consumer signals a fast producer to slow down — or to discard/buffer excess items. Without it, a fast producer overwhelms a slow consumer, causing out-of-memory errors or data loss. This is the fundamental property that makes Reactor more than just "async streams".</p>
+
+  <h2>The Problem Visualised</h2>
+
+  <div class="bp-visual">
+    <p style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:1rem;">FAST PRODUCER → SLOW CONSUMER (no backpressure)</p>
+    <div class="bp-row">
+      <span class="bp-label">Producer</span>
+      <div class="bp-items" id="producer-items">
+        <!-- filled by JS -->
+      </div>
+      <span style="color:var(--accent);font-size:.7rem;margin-left:.5rem;">1000 items/sec</span>
+    </div>
+    <div class="bp-row" style="margin:.6rem 0;">
+      <span class="bp-label"></span>
+      <span style="font-size:.8rem;color:var(--accent2);">⤓ buffer fills up → OutOfMemoryError 💥</span>
+    </div>
+    <div class="bp-row">
+      <span class="bp-label">Consumer</span>
+      <div class="bp-items">
+        <div class="bp-slow">✓</div>
+        <div class="bp-slow">✓</div>
+        <div class="bp-slow">✓</div>
+      </div>
+      <span style="color:var(--accent3);font-size:.7rem;margin-left:.5rem;">10 items/sec</span>
+    </div>
+  </div>
+
+  <h2>Backpressure Strategies</h2>
+
+  <div class="strategy-grid">
+    <div class="strategy-card">
+      <h4 style="color:var(--accent3);">BUFFER</h4>
+      <p style="font-size:.85rem;">Queue excess items until consumer catches up. Risk: unbounded memory growth. Use with a size limit.</p>
+    </div>
+    <div class="strategy-card">
+      <h4 style="color:var(--accent2);">DROP</h4>
+      <p style="font-size:.85rem;">Discard items that arrive when consumer isn't ready. Lossy — only use when missing items is acceptable.</p>
+    </div>
+    <div class="strategy-card">
+      <h4 style="color:var(--accent4);">LATEST</h4>
+      <p style="font-size:.85rem;">Keep only the most recent item; overwrite buffered item on each new arrival. Good for sensor/telemetry data.</p>
+    </div>
+    <div class="strategy-card">
+      <h4 style="color:var(--accent);">ERROR</h4>
+      <p style="font-size:.85rem;">Throw OverflowException when the buffer is full. Fail-fast: makes the overflow visible immediately.</p>
+    </div>
+  </div>
+
+  <h2>Applying Backpressure Strategies in Reactor</h2>
+
+  <pre><code><span class="kw">import</span> reactor.core.publisher.FluxSink;
+<span class="kw">import</span> reactor.core.publisher.BackpressureStrategy;
+
+<span class="cm">// Strategy 1: BUFFER — queue up to N items</span>
+<span class="ty">Flux</span>&lt;<span class="ty">DrugEvent</span>&gt; events = serviceBusSource
+    .<span class="fn">onBackpressureBuffer</span>(<span class="num">1000</span>);  <span class="cm">// buffer up to 1000, then OverflowException</span>
+
+<span class="cm">// Strategy 2: DROP — silently discard overflow</span>
+<span class="ty">Flux</span>&lt;<span class="ty">AuditEvent</span>&gt; audit = highVolumeSource
+    .<span class="fn">onBackpressureDrop</span>(dropped -&gt;
+        log.<span class="fn">warn</span>(<span class="str">"Audit event dropped: {}"</span>, dropped.<span class="fn">getId</span>()));
+
+<span class="cm">// Strategy 3: LATEST — keep only newest item</span>
+<span class="ty">Flux</span>&lt;<span class="ty">InventoryLevel</span>&gt; inventory = inventoryStream
+    .<span class="fn">onBackpressureLatest</span>();
+
+<span class="cm">// Strategy 4: ERROR — fail immediately on overflow</span>
+<span class="ty">Flux</span>&lt;<span class="ty">Order</span>&gt; orders = orderStream
+    .<span class="fn">onBackpressureError</span>();  <span class="cm">// OverflowException if consumer too slow</span>
+
+<span class="cm">// Strategy 5: Custom with FluxSink (for bridging non-reactive sources)</span>
+<span class="ty">Flux</span>&lt;<span class="ty">PharmacyEvent</span>&gt; custom = <span class="ty">Flux</span>.<span class="fn">create</span>(
+    sink -&gt; legacyEventSource.<span class="fn">onEvent</span>(e -&gt; sink.<span class="fn">next</span>(e)),
+    <span class="ty">FluxSink</span>.<span class="ty">OverflowStrategy</span>.<span class="fn">DROP</span>
+);</code></pre>
+
+  <h2>limitRate: Pull-Based Flow Control</h2>
+  <p><code>limitRate</code> is the cleanest backpressure tool — it controls how many items the subscriber requests at a time:</p>
+
+  <pre><code><span class="cm">// Request at most 100 items at a time, refill when 75% consumed (25% threshold)</span>
+prescriptionStream
+    .<span class="fn">limitRate</span>(<span class="num">100</span>)     <span class="cm">// prefetch=100, replenish trigger at 75</span>
+    .<span class="fn">flatMap</span>(this::processPrescription);
+
+<span class="cm">// limitRate with low/high watermarks</span>
+prescriptionStream
+    .<span class="fn">limitRate</span>(<span class="num">100</span>, <span class="num">20</span>)   <span class="cm">// request 100, re-request when 20 remain</span>
+    .<span class="fn">flatMap</span>(rx -&gt; drugCheckService.<span class="fn">verify</span>(rx), <span class="num">8</span>);  <span class="cm">// concurrency=8</span></code></pre>
+
+  <h2>Backpressure in Service Bus Processing</h2>
+  <p>For Empower PMS's Azure Service Bus consumer, you want bounded concurrency and controlled prefetch:</p>
+
+  <pre><code><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="ty">PrescriptionEventConsumer</span> {
+
+    <span class="ann">@Bean</span>
+    <span class="kw">public</span> <span class="ty">Consumer</span>&lt;<span class="ty">Flux</span>&lt;<span class="ty">ServiceBusReceivedMessageContext</span>&gt;&gt; <span class="fn">processRxEvents</span>() {
+        <span class="kw">return</span> messages -&gt; messages
+            <span class="cm">// Control how fast we pull from Service Bus</span>
+            .<span class="fn">limitRate</span>(<span class="num">50</span>)
+
+            <span class="cm">// Process with bounded concurrency (don't spawn unlimited threads)</span>
+            .<span class="fn">flatMap</span>(
+                ctx -&gt; <span class="fn">processMessage</span>(ctx.<span class="fn">getMessage</span>()),
+                <span class="num">10</span>  <span class="cm">// max 10 concurrent message processings</span>
+            )
+
+            .<span class="fn">doOnError</span>(ex -&gt; log.<span class="fn">error</span>(<span class="str">"Consumer error"</span>, ex))
+            .<span class="fn">subscribe</span>();  <span class="cm">// Reactor auto-manages for @Bean Consumer</span>
+    }
+
+    <span class="kw">private</span> <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; <span class="fn">processMessage</span>(<span class="ty">ServiceBusReceivedMessage</span> msg) {
+        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">fromCallable</span>(() -&gt; <span class="fn">deserialize</span>(msg))
+            .<span class="fn">flatMap</span>(rxEvent -&gt; rxService.<span class="fn">process</span>(rxEvent))
+            .<span class="fn">then</span>();
+    }
+}</code></pre>
+
+  <div class="callout success">
+    <div class="callout-label">The flatMap concurrency parameter</div>
+    <code>flatMap(fn, concurrency)</code> — the second argument is your backpressure knob. Without it, Reactor uses <code>Integer.MAX_VALUE</code> (unlimited parallelism). For pharmacy fill events, <code>concurrency=10-20</code> is a reasonable starting point and prevents DB connection pool exhaustion.
+  </div>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.1em;margin-bottom:1rem;">KNOWLEDGE CHECK</p>
+
+    <div id="q1">
+      <p class="quiz-q">Azure Service Bus is publishing 500 drug inventory events/sec. Your inventory update service can only handle 50/sec. You want to keep the most recent state. Which strategy?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1',this,false)">onBackpressureBuffer()</button>
+        <button class="quiz-opt" onclick="answer('q1',this,true)">onBackpressureLatest()</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">onBackpressureError()</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">You're using <code>.flatMap(rx -> rxRepo.save(rx))</code> to persist prescriptions from a high-volume Flux. What happens without a concurrency limit?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2',this,true)">All saves are subscribed to simultaneously — potentially exhausting the DB connection pool</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Saves are serialised — only one at a time</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Nothing — Reactor automatically limits concurrency to CPU count</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Ask your teacher</div>
+    How does backpressure interact with hot publishers like Azure Service Bus? What happens when the buffer fills completely? Ask in chat.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 05 / 08 — Reactive Java @ Empower PMS</span>
+  <span>Next: <strong>Lesson 06 — Spring WebFlux Integration</strong></span>
+</div>
+
+<script>
+// Animate producer items
+const container = document.getElementById('producer-items');
+let count = 0;
+function addItem() {
+  if (container.children.length > 15) container.removeChild(container.firstChild);
+  const d = document.createElement('div');
+  d.className = 'bp-item bp-fast';
+  d.textContent = ++count % 10;
+  container.appendChild(d);
+}
+setInterval(addItem, 100);
+
+const fb={
+  q1:{w:"BUFFER would grow without bound — you'd eventually OOM. ERROR would crash the consumer.",r:"Correct. LATEST discards all but the most recent item. For inventory levels, the latest reading is what you need — stale intermediates are useless."},
+  q2:{w:"flatMap with no concurrency limit spawns a new subscription for every single item. On a fast Flux this can mean hundreds of simultaneous DB connections.",r:"Exactly right. flatMap(fn, N) with an explicit concurrency cap prevents this. Use flatMap(fn, 10) or similar to bound your DB connection usage."}
+};
+function answer(qid,btn,correct){
+  const s=document.getElementById(qid);
+  s.querySelectorAll('.quiz-opt').forEach(o=>{o.disabled=true;});
+  btn.classList.add(correct?'correct':'wrong');
+  if(!correct)s.querySelectorAll('.quiz-opt').forEach(o=>{if(o.onclick.toString().includes('true'))o.classList.add('correct');});
+  const el=document.getElementById(qid+'-feedback');
+  el.textContent=(correct?'✓ ':'✗ ')+fb[qid][correct?'r':'w'];
+  el.className='quiz-feedback show '+(correct?'correct':'wrong');
+}
+</script>
+</body>
+</html>

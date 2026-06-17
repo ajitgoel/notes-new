@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 2 — Core Operators: map, flatMap, filter, zip</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1c2030;
+    --border: #252a38;
+    --accent: #5b8dee;
+    --accent2: #e85d75;
+    --accent3: #52d9a4;
+    --accent4: #f4a261;
+    --text: #d4daf0;
+    --muted: #6b7594;
+    --code-bg: #0a0c10;
+    --highlight: #2a3556;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 300; line-height: 1.75; font-size: 16px; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 2rem 3rem; display: flex; align-items: baseline; gap: 2rem; }
+  .lesson-number { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; }
+  .lesson-title { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; color: #fff; }
+  .progress-bar { height: 3px; background: var(--border); position: relative; }
+  .progress-bar::after { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 25%; background: linear-gradient(90deg, var(--accent), var(--accent3)); }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 3rem 2rem; }
+
+  h2 { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; color: #fff; margin: 2.5rem 0 1rem; padding-left: 1rem; border-left: 3px solid var(--accent); }
+  h3 { font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--accent3); letter-spacing: 0.08em; text-transform: uppercase; margin: 1.8rem 0 0.6rem; }
+  p { margin-bottom: 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; overflow-x: auto; margin: 1.2rem 0; font-family: 'DM Mono', monospace; font-size: 0.85rem; line-height: 1.6; }
+  code { font-family: 'DM Mono', monospace; font-size: 0.85em; background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px; color: #c5d0f0; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .kw { color: #7aa2f7; } .ty { color: #bb9af7; } .str { color: #9ece6a; }
+  .cm { color: #565f89; font-style: italic; } .num { color: #ff9e64; }
+  .fn { color: #7dcfff; } .ann { color: #e0af68; }
+
+  .callout { background: var(--surface2); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 6px; padding: 1.2rem 1.5rem; margin: 1.5rem 0; }
+  .callout.danger { border-left-color: var(--accent2); }
+  .callout.success { border-left-color: var(--accent3); }
+  .callout.warn { border-left-color: var(--accent4); }
+  .callout-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--accent); }
+  .callout.danger .callout-label { color: var(--accent2); }
+  .callout.success .callout-label { color: var(--accent3); }
+  .callout.warn .callout-label { color: var(--accent4); }
+
+  /* Marble diagram */
+  .marble-diagram { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1.2rem 0; }
+  .marble-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.8rem; }
+  .marble-label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); min-width: 90px; }
+  .marble-stream { display: flex; align-items: center; gap: 2px; flex: 1; height: 28px; position: relative; }
+  .marble-line { position: absolute; top: 13px; left: 0; right: 10px; height: 2px; background: var(--border); }
+  .marble-arrow { position: absolute; right: 0; top: 7px; width: 0; height: 0; border-left: 8px solid var(--muted); border-top: 7px solid transparent; border-bottom: 7px solid transparent; }
+  .marble-item { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-family: 'DM Mono', monospace; font-weight: 500; position: absolute; top: 1px; z-index: 1; border: 2px solid; }
+  .m-blue { background: #1a2a5e; border-color: var(--accent); color: var(--accent); }
+  .m-green { background: #0e3322; border-color: var(--accent3); color: var(--accent3); }
+  .m-orange { background: #3d2200; border-color: var(--accent4); color: var(--accent4); }
+  .m-red { background: #3e1520; border-color: var(--accent2); color: var(--accent2); }
+  .m-end { background: transparent; border-color: var(--muted); color: var(--muted); font-size: 0.8rem; }
+  .marble-op { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--accent4); text-align: center; padding: 0.3rem 0; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); margin: 0.2rem 0; }
+
+  /* Operator card */
+  .op-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin: 2rem 0; }
+  .op-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.2rem; }
+  .op-badge { background: var(--highlight); color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.85rem; padding: 0.3em 0.8em; border-radius: 4px; border: 1px solid var(--accent); }
+
+  .quiz-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 2rem; margin: 2.5rem 0; }
+  .quiz-q { font-family: 'Fraunces', serif; font-size: 1.1rem; color: #fff; margin-bottom: 1.2rem; }
+  .quiz-options { display: flex; flex-direction: column; gap: 0.6rem; }
+  .quiz-opt { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.2rem; cursor: pointer; transition: all 0.15s; font-size: 0.9rem; text-align: left; color: var(--text); width: 100%; font-family: 'DM Mono', monospace; }
+  .quiz-opt:hover { border-color: var(--accent); background: var(--highlight); }
+  .quiz-opt.correct { border-color: var(--accent3); background: #0e3322; color: var(--accent3); }
+  .quiz-opt.wrong { border-color: var(--accent2); background: #3e1520; color: var(--accent2); }
+  .quiz-feedback { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.9rem; display: none; }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: #0e3322; color: var(--accent3); border: 1px solid var(--accent3); }
+  .quiz-feedback.wrong { background: #3e1520; color: #f0a0b0; border: 1px solid var(--accent2); }
+
+  .footer { border-top: 1px solid var(--border); padding: 2rem 3rem; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 02 / 08</span>
+  <span class="lesson-title">Core Operators: map, flatMap, filter, zip</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <p>Operators are the vocabulary of reactive programming. They are pure functions that transform, filter, or combine streams without ever subscribing themselves. This lesson covers the four you'll use in 80% of your Empower PMS pipelines.</p>
+
+  <!-- MAP -->
+  <div class="op-card">
+    <div class="op-header">
+      <span class="op-badge">.map()</span>
+      <span style="color:var(--muted); font-size:0.9rem;">Synchronous 1:1 transformation</span>
+    </div>
+
+    <p><strong>map</strong> applies a synchronous function to each item. The function returns a plain value — not a publisher.</p>
+
+    <div class="marble-diagram">
+      <div class="marble-row">
+        <span class="marble-label">source</span>
+        <div class="marble-stream">
+          <div class="marble-line"></div>
+          <div class="marble-arrow"></div>
+          <div class="marble-item m-blue" style="left:20px">rx1</div>
+          <div class="marble-item m-blue" style="left:80px">rx2</div>
+          <div class="marble-item m-blue" style="left:140px">rx3</div>
+          <div class="marble-item m-end" style="left:200px">|</div>
+        </div>
+      </div>
+      <div class="marble-op">.map(rx -> rx.getPatientName().toUpperCase())</div>
+      <div class="marble-row">
+        <span class="marble-label">output</span>
+        <div class="marble-stream">
+          <div class="marble-line"></div>
+          <div class="marble-arrow"></div>
+          <div class="marble-item m-green" style="left:20px" title="ALICE">A</div>
+          <div class="marble-item m-green" style="left:80px" title="BOB">B</div>
+          <div class="marble-item m-green" style="left:140px" title="CAROL">C</div>
+          <div class="marble-item m-end" style="left:200px">|</div>
+        </div>
+      </div>
+    </div>
+
+    <pre><code><span class="cm">// Pharmacy example: transform Prescription to DTO</span>
+<span class="ty">Flux</span>&lt;<span class="ty">Prescription</span>&gt; prescriptions = repo.<span class="fn">findByPatientId</span>(patientId);
+
+<span class="ty">Flux</span>&lt;<span class="ty">PrescriptionDTO</span>&gt; dtos = prescriptions
+    .<span class="fn">map</span>(rx -&gt; <span class="kw">new</span> <span class="ty">PrescriptionDTO</span>(
+        rx.<span class="fn">getId</span>(),
+        rx.<span class="fn">getDrugName</span>(),
+        rx.<span class="fn">getPatient</span>().<span class="fn">getName</span>().<span class="fn">toUpperCase</span>()
+    ));
+
+<span class="cm">// .map() is synchronous — function MUST NOT block</span>
+<span class="cm">// If your function does I/O → use flatMap instead</span></code></pre>
+  </div>
+
+  <!-- FLATMAP -->
+  <div class="op-card">
+    <div class="op-header">
+      <span class="op-badge">.flatMap()</span>
+      <span style="color:var(--muted); font-size:0.9rem;">Async 1:N transformation — the workhorse</span>
+    </div>
+
+    <p><strong>flatMap</strong> is what you use when your transformation returns a <code>Mono</code> or <code>Flux</code>. It subscribes to each inner publisher and merges the results. Results may arrive <em>out of order</em> (subscriptions are concurrent).</p>
+
+    <div class="marble-diagram">
+      <div class="marble-row">
+        <span class="marble-label">source</span>
+        <div class="marble-stream">
+          <div class="marble-line"></div>
+          <div class="marble-arrow"></div>
+          <div class="marble-item m-blue" style="left:20px">rx1</div>
+          <div class="marble-item m-blue" style="left:100px">rx2</div>
+        </div>
+      </div>
+      <div class="marble-op">.flatMap(rx -> drugInteractionService.check(rx)) // returns Mono&lt;CheckResult&gt;</div>
+      <div class="marble-row">
+        <span class="marble-label">output</span>
+        <div class="marble-stream">
+          <div class="marble-line"></div>
+          <div class="marble-arrow"></div>
+          <div class="marble-item m-green" style="left:40px">r2</div>
+          <div class="marble-item m-green" style="left:90px">r1</div>
+          <div class="marble-item m-end" style="left:150px">|</div>
+        </div>
+      </div>
+      <p style="font-size:0.78rem; color:var(--muted); margin-top:0.5rem;">rx2 completed first — order is NOT guaranteed with flatMap</p>
+    </div>
+
+    <pre><code><span class="cm">// Pharmacy: for each prescription, check drug interactions (async I/O)</span>
+<span class="ty">Flux</span>&lt;<span class="ty">CheckResult</span>&gt; results = prescriptions
+    .<span class="fn">flatMap</span>(rx -&gt; drugInteractionService.<span class="fn">check</span>(rx));
+<span class="cm">// All checks run CONCURRENTLY — rx2 result may arrive before rx1</span>
+
+<span class="cm">// Chaining multiple async steps:</span>
+<span class="ty">Mono</span>&lt;<span class="ty">FillConfirmation</span>&gt; fill = patientRepo.<span class="fn">findById</span>(patientId)
+    .<span class="fn">flatMap</span>(patient -&gt; formularyService.<span class="fn">checkCoverage</span>(patient, ndc))
+    .<span class="fn">flatMap</span>(coverage -&gt; rxRepo.<span class="fn">save</span>(<span class="fn">buildPrescription</span>(coverage)))
+    .<span class="fn">flatMap</span>(saved -&gt; eventBus.<span class="fn">publish</span>(<span class="kw">new</span> <span class="ty">RxFilledEvent</span>(saved)));
+
+<span class="cm">// Use flatMapSequential() to preserve order at the cost of some concurrency</span></code></pre>
+
+    <div class="callout danger">
+      <div class="callout-label">The #1 Mistake</div>
+      Using <code>.map()</code> when your lambda returns a <code>Mono</code>/<code>Flux</code>. You'll get <code>Flux&lt;Mono&lt;Patient&gt;&gt;</code> — a stream of unwrapped publishers. The inner mono never gets subscribed. Always use <code>.flatMap()</code> when your function does I/O.
+    </div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="op-card">
+    <div class="op-header">
+      <span class="op-badge">.filter()</span>
+      <span style="color:var(--muted); font-size:0.9rem;">Conditional pass-through</span>
+    </div>
+
+    <p><strong>filter</strong> passes only items matching a predicate. Items not matching are silently dropped — the stream continues. On a <code>Mono</code>, a false predicate produces <code>Mono.empty()</code>.</p>
+
+    <pre><code><span class="cm">// Only process controlled substances (DEA schedule II-V)</span>
+<span class="ty">Flux</span>&lt;<span class="ty">Prescription</span>&gt; controlled = prescriptions
+    .<span class="fn">filter</span>(rx -&gt; rx.<span class="fn">getDeaSchedule</span>() != <span class="kw">null</span>);
+
+<span class="cm">// On Mono — filter turns it into Mono.empty() if predicate fails</span>
+<span class="ty">Mono</span>&lt;<span class="ty">Patient</span>&gt; activePatient = patientRepo.<span class="fn">findById</span>(id)
+    .<span class="fn">filter</span>(<span class="ty">Patient</span>::<span class="fn">isActive</span>);
+<span class="cm">// If patient exists but is inactive → empty Mono (no error thrown)</span>
+
+<span class="cm">// Combine with switchIfEmpty to handle the empty case:</span>
+activePatient
+    .<span class="fn">switchIfEmpty</span>(<span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">PatientInactiveException</span>(id)));</code></pre>
+  </div>
+
+  <!-- ZIP -->
+  <div class="op-card">
+    <div class="op-header">
+      <span class="op-badge">.zipWith() / Mono.zip()</span>
+      <span style="color:var(--muted); font-size:0.9rem;">Combine two streams element-by-element</span>
+    </div>
+
+    <p><strong>zip</strong> waits for an item from <em>each</em> source, then combines them. Perfect for parallel independent lookups that you need to combine before proceeding.</p>
+
+    <pre><code><span class="cm">// Fetch patient AND formulary coverage IN PARALLEL, then combine</span>
+<span class="ty">Mono</span>&lt;<span class="ty">Patient</span>&gt; patientMono   = patientRepo.<span class="fn">findById</span>(patientId);
+<span class="ty">Mono</span>&lt;<span class="ty">Coverage</span>&gt; coverageMono = formularyService.<span class="fn">getCoverage</span>(patientId);
+
+<span class="ty">Mono</span>&lt;<span class="ty">FillRequest</span>&gt; combined = <span class="ty">Mono</span>.<span class="fn">zip</span>(patientMono, coverageMono)
+    .<span class="fn">map</span>(tuple -&gt; <span class="kw">new</span> <span class="ty">FillRequest</span>(tuple.<span class="fn">getT1</span>(), tuple.<span class="fn">getT2</span>(), ndc));
+<span class="cm">// Both lookups execute CONCURRENTLY — total time = max(patient, coverage) not sum</span>
+
+<span class="cm">// zipWith on a Flux — pairs items positionally</span>
+<span class="ty">Flux</span>&lt;<span class="ty">String</span>&gt; names  = <span class="ty">Flux</span>.<span class="fn">just</span>(<span class="str">"Alice"</span>, <span class="str">"Bob"</span>);
+<span class="ty">Flux</span>&lt;<span class="ty">String</span>&gt; drugs  = <span class="ty">Flux</span>.<span class="fn">just</span>(<span class="str">"Lisinopril"</span>, <span class="str">"Metformin"</span>);
+
+names.<span class="fn">zipWith</span>(drugs)
+    .<span class="fn">map</span>(t -&gt; t.<span class="fn">getT1</span>() + <span class="str">" takes "</span> + t.<span class="fn">getT2</span>())
+    .<span class="fn">subscribe</span>(<span class="ty">System</span>.out::<span class="fn">println</span>);
+<span class="cm">// "Alice takes Lisinopril"</span>
+<span class="cm">// "Bob takes Metformin"</span></code></pre>
+  </div>
+
+  <h2>Other Essential Operators</h2>
+
+  <pre><code><span class="cm">// switchIfEmpty — fallback when Mono/Flux produces nothing</span>
+patientRepo.<span class="fn">findById</span>(id)
+    .<span class="fn">switchIfEmpty</span>(<span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">NotFoundException</span>(<span class="str">"Patient "</span> + id)));
+
+<span class="cm">// doOnNext — side-effect logging (does NOT transform)</span>
+prescriptions
+    .<span class="fn">doOnNext</span>(rx -&gt; log.<span class="fn">info</span>(<span class="str">"Processing rx={}"</span>, rx.<span class="fn">getId</span>()))
+    .<span class="fn">flatMap</span>(this::processPrescription);
+
+<span class="cm">// take / skip — pagination or bounded streams</span>
+<span class="ty">Flux</span>&lt;<span class="ty">Prescription</span>&gt; page = allRx.<span class="fn">skip</span>(<span class="num">20</span>).<span class="fn">take</span>(<span class="num">10</span>);
+
+<span class="cm">// collectList — materialise a Flux into Mono&lt;List&gt;</span>
+<span class="ty">Mono</span>&lt;<span class="ty">List</span>&lt;<span class="ty">Prescription</span>&gt;&gt; allAsList = prescriptions.<span class="fn">collectList</span>();
+
+<span class="cm">// merge vs concat</span>
+<span class="ty">Flux</span>.<span class="fn">merge</span>(flux1, flux2);   <span class="cm">// subscribe to both CONCURRENTLY, interleave</span>
+<span class="ty">Flux</span>.<span class="fn">concat</span>(flux1, flux2);  <span class="cm">// flux1 completes THEN flux2 starts</span></code></pre>
+
+  <h2>Complete Pipeline: Rx Fill Workflow</h2>
+  <p>Here's the full Empower PMS prescription fill pipeline using everything in this lesson:</p>
+
+  <pre><code><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="ty">PrescriptionFillService</span> {
+
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">FillConfirmation</span>&gt; <span class="fn">fill</span>(<span class="ty">Long</span> patientId, <span class="ty">String</span> ndc, <span class="kw">int</span> qty) {
+
+        <span class="cm">// Step 1: fetch patient and coverage in parallel</span>
+        <span class="ty">Mono</span>&lt;<span class="ty">Patient</span>&gt;  patient  = patientRepo.<span class="fn">findById</span>(patientId)
+            .<span class="fn">filter</span>(<span class="ty">Patient</span>::<span class="fn">isActive</span>)
+            .<span class="fn">switchIfEmpty</span>(<span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">InactivePatientException</span>(patientId)));
+
+        <span class="ty">Mono</span>&lt;<span class="ty">Drug</span>&gt;     drug     = drugRepo.<span class="fn">findByNdc</span>(ndc)
+            .<span class="fn">switchIfEmpty</span>(<span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">DrugNotFoundException</span>(ndc)));
+
+        <span class="cm">// Step 2: zip the two parallel lookups</span>
+        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">zip</span>(patient, drug)
+
+            <span class="cm">// Step 3: async drug interaction check</span>
+            .<span class="fn">flatMap</span>(t -&gt; interactionSvc.<span class="fn">check</span>(t.<span class="fn">getT1</span>(), t.<span class="fn">getT2</span>())
+                .<span class="fn">map</span>(ok -&gt; <span class="kw">new</span> <span class="ty">FillRequest</span>(t.<span class="fn">getT1</span>(), t.<span class="fn">getT2</span>(), qty)))
+
+            <span class="cm">// Step 4: persist</span>
+            .<span class="fn">flatMap</span>(rxRepo::<span class="fn">save</span>)
+
+            <span class="cm">// Step 5: emit event (fire and forget)</span>
+            .<span class="fn">flatMap</span>(saved -&gt; eventBus
+                .<span class="fn">publish</span>(<span class="kw">new</span> <span class="ty">RxFilledEvent</span>(saved))
+                .<span class="fn">thenReturn</span>(saved))
+
+            <span class="cm">// Step 6: map to response DTO</span>
+            .<span class="fn">map</span>(<span class="ty">FillConfirmation</span>::<span class="fn">from</span>)
+
+            <span class="cm">// Step 7: log each step for audit</span>
+            .<span class="fn">doOnNext</span>(conf -&gt; auditLog.<span class="fn">record</span>(conf));
+    }
+}</code></pre>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--accent);letter-spacing:0.1em;margin-bottom:1rem;">KNOWLEDGE CHECK</p>
+
+    <div id="q1">
+      <p class="quiz-q">You have <code>Flux&lt;Prescription&gt;</code> and need to look up each prescription's patient from the DB (an async operation returning <code>Mono&lt;Patient&gt;</code>). Which operator?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1',this,false)">.map(rx -> patientRepo.findById(rx.getPatientId()))</button>
+        <button class="quiz-opt" onclick="answer('q1',this,true)">.flatMap(rx -> patientRepo.findById(rx.getPatientId()))</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">.filter(rx -> patientRepo.findById(rx.getPatientId()))</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">You need to call patient service AND insurance service simultaneously, then combine results. Which approach gives you true parallelism?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2',this,false)">patientSvc.get(id).flatMap(p -> insuranceSvc.get(p.insuranceId()))</button>
+        <button class="quiz-opt" onclick="answer('q2',this,true)">Mono.zip(patientSvc.get(id), insuranceSvc.get(id))</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Flux.concat(patientSvc.get(id), insuranceSvc.get(id))</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q3">
+      <p class="quiz-q">A patient lookup returns an inactive patient. You call <code>.filter(Patient::isActive)</code>. What does the downstream see?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q3',this,false)">A PatientInactiveException</button>
+        <button class="quiz-opt" onclick="answer('q3',this,true)">Mono.empty() — no item, no error, just completion</button>
+        <button class="quiz-opt" onclick="answer('q3',this,false)">null</button>
+      </div>
+      <div id="q3-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Ask your teacher</div>
+    Confused about flatMap vs concatMap vs switchMap? Ask in chat — these subtle differences matter in production.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 02 / 08 — Reactive Java @ Empower PMS</span>
+  <span>Next: <strong>Lesson 03 — Error Handling</strong></span>
+</div>
+
+<script>
+const fb = {
+  q1: { w: "map() returns the Mono unwrapped inside a Flux — you'd get Flux<Mono<Patient>>. The inner Mono is never subscribed. Always flatMap() when your function returns a publisher.", r: "Correct. flatMap() subscribes to each inner Mono and flattens the results into the outer Flux. This is the most common operator in async pipelines." },
+  q2: { w: "The flatMap approach is sequential — insuranceSvc.get() doesn't start until patientSvc.get() completes. That's not parallel.", r: "Exact. Mono.zip() subscribes to both sources simultaneously. Total latency = max(patient, insurance) rather than sum." },
+  q3: { w: "filter() doesn't throw — that would break the stream for all downstream operators. It silently emits nothing.", r: "Right. Mono.empty() propagates downstream. Use .switchIfEmpty(Mono.error(...)) to convert 'not found' into an error signal." }
+};
+
+function answer(qid, btn, correct) {
+  const section = document.getElementById(qid);
+  section.querySelectorAll('.quiz-opt').forEach(o => { o.disabled = true; });
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  if (!correct) section.querySelectorAll('.quiz-opt').forEach(o => { if (o.onclick.toString().includes('true')) o.classList.add('correct'); });
+  const el = document.getElementById(qid + '-feedback');
+  el.textContent = (correct ? '✓ ' : '✗ ') + fb[qid][correct ? 'r' : 'w'];
+  el.className = 'quiz-feedback show ' + (correct ? 'correct' : 'wrong');
+}
+</script>
+</body>
+</html>

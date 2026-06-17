@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reactive Patterns & Recipes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700&family=DM+Sans:wght@300;400&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;font-size:14px;}
+  h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;color:#fff;padding:1.5rem 2rem .5rem;}
+  .subtitle{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);padding:.3rem 2rem 1.5rem;border-bottom:1px solid var(--border);}
+  .container{max-width:900px;margin:0 auto;padding:1.5rem 2rem;}
+  .recipe{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.2rem;margin:1rem 0;}
+  .recipe-title{font-family:'Fraunces',serif;font-size:1rem;color:#fff;margin-bottom:.5rem;}
+  .recipe-when{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent4);margin-bottom:.8rem;letter-spacing:.04em;}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:1rem;overflow-x:auto;margin:.6rem 0;font-family:'DM Mono',monospace;font-size:.8rem;line-height:1.55;}
+  .kw{color:#7aa2f7;}.ty{color:#bb9af7;}.str{color:#9ece6a;}.cm{color:#565f89;font-style:italic;}.num{color:#ff9e64;}.fn{color:#7dcfff;}.ann{color:#e0af68;}
+  h2{font-family:'DM Mono',monospace;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:2rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);}
+</style>
+</head>
+<body>
+<h1>Reactive Patterns & Recipes</h1>
+<div class="subtitle">Copy-paste patterns for Empower PMS · Project Reactor 3.x</div>
+<div class="container">
+
+<h2>Error & Fallback</h2>
+
+<div class="recipe">
+  <div class="recipe-title">Not-Found → 404</div>
+  <div class="recipe-when">When: repo returns empty Mono, you want a domain error</div>
+  <pre><code>repo.<span class="fn">findById</span>(id)
+    .<span class="fn">switchIfEmpty</span>(<span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">NotFoundException</span>(<span class="str">"Patient"</span>, id)));</code></pre>
+</div>
+
+<div class="recipe">
+  <div class="recipe-title">Primary → Cache Fallback</div>
+  <div class="recipe-when">When: live API fails, fall back to cached value</div>
+  <pre><code>liveApi.<span class="fn">get</span>(key)
+    .<span class="fn">onErrorResume</span>(<span class="ty">ServiceUnavailableException</span>.<span class="kw">class</span>,
+        ex -&gt; redisCache.<span class="fn">get</span>(key));</code></pre>
+</div>
+
+<div class="recipe">
+  <div class="recipe-title">Retry with Exponential Backoff</div>
+  <div class="recipe-when">When: transient Service Bus / network failure</div>
+  <pre><code>operation
+    .<span class="fn">retryWhen</span>(<span class="ty">Retry</span>.<span class="fn">backoff</span>(<span class="num">3</span>, <span class="ty">Duration</span>.<span class="fn">ofMillis</span>(<span class="num">200</span>))
+        .<span class="fn">maxBackoff</span>(<span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">5</span>))
+        .<span class="fn">jitter</span>(<span class="num">0.5</span>)
+        .<span class="fn">filter</span>(ex -&gt; ex <span class="kw">instanceof</span> <span class="ty">TransientException</span>));</code></pre>
+</div>
+
+<div class="recipe">
+  <div class="recipe-title">Fire-and-Forget Side Effect</div>
+  <div class="recipe-when">When: publish event but don't fail fill if event fails</div>
+  <pre><code>rxRepo.<span class="fn">save</span>(prescription)
+    .<span class="fn">flatMap</span>(saved -&gt; eventBus.<span class="fn">publish</span>(saved)
+        .<span class="fn">onErrorResume</span>(ex -&gt; { log.<span class="fn">warn</span>(<span class="str">"event failed"</span>,ex); <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">empty</span>(); })
+        .<span class="fn">thenReturn</span>(saved));</code></pre>
+</div>
+
+<h2>Combining</h2>
+
+<div class="recipe">
+  <div class="recipe-title">Parallel Lookups → Combine</div>
+  <div class="recipe-when">When: two independent async calls, need both results</div>
+  <pre><code><span class="ty">Mono</span>.<span class="fn">zip</span>(patientRepo.<span class="fn">findById</span>(pid), insuranceSvc.<span class="fn">get</span>(pid))
+    .<span class="fn">map</span>(t -&gt; <span class="kw">new</span> <span class="ty">FillContext</span>(t.<span class="fn">getT1</span>(), t.<span class="fn">getT2</span>()));</code></pre>
+</div>
+
+<div class="recipe">
+  <div class="recipe-title">Mono → Flux (one-to-many)</div>
+  <div class="recipe-when">When: first lookup a parent, then stream children</div>
+  <pre><code>patientRepo.<span class="fn">findById</span>(pid)
+    .<span class="fn">flatMapMany</span>(p -&gt; rxRepo.<span class="fn">findByPatientId</span>(p.<span class="fn">getId</span>()));</code></pre>
+</div>
+
+<h2>Threading</h2>
+
+<div class="recipe">
+  <div class="recipe-title">Wrap Blocking Legacy JDBC</div>
+  <div class="recipe-when">When: you must call blocking JDBC from a reactive chain</div>
+  <pre><code><span class="ty">Mono</span>.<span class="fn">fromCallable</span>(() -&gt; jdbcRepo.<span class="fn">findById</span>(id))
+    .<span class="fn">subscribeOn</span>(<span class="ty">Schedulers</span>.<span class="fn">boundedElastic</span>());</code></pre>
+</div>
+
+<div class="recipe">
+  <div class="recipe-title">Blocking Collection → Flux</div>
+  <div class="recipe-when">When: blocking call returns a List, convert to streaming Flux</div>
+  <pre><code><span class="ty">Mono</span>.<span class="fn">fromCallable</span>(() -&gt; jdbcRepo.<span class="fn">findAll</span>())
+    .<span class="fn">subscribeOn</span>(<span class="ty">Schedulers</span>.<span class="fn">boundedElastic</span>())
+    .<span class="fn">flatMapMany</span>(<span class="ty">Flux</span>::<span class="fn">fromIterable</span>);</code></pre>
+</div>
+
+<h2>Service Bus / Sinks</h2>
+
+<div class="recipe">
+  <div class="recipe-title">Push Event from Imperative Code</div>
+  <div class="recipe-when">When: bridging a REST handler push to a reactive Flux publisher</div>
+  <pre><code><span class="kw">private final</span> <span class="ty">Sinks</span>.<span class="ty">Many</span>&lt;<span class="ty">RxEvent</span>&gt; sink =
+    <span class="ty">Sinks</span>.<span class="fn">many</span>().<span class="fn">multicast</span>().<span class="fn">onBackpressureBuffer</span>(<span class="num">512</span>);
+
+<span class="cm">// Push from anywhere:</span>
+sink.<span class="fn">tryEmitNext</span>(event);
+
+<span class="cm">// Expose as Flux:</span>
+<span class="ann">@Bean</span> <span class="ty">Supplier</span>&lt;<span class="ty">Flux</span>&lt;<span class="ty">RxEvent</span>&gt;&gt; <span class="fn">publishRxEvent</span>() { <span class="kw">return</span> sink::asFlux; }</code></pre>
+</div>
+
+<div class="recipe">
+  <div class="recipe-title">Service Bus Consumer with DLQ</div>
+  <div class="recipe-when">When: processing Service Bus messages reactively with safe error handling</div>
+  <pre><code>messages.<span class="fn">flatMap</span>(
+    msg -&gt; <span class="fn">process</span>(msg.<span class="fn">getPayload</span>())
+        .<span class="fn">doOnSuccess</span>(v -&gt; receiver.<span class="fn">complete</span>(msg))
+        .<span class="fn">onErrorResume</span>(ex -&gt; {
+            log.<span class="fn">error</span>(<span class="str">"DLQ: {}"</span>, msg.<span class="fn">getMessageId</span>(), ex);
+            receiver.<span class="fn">deadLetter</span>(msg, <span class="kw">new</span> <span class="ty">DeadLetterOptions</span>()
+                .<span class="fn">setDeadLetterReason</span>(ex.<span class="fn">getMessage</span>()));
+            <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">empty</span>();
+        }),
+    <span class="num">10</span> <span class="cm">// concurrency</span>
+);</code></pre>
+</div>
+
+<h2>Testing</h2>
+
+<div class="recipe">
+  <div class="recipe-title">Test Time-Based Retry</div>
+  <div class="recipe-when">When: testing retry/timeout logic without real delays</div>
+  <pre><code><span class="ty">StepVerifier</span>.<span class="fn">withVirtualTime</span>(() -&gt; operationWithRetry)
+    .<span class="fn">thenAwait</span>(<span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">30</span>))
+    .<span class="fn">verifyComplete</span>();</code></pre>
+</div>
+
+<div class="recipe">
+  <div class="recipe-title">Assert Error Type</div>
+  <div class="recipe-when">When: testing that a domain exception is emitted</div>
+  <pre><code><span class="ty">StepVerifier</span>.<span class="fn">create</span>(svc.<span class="fn">fill</span>(inactivePatientId, ndc, qty))
+    .<span class="fn">verifyError</span>(<span class="ty">InactivePatientException</span>.<span class="kw">class</span>);</code></pre>
+</div>
+
+</div>
+</body>
+</html>

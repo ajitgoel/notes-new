@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 5 — Modules: Reusable Infrastructure</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d160f;--surface:#121e14;--border:#1e3022;--accent:#3fb950;--accent2:#58a6ff;--accent3:#f78166;--accent4:#d2a8ff;--text:#e6edf3;--muted:#8b949e;--code-bg:#0b180d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7}
+.hero{background:linear-gradient(135deg,#0d160f,#0d1f12,#0d160f);border-bottom:1px solid var(--border);padding:60px 48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:350px;height:350px;background:radial-gradient(circle,rgba(63,185,80,.07),transparent 70%);border-radius:50%}
+.lesson-meta{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.tag{background:#1a3a22;color:var(--accent);padding:4px 12px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid rgba(63,185,80,.3)}
+.tag.b{background:#1a2e4a;color:var(--accent2);border-color:rgba(88,166,255,.3)}
+h1{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1.1;margin-bottom:12px}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:1rem;max-width:600px}
+.wrap{max-width:860px;margin:0 auto;padding:48px}
+h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:600;color:var(--accent4);margin:24px 0 10px}
+p{color:var(--muted);margin-bottom:14px}
+p strong{color:var(--text)}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px 24px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;margin:16px 0 24px;position:relative}
+.lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;position:absolute;top:-1px;right:12px}
+.k{color:#ff7b72}.s{color:#a5d6ff}.c{color:#334d38;font-style:italic}.f{color:#d2a8ff}.v{color:#79c0ff}.var{color:#ffa657}.r{color:#7ee787}.a{color:#3fb950}
+.box{border-radius:8px;padding:16px 20px;margin:20px 0;border-left:3px solid}
+.box.i{background:rgba(88,166,255,.06);border-color:var(--accent2)}
+.box.w{background:rgba(247,129,102,.06);border-color:var(--accent3)}
+.box.t{background:rgba(63,185,80,.06);border-color:var(--accent)}
+.bt{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.box.i .bt{color:var(--accent2)}.box.w .bt{color:var(--accent3)}.box.t .bt{color:var(--accent)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px}
+.card h4{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:600;color:var(--accent);margin-bottom:8px}
+.card p{font-size:13px}
+.ftree{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px 24px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.9;margin:16px 0 24px}
+.ftree .d{color:var(--accent);font-weight:600}
+.ftree .fi{color:var(--text)}
+.ftree .cm{color:var(--muted);font-style:italic}
+.qs{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;margin:48px 0}
+.qs h2{border:none;margin-top:0}
+.q{margin-bottom:28px}
+.q p{color:var(--text);font-weight:500;margin-bottom:12px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:10px 16px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;transition:all .2s;color:var(--text)}
+.opt:hover{border-color:var(--accent);color:var(--accent)}
+.opt.ok{border-color:var(--accent)!important;background:rgba(63,185,80,.1)!important;color:var(--accent)!important}
+.opt.no{border-color:var(--accent3)!important;background:rgba(247,129,102,.1)!important;color:var(--accent3)!important}
+.fb{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:4px;display:none}
+.fb.on{display:block}
+.fb.ok{background:rgba(63,185,80,.1);color:var(--accent)}
+.fb.no{background:rgba(247,129,102,.1);color:var(--accent3)}
+.pb{background:var(--border);border-radius:4px;height:4px;margin-bottom:40px}
+.pf{background:var(--accent);border-radius:4px;height:100%;width:62.5%}
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:13px}
+footer a{color:var(--accent);text-decoration:none}
+code{background:var(--code-bg);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent4)}
+ul{padding-left:20px;color:var(--muted);margin-bottom:14px}
+li{margin-bottom:4px}
+li strong{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="lesson-meta">
+    <span class="tag">LESSON 05 / 08</span>
+    <span class="tag b">MODULES</span>
+    <span class="tag">~40 MIN</span>
+  </div>
+  <h1>Modules:<br><span>Reusable Infrastructure</span></h1>
+  <p class="sub">How to structure Terraform into reusable, composable units — the difference between a root module and a child module, and the layout patterns used in production.</p>
+</div>
+<div class="wrap">
+  <div class="pb"><div class="pf"></div></div>
+
+  <h2>🧩 What Is a Module?</h2>
+  <p>Every Terraform directory is a module. The one you run <code>terraform apply</code> in is the <strong>root module</strong>. Any module it calls is a <strong>child module</strong>. Modules let you package a group of resources into a reusable unit with a clean input/output interface.</p>
+
+  <div class="g2">
+    <div class="card">
+      <h4>Root Module</h4>
+      <p>The entry point. Has the backend config, provider declarations, and calls child modules. One per environment (dev/staging/prod).</p>
+    </div>
+    <div class="card">
+      <h4>Child Module</h4>
+      <p>A reusable package — AKS cluster, Key Vault, networking. Has variables.tf, outputs.tf, main.tf. No backend or provider blocks.</p>
+    </div>
+  </div>
+
+  <h2>🗂️ Production Module Layout</h2>
+  <p>For Empower PMS, a mature layout separates root environments from reusable modules:</p>
+
+  <div class="ftree">
+    <span class="d">empower-infra/</span><br>
+    &nbsp;&nbsp;├── <span class="d">modules/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># reusable building blocks</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="d">aks/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># AKS cluster module</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; │&nbsp;&nbsp; ├── <span class="fi">main.tf</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; │&nbsp;&nbsp; ├── <span class="fi">variables.tf</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; │&nbsp;&nbsp; ├── <span class="fi">outputs.tf</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; │&nbsp;&nbsp; └── <span class="fi">versions.tf</span> &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># required_providers only</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="d">key-vault/</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="d">service-bus/</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="d">networking/</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; └── <span class="d">sql-server/</span><br>
+    &nbsp;&nbsp;├── <span class="d">environments/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># root modules per env</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="d">dev/</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; │&nbsp;&nbsp; ├── <span class="fi">main.tf</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># calls modules, wires outputs</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; │&nbsp;&nbsp; ├── <span class="fi">providers.tf</span> &nbsp;&nbsp;<span class="cm"># backend + provider config</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; │&nbsp;&nbsp; └── <span class="fi">terraform.tfvars</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="d">staging/</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp; └── <span class="d">prod/</span>
+  </div>
+
+  <h2>📦 Writing a Child Module</h2>
+  <p>Here's the complete structure of an AKS child module — concise but production-quality:</p>
+
+<pre><span class="lbl">modules/aks/variables.tf</span><span class="k">variable</span> <span class="s">"cluster_name"</span>       { type = <span class="f">string</span> }
+<span class="k">variable</span> <span class="s">"resource_group_name"</span> { type = <span class="f">string</span> }
+<span class="k">variable</span> <span class="s">"location"</span>           { type = <span class="f">string</span> }
+<span class="k">variable</span> <span class="s">"kubernetes_version"</span>  { type = <span class="f">string</span>; default = <span class="s">"1.29"</span> }
+<span class="k">variable</span> <span class="s">"tags"</span>               { type = <span class="f">map</span>(<span class="f">string</span>); default = {} }
+
+<span class="k">variable</span> <span class="s">"default_node_pool"</span> {
+  type = <span class="f">object</span>({
+    vm_size    = <span class="f">string</span>
+    node_count = <span class="f">number</span>
+    zones      = <span class="f">optional</span>(<span class="f">list</span>(<span class="f">string</span>), [<span class="s">"1"</span>, <span class="s">"2"</span>, <span class="s">"3"</span>])
+  })
+}</pre>
+
+<pre><span class="lbl">modules/aks/main.tf</span><span class="k">resource</span> <span class="s">"azurerm_kubernetes_cluster"</span> <span class="s">"this"</span> {
+  name                = <span class="var">var</span>.cluster_name
+  location            = <span class="var">var</span>.location
+  resource_group_name = <span class="var">var</span>.resource_group_name
+  kubernetes_version  = <span class="var">var</span>.kubernetes_version
+  dns_prefix          = <span class="var">var</span>.cluster_name
+  tags                = <span class="var">var</span>.tags
+
+  default_node_pool {
+    name       = <span class="s">"system"</span>
+    vm_size    = <span class="var">var</span>.default_node_pool.vm_size
+    node_count = <span class="var">var</span>.default_node_pool.node_count
+    zones      = <span class="var">var</span>.default_node_pool.zones
+    upgrade_settings { max_surge = <span class="s">"33%"</span> }
+  }
+
+  identity { type = <span class="s">"SystemAssigned"</span> }
+
+  network_profile {
+    network_plugin = <span class="s">"azure"</span>
+    network_policy = <span class="s">"calico"</span>
+  }
+}</pre>
+
+<pre><span class="lbl">modules/aks/outputs.tf</span><span class="k">output</span> <span class="s">"cluster_id"</span>                { value = <span class="r">azurerm_kubernetes_cluster.this.id</span> }
+<span class="k">output</span> <span class="s">"kubelet_identity_object_id"</span> { value = <span class="r">azurerm_kubernetes_cluster.this.kubelet_identity[0].object_id</span> }
+<span class="k">output</span> <span class="s">"kube_config"</span>               { value = <span class="r">azurerm_kubernetes_cluster.this.kube_config_raw</span>; sensitive = <span class="v">true</span> }</pre>
+
+  <h2>🔌 Calling a Module</h2>
+  <p>From the root module, call child modules with a <code>module</code> block. Wire outputs to inputs:</p>
+
+<pre><span class="lbl">environments/dev/main.tf</span><span class="k">module</span> <span class="s">"networking"</span> {
+  source = <span class="s">"../../modules/networking"</span>
+
+  name_prefix         = <span class="r">local</span>.name_prefix
+  resource_group_name = <span class="r">azurerm_resource_group.main</span>.name
+  location            = <span class="var">var</span>.location
+  tags                = <span class="r">local</span>.common_tags
+}
+
+<span class="k">module</span> <span class="s">"aks"</span> {
+  source = <span class="s">"../../modules/aks"</span>
+
+  cluster_name        = <span class="s">"aks-empower-dev"</span>
+  resource_group_name = <span class="r">azurerm_resource_group.main</span>.name
+  location            = <span class="var">var</span>.location
+  tags                = <span class="r">local</span>.common_tags
+
+  default_node_pool = {
+    vm_size    = <span class="s">"Standard_D4s_v3"</span>
+    node_count = <span class="v">2</span>
+  }
+}
+
+<span class="k">module</span> <span class="s">"key_vault"</span> {
+  source = <span class="s">"../../modules/key-vault"</span>
+
+  name                = <span class="s">"kv-empower-dev"</span>
+  resource_group_name = <span class="r">azurerm_resource_group.main</span>.name
+  location            = <span class="var">var</span>.location
+  <span class="c"># Wire AKS identity to Key Vault access policy</span>
+  aks_kubelet_object_id = <span class="r">module.aks.kubelet_identity_object_id</span>
+  tags                  = <span class="r">local</span>.common_tags
+}
+
+<span class="c"># Access a child module output</span>
+output <span class="s">"aks_cluster_id"</span> {
+  value = <span class="r">module.aks.cluster_id</span>
+}</pre>
+
+  <div class="box i">
+    <div class="bt">Module Source Types</div>
+    <p>The <code>source</code> argument accepts: <code>./local/path</code>, <code>../../relative</code>, <code>git::https://github.com/org/repo//modules/aks</code>, or <code>registry.terraform.io/hashicorp/aks/azurerm</code>. For Empower PMS, local paths in a monorepo is the right starting point.</p>
+  </div>
+
+  <h2>🔄 Module Versioning with Git Tags</h2>
+  <p>When your modules live in a separate repo, pin to a git tag for stability:</p>
+<pre><span class="lbl">pinned git source</span><span class="k">module</span> <span class="s">"aks"</span> {
+  source = <span class="s">"git::https://github.com/empower-pharmacy/tf-modules//aks?ref=v1.4.2"</span>
+  <span class="c"># Note: double-slash separates repo path from subdirectory</span>
+}</pre>
+
+  <div class="box w">
+    <div class="bt">After adding/changing a module source</div>
+    <p>Always run <code>terraform init</code> again after changing a <code>source</code> argument. Terraform needs to download or refresh the module. The <code>-upgrade</code> flag forces refresh of cached modules.</p>
+  </div>
+
+  <div class="qs">
+    <h2>🧠 Knowledge Check</h2>
+    <p style="color:var(--muted);margin-bottom:28px">Four questions on module structure and usage.</p>
+
+    <div class="q" id="q1">
+      <p>1. Where should the <code>backend</code> block and <code>provider</code> blocks live in a module-based layout?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q1',this,false)">A. In every module's versions.tf</div>
+        <div class="opt" onclick="ans('q1',this,true)">B. Only in the root module (environments/dev, etc.) — never in child modules</div>
+        <div class="opt" onclick="ans('q1',this,false)">C. In the topmost parent module and inherited by children</div>
+        <div class="opt" onclick="ans('q1',this,false)">D. In a shared providers.tf at the repo root</div>
+      </div>
+      <div class="fb" id="q1-fb"></div>
+    </div>
+
+    <div class="q" id="q2">
+      <p>2. How do you access the output <code>cluster_id</code> from a module block named <code>aks</code>?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q2',this,false)">A. <code>aks.cluster_id</code></div>
+        <div class="opt" onclick="ans('q2',this,false)">B. <code>output.aks.cluster_id</code></div>
+        <div class="opt" onclick="ans('q2',this,true)">C. <code>module.aks.cluster_id</code></div>
+        <div class="opt" onclick="ans('q2',this,false)">D. <code>modules.aks.outputs.cluster_id</code></div>
+      </div>
+      <div class="fb" id="q2-fb"></div>
+    </div>
+
+    <div class="q" id="q3">
+      <p>3. You change a module's <code>source</code> from a local path to a Git URL. What must you run?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q3',this,false)">A. terraform refresh</div>
+        <div class="opt" onclick="ans('q3',this,true)">B. terraform init (downloads/refreshes the module)</div>
+        <div class="opt" onclick="ans('q3',this,false)">C. terraform validate</div>
+        <div class="opt" onclick="ans('q3',this,false)">D. Nothing — Terraform resolves this automatically on plan</div>
+      </div>
+      <div class="fb" id="q3-fb"></div>
+    </div>
+
+    <div class="q" id="q4">
+      <p>4. A child module should not contain which of these?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q4',this,false)">A. variables.tf with input declarations</div>
+        <div class="opt" onclick="ans('q4',this,false)">B. outputs.tf exporting resource attributes</div>
+        <div class="opt" onclick="ans('q4',this,true)">C. A backend block configuring remote state storage</div>
+        <div class="opt" onclick="ans('q4',this,false)">D. locals.tf with computed naming conventions</div>
+      </div>
+      <div class="fb" id="q4-fb"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div><strong style="color:var(--text)">Terraform Course</strong> — Lesson 5 of 8 &nbsp;|&nbsp; <a href="https://developer.hashicorp.com/terraform/language/modules" target="_blank">Modules Docs ↗</a></div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px">Next → <code>open 0006-workspaces-envs.html</code></div>
+</footer>
+<script>
+const ex={
+  q1:{ok:"Correct. Child modules must never contain backend or provider blocks. Those belong exclusively in root modules. Child modules inherit the provider from their caller automatically.",no:"Backend and provider blocks belong only in root modules (environment directories). Child modules are provider-agnostic and inherit from whoever calls them."},
+  q2:{ok:"Correct. The pattern is module.<NAME>.<OUTPUT> — where NAME matches the label on the module block.",no:"The correct reference pattern is module.aks.cluster_id. module is the namespace, aks is the block label, cluster_id is the output name."},
+  q3:{ok:"Correct. Any change to a module source requires terraform init to download or refresh the module content. Use terraform init -upgrade to force re-download of cached sources.",no:"Changing source requires terraform init. Terraform needs to fetch the new source before it can plan against it."},
+  q4:{ok:"Correct. Backend blocks belong only in root modules. A child module with a backend block would create a separate state file and break the composition model entirely.",no:"Backend blocks must only appear in root modules. Child modules are reusable components — they can't own state."}
+};
+function ans(qid,el,ok){
+  const q=document.getElementById(qid);
+  if(q.querySelector('.ok')||q.querySelector('.no')) return;
+  el.classList.add(ok?'ok':'no');
+  const fb=document.getElementById(qid+'-fb');
+  fb.textContent=(ok?'✓ ':'✗ ')+(ok?ex[qid].ok:ex[qid].no);
+  fb.className='fb on '+(ok?'ok':'no');
+}
+</script>
+</body>
+</html>

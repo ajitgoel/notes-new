@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 4 — Expressions, Functions & Meta-Arguments</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1219;--surface:#131c26;--border:#1e2d3d;--accent:#58a6ff;--accent2:#3fb950;--accent3:#f78166;--accent4:#d2a8ff;--text:#e6edf3;--muted:#8b949e;--code-bg:#0b1520}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7}
+.hero{background:linear-gradient(135deg,#0d1219,#0d1a2e,#0d1219);border-bottom:1px solid var(--border);padding:60px 48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:350px;height:350px;background:radial-gradient(circle,rgba(88,166,255,.07),transparent 70%);border-radius:50%}
+.lesson-meta{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.tag{background:#1a2e4a;color:var(--accent);padding:4px 12px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid rgba(88,166,255,.3)}
+.tag.g{background:#1a3a22;color:var(--accent2);border-color:rgba(63,185,80,.3)}
+h1{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1.1;margin-bottom:12px}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:1rem;max-width:600px}
+.wrap{max-width:860px;margin:0 auto;padding:48px}
+h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:600;color:var(--accent4);margin:24px 0 10px}
+p{color:var(--muted);margin-bottom:14px}
+p strong{color:var(--text)}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px 24px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;margin:16px 0 24px;position:relative}
+.lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;position:absolute;top:-1px;right:12px}
+.k{color:#ff7b72}.s{color:#a5d6ff}.c{color:#3a4d5c;font-style:italic}.f{color:#d2a8ff}.v{color:#79c0ff}.var{color:#ffa657}.r{color:#7ee787}.a{color:#3fb950}
+.box{border-radius:8px;padding:16px 20px;margin:20px 0;border-left:3px solid}
+.box.i{background:rgba(88,166,255,.06);border-color:var(--accent)}
+.box.w{background:rgba(247,129,102,.06);border-color:var(--accent3)}
+.box.t{background:rgba(210,168,255,.06);border-color:var(--accent4)}
+.bt{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.box.i .bt{color:var(--accent)}.box.w .bt{color:var(--accent3)}.box.t .bt{color:var(--accent4)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px}
+.card h4{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:600;color:var(--accent);margin-bottom:8px}
+.card p{font-size:13px}
+.fn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 24px}
+.fn-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.fn-name{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent4);margin-bottom:4px;font-weight:600}
+.fn-desc{font-size:12px;color:var(--muted)}
+.qs{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;margin:48px 0}
+.qs h2{border:none;margin-top:0}
+.q{margin-bottom:28px}
+.q p{color:var(--text);font-weight:500;margin-bottom:12px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:10px 16px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;transition:all .2s;color:var(--text)}
+.opt:hover{border-color:var(--accent);color:var(--accent)}
+.opt.ok{border-color:var(--accent2)!important;background:rgba(63,185,80,.1)!important;color:var(--accent2)!important}
+.opt.no{border-color:var(--accent3)!important;background:rgba(247,129,102,.1)!important;color:var(--accent3)!important}
+.fb{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:4px;display:none}
+.fb.on{display:block}
+.fb.ok{background:rgba(63,185,80,.1);color:var(--accent2)}
+.fb.no{background:rgba(247,129,102,.1);color:var(--accent3)}
+.pb{background:var(--border);border-radius:4px;height:4px;margin-bottom:40px}
+.pf{background:var(--accent);border-radius:4px;height:100%;width:50%}
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:13px}
+footer a{color:var(--accent);text-decoration:none}
+code{background:var(--code-bg);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent4)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="lesson-meta">
+    <span class="tag">LESSON 04 / 08</span>
+    <span class="tag g">EXPRESSIONS</span>
+    <span class="tag">~35 MIN</span>
+  </div>
+  <h1>Expressions, Functions<br>&amp; <span>Meta-Arguments</span></h1>
+  <p class="sub">count, for_each, dynamic blocks, conditionals, and the built-in functions that make your HCL DRY and powerful.</p>
+</div>
+<div class="wrap">
+  <div class="pb"><div class="pf"></div></div>
+
+  <h2>🔁 count — Repeat a Resource N Times</h2>
+  <p><code>count</code> creates N copies of a resource. The <code>count.index</code> meta-value (0-based) lets you differentiate each instance. Use it for simple numeric repetition:</p>
+<pre><span class="lbl">main.tf — count</span><span class="k">resource</span> <span class="s">"azurerm_resource_group"</span> <span class="s">"env_rgs"</span> {
+  count    = <span class="v">3</span>
+  name     = <span class="s">"rg-empower-env-${count.index}"</span>
+  location = <span class="var">var</span>.location
+}
+
+<span class="c"># Reference the second resource group (index 1)</span>
+<span class="c"># azurerm_resource_group.env_rgs[1].name</span>
+
+<span class="c"># More useful: toggle a resource on/off with a boolean variable</span>
+<span class="k">resource</span> <span class="s">"azurerm_monitor_diagnostic_setting"</span> <span class="s">"aks_diag"</span> {
+  count = <span class="var">var</span>.enable_diagnostics ? <span class="v">1</span> : <span class="v">0</span>
+  name  = <span class="s">"aks-diagnostics"</span>
+  <span class="c"># ... rest of config</span>
+}</pre>
+
+  <div class="box w">
+    <div class="bt">count pitfall</div>
+    <p>If you remove an element from the middle of a count list, Terraform destroys and recreates all resources with a higher index. Use <code>for_each</code> instead whenever the set of instances might change.</p>
+  </div>
+
+  <h2>🗝️ for_each — Map-Based Repetition</h2>
+  <p><code>for_each</code> accepts a <code>map</code> or <code>set(string)</code>. Each resource instance is keyed by the map key — stable identity, no index shifting. This is the production-grade approach for multi-instance resources:</p>
+<pre><span class="lbl">main.tf — for_each with map</span><span class="k">locals</span> {
+  <span class="c"># Key = logical name, value = config object</span>
+  namespaces = {
+    rx-intake      = { env = <span class="s">"prod"</span>, tier = <span class="s">"Standard"</span> }
+    clinical-review = { env = <span class="s">"prod"</span>, tier = <span class="s">"Standard"</span> }
+    billing         = { env = <span class="s">"prod"</span>, tier = <span class="s">"Premium"</span> }
+  }
+}
+
+<span class="k">resource</span> <span class="s">"azurerm_servicebus_namespace"</span> <span class="s">"ns"</span> {
+  for_each = <span class="r">local</span>.namespaces
+
+  name                = <span class="s">"sb-empower-${each.key}"</span>
+  location            = <span class="r">azurerm_resource_group.main</span>.location
+  resource_group_name = <span class="r">azurerm_resource_group.main</span>.name
+  sku                 = <span class="r">each</span>.value.tier
+}
+
+<span class="c"># Reference: azurerm_servicebus_namespace.ns["billing"].id</span>
+<span class="c"># Plan output shows: azurerm_servicebus_namespace.ns["billing"]</span></pre>
+
+<pre><span class="lbl">for_each with set(string)</span><span class="k">variable</span> <span class="s">"allowed_ip_ranges"</span> {
+  type    = <span class="f">set</span>(<span class="f">string</span>)
+  default = [<span class="s">"10.0.0.0/16"</span>, <span class="s">"172.16.0.0/12"</span>]
+}
+
+<span class="k">resource</span> <span class="s">"azurerm_network_security_rule"</span> <span class="s">"allow_vpn"</span> {
+  for_each = <span class="var">var</span>.allowed_ip_ranges
+
+  name                       = <span class="s">"allow-${replace(each.value, "/", "-")}"</span>
+  source_address_prefix      = <span class="r">each</span>.value
+  destination_port_range     = <span class="s">"443"</span>
+  <span class="c"># ... rest</span>
+}</pre>
+
+  <h2>🔄 Dynamic Blocks</h2>
+  <p>When a block type (not a resource) needs to be repeated — like <code>network_rule</code> inside a Key Vault — use <code>dynamic</code>:</p>
+<pre><span class="lbl">dynamic block pattern</span><span class="k">resource</span> <span class="s">"azurerm_key_vault"</span> <span class="s">"main"</span> {
+  name                = <span class="s">"kv-empower-${var.environment}"</span>
+  resource_group_name = <span class="r">azurerm_resource_group.main</span>.name
+  location            = <span class="var">var</span>.location
+  sku_name            = <span class="s">"standard"</span>
+  tenant_id           = <span class="r">data</span>.azurerm_client_config.current.tenant_id
+
+  <span class="c"># Dynamically generate one network_acls block per IP range</span>
+  <span class="k">dynamic</span> <span class="s">"network_acls"</span> {
+    for_each = <span class="var">var</span>.key_vault_ip_rules
+    content {
+      default_action             = <span class="s">"Deny"</span>
+      bypass                     = [<span class="s">"AzureServices"</span>]
+      ip_rules                   = [<span class="r">network_acls</span>.value]
+    }
+  }
+}</pre>
+
+  <h2>📐 Essential Built-in Functions</h2>
+  <p>Terraform has 100+ built-in functions. These are the ones you'll use in almost every project:</p>
+
+  <div class="fn-grid">
+    <div class="fn-card"><div class="fn-name">merge(map1, map2)</div><div class="fn-desc">Merge maps; right wins on conflict. Essential for tag merging.</div></div>
+    <div class="fn-card"><div class="fn-name">concat(list1, list2)</div><div class="fn-desc">Join two lists into one.</div></div>
+    <div class="fn-card"><div class="fn-name">flatten([list])</div><div class="fn-desc">Collapse nested lists into a single flat list.</div></div>
+    <div class="fn-card"><div class="fn-name">toset(list)</div><div class="fn-desc">Deduplicate a list into a set. Required for for_each.</div></div>
+    <div class="fn-card"><div class="fn-name">lookup(map, key, default)</div><div class="fn-desc">Safe map lookup with fallback. Avoids null errors.</div></div>
+    <div class="fn-card"><div class="fn-name">coalesce(a, b, c)</div><div class="fn-desc">Returns first non-null, non-empty value.</div></div>
+    <div class="fn-card"><div class="fn-name">format(fmt, args…)</div><div class="fn-desc">sprintf-style string formatting.</div></div>
+    <div class="fn-card"><div class="fn-name">lower / upper / trim</div><div class="fn-desc">String transformations. Use lower() for resource names.</div></div>
+    <div class="fn-card"><div class="fn-name">jsonencode(value)</div><div class="fn-desc">Serialize an HCL value to JSON string. IAM policies, etc.</div></div>
+    <div class="fn-card"><div class="fn-name">file(path)</div><div class="fn-desc">Read a local file as a string. Useful for startup scripts.</div></div>
+    <div class="fn-card"><div class="fn-name">templatefile(path, vars)</div><div class="fn-desc">Render a template file with variable substitution.</div></div>
+    <div class="fn-card"><div class="fn-name">try(expr, fallback)</div><div class="fn-desc">Evaluate expr; return fallback if it errors. Null safety.</div></div>
+  </div>
+
+<pre><span class="lbl">functions in practice — empower pms context</span><span class="k">locals</span> {
+  <span class="c"># Merge base tags with module-specific tags</span>
+  all_tags = <span class="f">merge</span>(<span class="r">local</span>.common_tags, { Module = <span class="s">"networking"</span> })
+
+  <span class="c"># Collect all subnet IDs into a flat list</span>
+  all_subnet_ids = <span class="f">flatten</span>([
+    <span class="r">azurerm_subnet.aks</span>[*].id,
+    <span class="r">azurerm_subnet.data</span>[*].id
+  ])
+
+  <span class="c"># Safe lookup: override region per env, default to var.location</span>
+  effective_location = <span class="f">lookup</span>(<span class="var">var</span>.location_overrides, <span class="var">var</span>.environment, <span class="var">var</span>.location)
+
+  <span class="c"># Build a JSON-encoded policy document for Key Vault access</span>
+  kv_policy_json = <span class="f">jsonencode</span>({
+    permissions = { secrets = [<span class="s">"get"</span>, <span class="s">"list"</span>] }
+  })
+}
+
+<span class="c"># try() — safe attribute access when resource may not exist</span>
+output <span class="s">"acr_login_server"</span> {
+  value = <span class="f">try</span>(<span class="r">azurerm_container_registry.main</span>.login_server, <span class="s">""</span>)
+}</pre>
+
+  <h2>🔀 For Expressions</h2>
+  <p>Transform or filter collections inline — like map/filter in your Java streams:</p>
+<pre><span class="lbl">for expressions</span><span class="k">locals</span> {
+  <span class="c"># Transform: extract just the IDs from a map of resources</span>
+  subnet_ids = [<span class="k">for</span> s <span class="k">in</span> <span class="r">azurerm_subnet.app</span> : s.id]
+
+  <span class="c"># Filter: only prod namespaces</span>
+  prod_namespaces = {
+    <span class="k">for</span> k, v <span class="k">in</span> <span class="r">local</span>.namespaces :
+    k => v
+    <span class="k">if</span> v.env == <span class="s">"prod"</span>
+  }
+
+  <span class="c"># Transform map keys to uppercase</span>
+  upper_tags = {
+    <span class="k">for</span> k, v <span class="k">in</span> <span class="var">var</span>.tags :
+    <span class="f">upper</span>(k) => v
+  }
+}</pre>
+
+  <div class="qs">
+    <h2>🧠 Knowledge Check</h2>
+    <p style="color:var(--muted);margin-bottom:28px">Four questions on count, for_each, and functions.</p>
+
+    <div class="q" id="q1">
+      <p>1. You have <code>count = 3</code> creating three storage accounts. You remove the middle item from the source list. What happens?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q1',this,false)">A. Only the middle storage account is deleted</div>
+        <div class="opt" onclick="ans('q1',this,true)">B. The third account is destroyed and recreated at index 1 — resource identity shifts</div>
+        <div class="opt" onclick="ans('q1',this,false)">C. Terraform errors — you can't remove from count</div>
+        <div class="opt" onclick="ans('q1',this,false)">D. Nothing changes until the next apply</div>
+      </div>
+      <div class="fb" id="q1-fb"></div>
+    </div>
+
+    <div class="q" id="q2">
+      <p>2. <code>for_each</code> accepts which two types?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q2',this,false)">A. list and tuple</div>
+        <div class="opt" onclick="ans('q2',this,true)">B. map and set(string)</div>
+        <div class="opt" onclick="ans('q2',this,false)">C. list(string) and number</div>
+        <div class="opt" onclick="ans('q2',this,false)">D. object and any</div>
+      </div>
+      <div class="fb" id="q2-fb"></div>
+    </div>
+
+    <div class="q" id="q3">
+      <p>3. What does <code>merge(var.tags, { ManagedBy = "Terraform" })</code> do when <code>var.tags</code> already contains a <code>ManagedBy</code> key?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q3',this,false)">A. Throws an error — duplicate key</div>
+        <div class="opt" onclick="ans('q3',this,false)">B. The value from var.tags wins</div>
+        <div class="opt" onclick="ans('q3',this,true)">C. The right-hand map wins — "Terraform" overwrites the caller-supplied value</div>
+        <div class="opt" onclick="ans('q3',this,false)">D. Both values are kept as a list</div>
+      </div>
+      <div class="fb" id="q3-fb"></div>
+    </div>
+
+    <div class="q" id="q4">
+      <p>4. When would you use a <code>dynamic</code> block instead of <code>for_each</code> on the resource itself?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q4',this,true)">A. When you need to repeat a nested block (e.g. multiple network_rule blocks inside one Key Vault resource)</div>
+        <div class="opt" onclick="ans('q4',this,false)">B. When you want to create multiple Key Vault resources</div>
+        <div class="opt" onclick="ans('q4',this,false)">C. Dynamic is just a newer syntax for for_each — they're interchangeable</div>
+        <div class="opt" onclick="ans('q4',this,false)">D. When the count is determined at runtime, not at plan time</div>
+      </div>
+      <div class="fb" id="q4-fb"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div><strong style="color:var(--text)">Terraform Course</strong> — Lesson 4 of 8 &nbsp;|&nbsp; <a href="https://developer.hashicorp.com/terraform/language/expressions" target="_blank">Expressions Docs ↗</a></div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px">Next → <code>open 0005-modules.html</code></div>
+</footer>
+<script>
+const ex={
+  q1:{ok:"Correct. count uses index-based identity. Removing the middle item shifts the third resource from index 2 to index 1 — Terraform sees a destroy + create. This is the classic count pitfall. Use for_each with stable keys instead.",no:"count is index-based. Removing the middle item shifts all higher indexes, causing destroy+recreate. for_each avoids this by using stable string keys."},
+  q2:{ok:"Correct. for_each accepts map(any) or set(string). If you have a list, convert it first: toset(var.my_list). Lists aren't accepted directly because they don't have stable keys.",no:"for_each only accepts map or set(string). Lists need to be converted with toset() first. This is by design — each instance needs a stable, unique string key."},
+  q3:{ok:"Correct. In merge(), the rightmost map wins on key conflicts. This is intentional — it lets you enforce mandatory values by putting them last, overriding whatever the caller passed.",no:"merge() right-wins. The last map's values take precedence. This is the standard way to enforce mandatory tags even when callers pass their own tag map."},
+  q4:{ok:"Correct. dynamic blocks are for repeating nested blocks inside a single resource — like multiple ip_rule, network_rule, or ingress blocks. for_each on the resource itself creates multiple resource instances.",no:"dynamic is for nested block repetition within a resource. for_each creates multiple top-level resource instances. They solve different problems."}
+};
+function ans(qid,el,ok){
+  const q=document.getElementById(qid);
+  if(q.querySelector('.ok')||q.querySelector('.no')) return;
+  el.classList.add(ok?'ok':'no');
+  const fb=document.getElementById(qid+'-fb');
+  fb.textContent=(ok?'✓ ':'✗ ')+(ok?ex[qid].ok:ex[qid].no);
+  fb.className='fb on '+(ok?'ok':'no');
+}
+</script>
+</body>
+</html>

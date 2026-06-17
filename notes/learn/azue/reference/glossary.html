@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure Service Bus — Glossary</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --text: #1a1a1a;
+    --muted: #666;
+    --border: #e0e0e0;
+    --accent: #0078d4;
+    --accent-light: #e8f4fd;
+    --tag-bg: #f0f0f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.3rem;
+    color: #111;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+  .term {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .term:last-child { border-bottom: none; }
+  .term-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--accent);
+  }
+  .term-def {
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
+  }
+  .also-known-as {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+  .section-header {
+    font-size: 1.2rem;
+    margin: 2rem 0 1rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid var(--accent);
+    color: #111;
+  }
+  @media print {
+    body { font-size: 11pt; }
+    .term { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Azure Service Bus Glossary</h1>
+<p class="subtitle">Quick reference for Service Bus terminology. Cross-referenced with concepts from other brokers.</p>
+
+<div class="section-header">Core Entities</div>
+
+<div class="term">
+  <div class="term-name">Namespace</div>
+  <div class="term-def">Top-level container for all Service Bus messaging entities (queues, topics). Equivalent to a "server" or "cluster" in other brokers, but fully managed. Each namespace gets its own capacity slice of a multi-tenant cluster. In Premium, isolated via Messaging Units.</div>
+  <div class="also-known-as">Analogous to: RabbitMQ vhost, Kafka cluster</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Queue</div>
+  <div class="term-def">A durable message storage entity with FIFO ordering (time-stamped on arrival). Supports competing consumers where each message is processed by exactly one receiver. Messages are delivered in <strong>pull</strong> mode with long-polling support.</div>
+  <div class="also-known-as">Analogous to: RabbitMQ queue, SQS queue</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Topic</div>
+  <div class="term-def">A publish-subscribe entity. Messages sent to a topic can be received by multiple <strong>subscriptions</strong>. Each subscription gets a copy of each message (subject to filters).</div>
+  <div class="also-known-as">Analogous to: RabbitMQ exchange (fanout/topic type), Kafka topic (but with per-subscription cursor)</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Subscription</div>
+  <div class="term-def">A named entity attached to a topic that acts like a virtual queue. Receives copies of messages from the topic. Supports <strong>filters</strong> (SQL-like or correlation) to select which messages to receive, and optional <strong>actions</strong> to modify message metadata. Durable by default.</div>
+  <div class="also-known-as">Analogous to: RabbitMQ queue bound to an exchange with a routing key, Kafka consumer group</div>
+</div>
+
+<div class="section-header">Message Lifecycle</div>
+
+<div class="term">
+  <div class="term-name">PeekLock <span class="tag">receive mode</span></div>
+  <div class="term-def">Two-stage receive: (1) Broker locks the message and returns it to the consumer, making it invisible to others. (2) Consumer calls <strong>Complete</strong>, <strong>Abandon</strong>, or <strong>DeadLetter</strong> to settle the message. Default lock duration is 60 seconds, max 5 minutes. Lock can be renewed.</div>
+  <div class="also-known-as">Analogous to: RabbitMQ consumer acknowledgement (ack/nack), SQS visibility timeout</div>
+</div>
+
+<div class="term">
+  <div class="term-name">ReceiveAndDelete <span class="tag">receive mode</span></div>
+  <div class="term-def">Single-stage receive: message is marked as consumed immediately when sent to the client. Simpler but <strong>at-most-once</strong> — if the client crashes, the message is lost. No transactions or dead-lettering supported.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Complete <span class="tag">settlement</span></div>
+  <div class="term-def">Positive acknowledgment: consumer tells the broker the message was successfully processed. Message is permanently removed from the queue/subscription.</div>
+  <div class="also-known-as">Analogous to: RabbitMQ basic.ack, SQS DeleteMessage</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Abandon <span class="tag">settlement</span></div>
+  <div class="term-def">Negative acknowledgment: consumer tells the broker it cannot process the message. Lock is released immediately, making the message available for redelivery.</div>
+  <div class="also-known-as">Analogous to: RabbitMQ basic.nack (requeue=true), SQS visibility timeout expiry</div>
+</div>
+
+<div class="term">
+  <div class="term-name">DeadLetter <span class="tag">settlement</span></div>
+  <div class="term-def">Consumer moves the message to the <strong>dead-letter queue (DLQ)</strong> — a built-in subqueue on every queue/subscription. Used when a message cannot be processed and retries won't help. A custom reason code can be attached.</div>
+  <div class="also-known-as">Analogous to: RabbitMQ dead-letter exchange, SQS dead-letter queue</div>
+</div>
+
+<div class="section-header">Advanced Features</div>
+
+<div class="term">
+  <div class="term-name">Message Sessions</div>
+  <div class="term-def">Enables strict FIFO processing within a session by grouping related messages with a <code>SessionId</code>. Only one consumer can hold the session lock at a time. Used for request-response patterns and ordered workflows.</div>
+  <div class="also-known-as">Analogous to: Kafka partition (for ordering), but with an exclusive lock per session</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Duplicate Detection</div>
+  <div class="term-def">Broker-side deduplication based on <code>MessageId</code>. If a sender retries a send but the first attempt actually succeeded, the duplicate is discarded. Configurable time window (default 10 minutes, max 7 days).</div>
+  <div class="also-known-as">Analogous to: Kafka idempotent producer, RabbitMQ publisher confirms (but broker-side, not client-side)</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Scheduled Messages</div>
+  <div class="term-def">Messages can be submitted for delayed processing — they become available for retrieval at a specific future time. Useful for job scheduling and retry with delay.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Message Deferral</div>
+  <div class="term-def">A receiver can defer a message it receives if it cannot process it right now. The message is set aside but not lost — it can be retrieved later by its sequence number.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Autoforwarding</div>
+  <div class="term-def">Automatically chains entities: a queue or subscription can forward messages to another queue or topic within the same namespace. Enables complex routing topologies.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Transactions</div>
+  <div class="term-def">Atomic operations across multiple entities within the same namespace. Example: receive from Queue A, process, send to Queue B, and complete the original message — all atomically. Enables exactly-once processing patterns.</div>
+</div>
+
+<div class="section-header">Tiers & Capacity</div>
+
+<div class="term">
+  <div class="term-name">Standard Tier</div>
+  <div class="term-def">Shared multi-tenant infrastructure. Variable latency and throughput. Pay-per-operation pricing. Message size up to 256 KB. Good for dev/test and low-throughput workloads.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Premium Tier</div>
+  <div class="term-def">Dedicated, isolated resources via <strong>Messaging Units (MUs)</strong>. Predictable latency and throughput. Fixed hourly pricing per MU. Message size up to 100 MB. Supports VNet/private endpoints, customer-managed keys, availability zones, JMS 2.0. Scale MUs up/down dynamically.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Messaging Unit (MU)</div>
+  <div class="term-def">Unit of dedicated capacity in Premium tier. Each namespace gets 1–16 MUs. One MU ≈ ~4 MB/s throughput (ingress + egress). Monitor CPU usage: scale up if &gt;70%, scale down if &lt;20%.</div>
+</div>
+
+<div class="section-header">Protocols & SDKs</div>
+
+<div class="term">
+  <div class="term-name">AMQP 1.0</div>
+  <div class="term-def">The primary wire protocol for Service Bus. Open ISO/IEC standard. Enables efficient, persistent connections with batching, prefetch, and async pipelining. Also used by RabbitMQ and ActiveMQ. <strong>SBMP is being retired 30 September 2026.</strong></div>
+</div>
+
+<div class="term">
+  <div class="term-name">Azure.Messaging.ServiceBus <span class="tag">SDK</span></div>
+  <div class="term-def">The modern .NET SDK (NuGet). Replaces Microsoft.Azure.ServiceBus and WindowsAzure.ServiceBus. Uses AMQP by default. Clients (ServiceBusClient, ServiceBusSender, ServiceBusReceiver, ServiceBusProcessor) are designed as singletons — reuse them, don't create per-message.</div>
+</div>
+
+<div class="section-header">Comparison: Service Bus vs. Other Azure Services</div>
+
+<div class="term">
+  <div class="term-name">Service Bus vs. Storage Queues</div>
+  <div class="term-def">Storage Queues are simpler, cheaper, and larger (up to 80 GB queues). Service Bus supports topics, sessions, transactions, duplicate detection, dead-lettering, and 100 MB messages (Premium). Use Storage Queues for simple, high-volume message storage; Service Bus for enterprise messaging with advanced features.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Service Bus vs. Event Hubs</div>
+  <div class="term-def">Event Hubs is for <strong>event streaming</strong> at massive scale (millions/sec). It uses a partitioned consumer model where consumers track their own offset. Service Bus is for <strong>enterprise messaging</strong> with per-message settlement, sessions, and transactions. Event Hubs = firehose of events; Service Bus = reliable message broker.</div>
+</div>
+
+<div class="term">
+  <div class="term-name">Service Bus vs. Event Grid</div>
+  <div class="term-def">Event Grid is for <strong>reactive event distribution</strong> — push-based, serverless, at-least-once. It routes events from Azure resources to subscribers (Functions, webhooks). Service Bus uses <strong>pull</strong> with settlement. Event Grid = event notification; Service Bus = message processing with guarantees.</div>
+</div>
+
+</body>
+</html>

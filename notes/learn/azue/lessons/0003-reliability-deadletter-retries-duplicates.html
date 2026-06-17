@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 3: Reliability — Dead-Lettering, Retries &amp; Duplicate Detection</title>
+<style>
+  :root {
+    --bg: #fcfcfc; --text: #1a1a1a; --muted: #5a5a5a;
+    --accent: #0078d4; --accent-hover: #005a9e; --success: #107c10; --warn: #d83b01;
+    --border: #e1e1e1; --card-bg: #fff; --code-bg: #f4f4f4; --highlight: #fff4ce;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem;
+  }
+  h1 { font-size: 2rem; margin-bottom: 0.2rem; font-weight: 700; }
+  h2 { font-size: 1.35rem; margin: 2.5rem 0 0.8rem; font-weight: 600; color: #111; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.4rem; margin: 1rem 0;
+  }
+  .card.accent-left { border-left: 4px solid var(--accent); }
+  .card.warn-left { border-left: 4px solid var(--warn); }
+  .card.success-left { border-left: 4px solid var(--success); }
+  pre {
+    background: #1e1e1e; color: #d4d4d4; padding: 1.2rem 1.4rem;
+    border-radius: var(--radius); overflow-x: auto; font-size: 0.84rem;
+    line-height: 1.55; margin: 0.8rem 0;
+  }
+  :not(pre) > code {
+    background: var(--code-bg); padding: 0.15em 0.4em;
+    border-radius: 3px; color: #333; font-size: 0.88em;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem;
+  }
+  th {
+    text-align: left; font-weight: 600; padding: 0.6rem 0.8rem;
+    background: var(--code-bg); border-bottom: 2px solid var(--border);
+  }
+  td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .quiz .question {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0;
+  }
+  .quiz .q-label { font-weight: 600; margin-bottom: 0.8rem; display: block; }
+  .quiz label {
+    display: block; padding: 0.45rem 0.8rem; margin: 0.2rem 0;
+    border-radius: 6px; cursor: pointer; transition: background 0.15s;
+  }
+  .quiz label:hover { background: #f0f6ff; }
+  .quiz input[type="radio"] { margin-right: 0.5rem; }
+  .quiz .feedback {
+    margin-top: 0.7rem; padding: 0.7rem 1rem; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 500; display: none;
+  }
+  .quiz .feedback.correct {
+    display: block; background: #dff6dd; color: #0b4a0b; border: 1px solid #c6e6c4;
+  }
+  .quiz .feedback.incorrect {
+    display: block; background: #fde7e9; color: #8b1a1a; border: 1px solid #f5c6cb;
+  }
+  .quiz .check-btn {
+    background: var(--accent); color: white; border: none;
+    padding: 0.5rem 1.2rem; border-radius: 6px; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer; margin-top: 0.6rem;
+  }
+  .quiz .check-btn:hover { background: var(--accent-hover); }
+  .diagram {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin: 1.5rem 0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.82rem; line-height: 1.8; white-space: pre; overflow-x: auto;
+  }
+  .lesson-footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--border);
+    color: var(--muted); font-size: 0.9rem;
+  }
+  .lesson-footer a { color: var(--accent); }
+  .cite { font-size: 0.78rem; color: var(--muted); margin-left: 0.3rem; }
+  .cite a { color: var(--muted); text-decoration: underline; text-decoration-style: dotted; }
+  @media print {
+    body { font-size: 11pt; max-width: 100%; }
+    pre { background: #f4f4f4; color: #1a1a1a; border: 1px solid #ddd; }
+    .quiz { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Lesson 3: Reliability Patterns</h1>
+<p class="meta">Estimated time: 25–30 minutes &nbsp;|&nbsp; Focus: Dead-Lettering, Retries, Duplicate Detection, Idempotent Processing</p>
+
+<div class="card accent-left">
+  <strong>🎯 What you'll learn</strong><br>
+  You'll learn how to build <strong>bulletproof message processing</strong> — understanding how the dead-letter queue works, configuring retry strategies that avoid poison message loops, enabling duplicate detection at the broker level, and writing idempotent consumers.
+</div>
+
+<h2>Part 1: The Dead-Letter Queue (DLQ)</h2>
+
+<p>Every Service Bus queue and topic subscription has a built-in dead-letter subqueue. It doesn't need to be created and can't be deleted — it just exists. Its purpose: <strong>hold messages that can't be delivered or processed</strong>.<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues" target="_blank">[source]</a></span></p>
+
+<div class="diagram">
+ ┌─────────────── Queue "orders" ───────────────┐
+ │                                               │
+ │  Active messages  ──►  Consumer               │
+ │       │                     │                 │
+ │       │           complete  │  abandon         │
+ │       │           (delete)  │  (retry later)   │
+ │       │                     │                  │
+ │       └──── deadLetter ─────┘                  │
+ │                    ▼                           │
+ │  ┌─── $deadletterqueue ───────────────────┐   │
+ │  │                                        │   │
+ │  │  Messages that:                        │   │
+ │  │  • Exceeded MaxDeliveryCount (default 10)│ │
+ │  │  • Expired (TTL passed)                │   │
+ │  │  • Were explicitly dead-lettered       │   │
+ │  │  • Failed subscription filter eval     │   │
+ │  │                                        │   │
+ │  └────────────────────────────────────────┘   │
+ └───────────────────────────────────────────────┘
+</div>
+
+<h3>How Messages End Up in the DLQ</h3>
+
+<table>
+  <thead>
+    <tr><th>Path</th><th>DeadLetterReason</th><th>When</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>MaxDeliveryCountExceeded</strong></td>
+      <td>System-set</td>
+      <td>Message was abandoned or lock expired more than <code>MaxDeliveryCount</code> times (default 10). <strong>This is the most common path.</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TTLExpiredException</strong></td>
+      <td>System-set</td>
+      <td>Message's TimeToLive expired before it could be consumed. Only if dead-lettering on expiry is enabled.</td>
+    </tr>
+    <tr>
+      <td><strong>Explicit deadLetter()</strong></td>
+      <td>Application-set</td>
+      <td>Your code calls <code>deadLetter()</code> with a custom reason. This is for <strong>poison messages</strong> that will never succeed.</td>
+    </tr>
+    <tr>
+      <td><strong>HeaderSizeExceeded</strong></td>
+      <td>System-set</td>
+      <td>Message metadata exceeds size limits (rare).</td>
+    </tr>
+    <tr>
+      <td><strong>MaxTransferHopCountExceeded</strong></td>
+      <td>System-set</td>
+      <td>Message forwarded through more than 4 entities (autoforwarding chains).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>DLQ Path</h3>
+<p>The DLQ is accessed via a well-known suffix:</p>
+
+<pre>// Queue DLQ
+&lt;queueName&gt;/$deadletterqueue
+
+// Subscription DLQ
+&lt;topicName&gt;/Subscriptions/&lt;subscriptionName&gt;/$deadletterqueue</pre>
+
+<h3>Accessing and Resubmitting DLQ Messages — Java Code</h3>
+
+<pre>DeadLetterService.java
+import com.azure.messaging.servicebus.*;
+import com.azure.messaging.servicebus.models.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+public class DeadLetterService {
+
+    private final ServiceBusClientBuilder builder;
+
+    public DeadLetterService(String connectionString) {
+        this.builder = new ServiceBusClientBuilder()
+            .connectionString(connectionString);
+    }
+
+    // --- Read from DLQ ---
+    public Flux&lt;ServiceBusReceivedMessage&gt; peekDeadLetters(String queueName) {
+        ServiceBusReceiverAsyncClient dlqReceiver = builder
+            .receiver()
+            .queueName(queueName)
+            .subQueue(SubQueue.DEAD_LETTER)     // key: targets the DLQ
+            .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+            .buildAsyncClient();
+
+        return Flux.using(
+            () -&gt; dlqReceiver,
+            receiver -&gt; receiver.receiveMessages()
+                .flatMap(m -&gt; Mono.just(m)),
+            ServiceBusReceiverAsyncClient::close
+        );
+    }
+
+    // --- Resubmit a dead-lettered message ---
+    public Mono&lt;Void&gt; resubmit(String queueName, ServiceBusReceivedMessage dlqMessage) {
+        ServiceBusReceiverAsyncClient dlqReceiver = builder
+            .receiver()
+            .queueName(queueName)
+            .subQueue(SubQueue.DEAD_LETTER)
+            .buildAsyncClient();
+
+        ServiceBusSenderAsyncClient sender = builder
+            .sender()
+            .queueName(queueName)
+            .buildAsyncClient();
+
+        // Create a new message from the DLQ message's body
+        ServiceBusMessage resubmitMsg = new ServiceBusMessage(dlqMessage.getBody())
+            .setMessageId(dlqMessage.getMessageId())
+            .setContentType(dlqMessage.getContentType());
+
+        return sender.sendMessage(resubmitMsg)
+            .then(dlqReceiver.complete(dlqMessage))   // remove from DLQ
+            .doFinally(sig -&gt; {
+                dlqReceiver.close();
+                sender.close();
+            });
+    }
+}</pre>
+
+<div class="card warn-left">
+  <strong>⚠️ DLQ messages don't expire and won't be auto-cleaned.</strong> They stay until you explicitly complete them. Without monitoring, your DLQ can grow indefinitely. Set up alerts on DLQ message count.
+</div>
+
+<h2>Part 2: Retry Strategy — Avoiding Poison Message Loops</h2>
+
+<p>The key insight: <strong>transient failures should be retried (abandon), but permanent failures should be dead-lettered immediately</strong>. Relying on MaxDeliveryCount alone means a poison message blocks a consumer for N retries before finally being moved to the DLQ.</p>
+
+<h3>The Retry Decision Matrix</h3>
+
+<table>
+  <thead>
+    <tr><th>Exception type</th><th>Action</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>TransientException</code> (network blip, throttling, DB timeout)</td>
+      <td><code>abandon()</code></td>
+      <td>Temporary — retrying may succeed. Let MaxDeliveryCount cap it.</td>
+    </tr>
+    <tr>
+      <td><code>FatalException</code> (malformed payload, validation error)</td>
+      <td><code>deadLetter()</code></td>
+      <td>Will never succeed — no point retrying. Fail fast.</td>
+    </tr>
+    <tr>
+      <td>Unknown / unexpected</td>
+      <td><code>deadLetter()</code> after checking delivery count</td>
+      <td>If it's already been retried N-1 times, dead-letter it early.</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre>ReliableProcessor.java
+import com.azure.messaging.servicebus.*;
+import com.azure.messaging.servicebus.models.*;
+import java.time.Duration;
+
+public class ReliableProcessor {
+
+    private static final int MAX_MANUAL_RETRIES = 3;  // dead-letter after 3 manual retries
+
+    private final ServiceBusProcessorClient processor;
+
+    public ReliableProcessor(String connectionString, String queueName) {
+        processor = new ServiceBusClientBuilder()
+            .connectionString(connectionString)
+            .processor()
+            .queueName(queueName)
+            .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+            .maxConcurrentCalls(10)
+            .autoComplete(false)
+            .processMessage(this::handleMessage)
+            .processError(this::handleError)
+            .buildProcessorClient();
+    }
+
+    private void handleMessage(ServiceBusReceivedMessageContext ctx) {
+        ServiceBusReceivedMessage msg = ctx.getMessage();
+        long deliveryCount = msg.getDeliveryCount();  // starts at 1
+
+        try {
+            processMessage(msg.getBody().toString());
+            ctx.complete();
+
+        } catch (TransientException e) {
+            // Temporary — let it retry. But log delivery count for visibility.
+            log.warn("Transient failure (attempt {}): {}", deliveryCount, e.getMessage());
+            ctx.abandon();
+
+        } catch (FatalException e) {
+            // Permanent — dead-letter immediately, don't waste retries
+            log.error("Fatal failure, dead-lettering: {}", e.getMessage());
+            ctx.deadLetter(new DeadLetterOptions()
+                .setDeadLetterReason("FatalProcessingError")
+                .setDeadLetterErrorDescription(e.getMessage()));
+
+        } catch (Exception e) {
+            // Unknown — if near the limit, dead-letter early to save retries
+            if (deliveryCount >= MAX_MANUAL_RETRIES) {
+                ctx.deadLetter(new DeadLetterOptions()
+                    .setDeadLetterReason("ExceededManualRetries")
+                    .setDeadLetterErrorDescription(e.getMessage()));
+            } else {
+                ctx.abandon();
+            }
+        }
+    }
+
+    private void handleError(ServiceBusErrorContext ctx) {
+        log.error("Processor error: {}", ctx.getException().getMessage());
+        // The processor handles lock renewal and reconnects automatically.
+        // Errors here are for visibility — no settlement needed.
+    }
+
+    public void start() { processor.start(); }
+    public void close() { processor.close(); }
+}</pre>
+
+<div class="card accent-left">
+  <strong>🧭 Pro tip:</strong> Set <code>MaxDeliveryCount</code> to a value high enough that transient failures get genuine retries, but low enough that poison messages don't clog the queue. For a typical microservice, 5–10 is reasonable. Set it when creating the queue:
+  <pre style="margin:0.5rem 0 0;">az servicebus queue update --resource-group myrg --namespace-name mysb \
+    --name orders --max-delivery-count 5</pre>
+</div>
+
+<h2>Part 3: Duplicate Detection — Broker-Side</h2>
+
+<p>If your sender crashes <em>after</em> the broker accepts a message but <em>before</em> the client receives the acknowledgment, the sender doesn't know if the message was accepted. It resends — creating a duplicate. <strong>Duplicate detection solves this at the broker level.</strong><span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/duplicate-detection" target="_blank">[source]</a></span></p>
+
+<h3>How It Works</h3>
+
+<ol style="padding-left:1.3rem;">
+  <li>Enable duplicate detection on the queue or topic.</li>
+  <li>Set a <strong>duplicate detection window</strong> (default 10 min, max 7 days).</li>
+  <li>Set <code>MessageId</code> to a business-meaningful, deterministic value (e.g., <code>order-12345</code>).</li>
+  <li>If the same <code>MessageId</code> is sent within the window, the broker discards the duplicate — but reports success to the sender.</li>
+</ol>
+
+<pre>// Configure on queue creation
+az servicebus queue create \
+  --resource-group myrg \
+  --namespace-name mysb \
+  --name orders \
+  --enable-duplicate-detection true \
+  --duplicate-detection-history-time-window PT10M   // ISO 8601: 10 minutes
+
+// In Java, set MessageId deterministically
+ServiceBusMessage message = new ServiceBusMessage(order.toJson())
+    .setMessageId("order-" + order.getId());   // deterministic, business-keyed
+
+sender.sendMessage(message)
+    .doOnSuccess(v -&gt; log.info("Sent (or duplicate-detected): {}", order.getId()))
+    .subscribe();</pre>
+
+<div class="card warn-left">
+  <strong>Important caveats:</strong>
+  <ul style="padding-left:1.3rem;margin:0.3rem 0 0;">
+    <li><strong>Partitioned entities</strong> use <code>MessageId + PartitionKey</code> for dedup, not just <code>MessageId</code>.</li>
+    <li>The detection window is a <strong>sliding window</strong> — it only remembers IDs within the last N minutes. Resending a message from 8 days ago won't be caught.</li>
+    <li>Duplicate detection <strong>impacts throughput</strong> — every send must check against the history. Keep the window as small as practical.</li>
+    <li>Scheduled messages are included in the detection window.</li>
+  </ul>
+</div>
+
+<h2>Part 4: Idempotent Consumers — The Client-Side Defense</h2>
+
+<p>Duplicate detection at the broker helps with <strong>send-side</strong> duplicates. But you also need <strong>consumer-side</strong> idempotency for when a message is delivered more than once (lock expiry + redelivery, at-least-once semantics).</p>
+
+<h3>Pattern: Processed-Message Registry</h3>
+
+<pre>IdempotentConsumer.java
+import java.util.concurrent.ConcurrentHashMap;
+
+public class IdempotentConsumer {
+
+    // In production, use Redis with TTL, not an in-memory map
+    private final ConcurrentHashMap&lt;String, Boolean&gt; processedIds = new ConcurrentHashMap&lt;&gt;();
+
+    private void handleMessage(ServiceBusReceivedMessageContext ctx) {
+        String messageId = ctx.getMessage().getMessageId();
+
+        // Check if already processed
+        if (processedIds.putIfAbsent(messageId, true) != null) {
+            log.info("Duplicate detected, skipping: {}", messageId);
+            ctx.complete();   // still acknowledge to remove from queue
+            return;
+        }
+
+        try {
+            processMessage(ctx.getMessage().getBody().toString());
+            ctx.complete();
+        } catch (Exception e) {
+            // On failure, remove from registry so retry can work
+            processedIds.remove(messageId);
+            ctx.abandon();
+        }
+    }
+}</pre>
+
+<h3>Pattern: Database Idempotency (Stronger)</h3>
+
+<pre>// Use the message ID as an idempotency key in your database
+// INSERT ... ON DUPLICATE KEY / ON CONFLICT DO NOTHING
+@Transactional
+public void processOrder(String orderJson, String messageId) {
+    Order order = objectMapper.readValue(orderJson, Order.class);
+
+    int inserted = jdbcTemplate.update(
+        "INSERT INTO orders (id, data, idempotency_key) VALUES (?, ?::jsonb, ?) " +
+        "ON CONFLICT (idempotency_key) DO NOTHING",
+        order.getId(), orderJson, messageId
+    );
+
+    if (inserted == 0) {
+        // Already processed — but DON'T throw, just acknowledge
+        log.info("Idempotent skip: {}", messageId);
+    }
+}</pre>
+
+<div class="card accent-left">
+  <strong>🧭 The layered defense:</strong>
+  <p style="margin:0.3rem 0 0;">
+    1. <strong>Broker duplicate detection</strong> — catches send-side duplicates (same MessageId within window)<br>
+    2. <strong>Consumer idempotency</strong> — catches redelivery duplicates (lock expiry, abandon, at-least-once)<br>
+    3. <strong>Database idempotency key</strong> — the final safety net, guarantees exactly-once processing
+  </p>
+</div>
+
+<h2>Putting It All Together: The Reliability Architecture</h2>
+
+<pre>CompleteReliableService.java
+import com.azure.messaging.servicebus.*;
+import com.azure.messaging.servicebus.models.*;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
+@Service
+public class OrderProcessingService {
+
+    private final ServiceBusSenderAsyncClient sender;
+    private final ServiceBusProcessorClient processor;
+    private final IdempotencyStore idempotencyStore;  // Redis / DB
+
+    public OrderProcessingService(
+            @Value("${azure.servicebus.connection-string}") String connString,
+            IdempotencyStore idempotencyStore) {
+
+        ServiceBusClientBuilder builder = new ServiceBusClientBuilder()
+            .connectionString(connString);
+
+        this.sender = builder.sender().queueName("orders").buildAsyncClient();
+
+        this.processor = builder.processor()
+            .queueName("orders")
+            .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+            .maxConcurrentCalls(10)
+            .autoComplete(false)
+            .processMessage(ctx -&gt; processWithRetry(ctx))
+            .processError(ctx -&gt; log.error("Processor error", ctx.getException()))
+            .buildProcessorClient();
+
+        this.idempotencyStore = idempotencyStore;
+    }
+
+    // --- SEND: deterministic MessageId for duplicate detection ---
+    public Mono&lt;Void&gt; sendOrder(Order order) {
+        return sender.sendMessage(new ServiceBusMessage(order.toJson())
+            .setMessageId("order-" + order.getId())      // broker dedup key
+            .setContentType("application/json")
+            .setSubject("order/created"));
+    }
+
+    // --- RECEIVE: idempotent processing with smart retry ---
+    private void processWithRetry(ServiceBusReceivedMessageContext ctx) {
+        ServiceBusReceivedMessage msg = ctx.getMessage();
+        String messageId = msg.getMessageId();
+
+        // Layer 1: Check if already processed (idempotency)
+        if (idempotencyStore.alreadyProcessed(messageId)) {
+            log.info("Skipping duplicate: {}", messageId);
+            ctx.complete();
+            return;
+        }
+
+        try {
+            // Layer 2: Process with database-level idempotency
+            Order order = parseOrder(msg.getBody().toString());
+            boolean processed = idempotencyStore.processAtomically(messageId, order);
+
+            if (processed) {
+                ctx.complete();
+                log.info("Processed: {}", messageId);
+            } else {
+                // Another instance already processed it
+                ctx.complete();
+            }
+
+        } catch (TransientException e) {
+            log.warn("Transient failure (attempt {}): {}", msg.getDeliveryCount(), e.getMessage());
+            ctx.abandon();
+
+        } catch (FatalException e) {
+            log.error("Fatal failure, dead-lettering: {}", e.getMessage());
+            ctx.deadLetter(new DeadLetterOptions()
+                .setDeadLetterReason("FatalError")
+                .setDeadLetterErrorDescription(e.getMessage()));
+
+        } catch (Exception e) {
+            if (msg.getDeliveryCount() >= 5) {
+                ctx.deadLetter(new DeadLetterOptions()
+                    .setDeadLetterReason("ExceededRetries")
+                    .setDeadLetterErrorDescription(e.getMessage()));
+            } else {
+                ctx.abandon();
+            }
+        }
+    }
+
+    @PostConstruct
+    public void start() { processor.start(); }
+
+    @PreDestroy
+    public void stop() {
+        processor.close();
+        sender.close();
+    }
+}</pre>
+
+<h2>Check Your Understanding</h2>
+
+<div class="quiz" id="quiz">
+
+  <div class="question" id="q1">
+    <span class="q-label">Q1. A message has MaxDeliveryCount=10. It's been abandoned 8 times. On the 9th attempt, your code catches a FatalException (malformed JSON). What should you do?</span>
+    <label><input type="radio" name="q1" value="a"> Abandon it — let MaxDeliveryCount handle it eventually</label>
+    <label><input type="radio" name="q1" value="b"> Dead-letter it immediately with a descriptive reason</label>
+    <label><input type="radio" name="q1" value="c"> Complete it — the message is broken, just discard it</label>
+    <div class="feedback" id="q1-fb"></div>
+    <button class="check-btn" onclick="checkQ1()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q2">
+    <span class="q-label">Q2. Which of these is NOT protected by broker-level duplicate detection?</span>
+    <label><input type="radio" name="q2" value="a"> The sender crashes after the broker accepts the message but before receiving the ACK</label>
+    <label><input type="radio" name="q2" value="b"> A message lock expires and the message is redelivered to another consumer</label>
+    <label><input type="radio" name="q2" value="c"> Both are protected</label>
+    <div class="feedback" id="q2-fb"></div>
+    <button class="check-btn" onclick="checkQ2()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q3">
+    <span class="q-label">Q3. Your DLQ has 5,000 messages. Most have reason "MaxDeliveryCountExceeded" and were dead-lettered 2 weeks ago. What's the right first step?</span>
+    <label><input type="radio" name="q3" value="a"> Write a script to auto-resubmit all 5,000 messages</label>
+    <label><input type="radio" name="q3" value="b"> Investigate why messages are failing — look at error patterns — before deciding whether to resubmit or discard</label>
+    <label><input type="radio" name="q3" value="c"> Delete all DLQ messages — they're probably stale</label>
+    <div class="feedback" id="q3-fb"></div>
+    <button class="check-btn" onclick="checkQ3()">Check Answer</button>
+  </div>
+
+</div>
+
+<script>
+function showFeedback(qId, isCorrect, correctMsg, incorrectMsg) {
+  const fb = document.getElementById(qId + '-fb');
+  fb.style.display = 'block';
+  if (isCorrect) {
+    fb.textContent = '✅ Correct! ' + correctMsg;
+    fb.className = 'feedback correct';
+  } else {
+    fb.textContent = '❌ ' + incorrectMsg;
+    fb.className = 'feedback incorrect';
+  }
+}
+
+function checkQ1() {
+  const sel = document.querySelector('input[name="q1"]:checked');
+  if (!sel) return;
+  showFeedback('q1', sel.value === 'b',
+    'Dead-lettering immediately with a descriptive reason is correct. Since the failure is permanent (FatalException), waiting for MaxDeliveryCount just wastes retries and delays visibility. Dead-lettering early gives you faster insight into what went wrong.',
+    sel.value === 'a' ? 'Abandoning means it will be retried 1-2 more times needlessly before MaxDeliveryCount kicks in. For a FatalException, this just delays the inevitable.' : 'Completing a failed message means it\'s silently discarded — you lose all visibility into the failure. Always dead-letter poison messages so they can be inspected and potentially resubmitted after the root cause is fixed.'
+  );
+}
+
+function checkQ2() {
+  const sel = document.querySelector('input[name="q2"]:checked');
+  if (!sel) return;
+  showFeedback('q2', sel.value === 'b',
+    'Correct. Broker duplicate detection only catches send-side duplicates (same MessageId in the detection window). Lock expiry + redelivery is a receive-side event — the message ID doesn\'t change, so it\'s not caught by dedup. You need consumer-side idempotency for that.',
+    'Not quite. Broker duplicate detection only works on the send path — matching MessageIds within the detection window. Lock-expiry redelivery is a completely different mechanism and requires consumer-side idempotency to handle.'
+  );
+}
+
+function checkQ3() {
+  const sel = document.querySelector('input[name="q3"]:checked');
+  if (!sel) return;
+  showFeedback('q3', sel.value === 'b',
+    'Correct. Blindly resubmitting 5,000 messages without understanding why they failed is dangerous — you might replay message that genuinely can\'t be processed (poison messages), creating an infinite loop. First investigate: are these due to a transient outage that has been fixed? A code bug? Data issues? Then decide per-message or per-category.',
+    sel.value === 'a' ? 'Auto-resubmitting without investigation is dangerous. If the messages failed due to a code bug or bad data, they\'ll just fail again and return to the DLQ — wasting resources and potentially causing downstream issues.' : 'Deleting without investigation means you lose visibility into failures. The DLQ is a diagnostic tool — its contents tell you what\'s wrong with your system. Investigate first, then decide.'
+  );
+}
+</script>
+
+<h2>Key Takeaways</h2>
+
+<div class="card success-left">
+  <ul style="padding-left:1.3rem;">
+    <li><strong>Dead-letter is NOT failure — it's visibility.</strong> A message in the DLQ has a reason code. Use it. Set up alerts on DLQ depth.</li>
+    <li><strong>Differentiate transient vs. fatal failures.</strong> Abandon transient errors (let MaxDeliveryCount be the backstop). Dead-letter fatal errors immediately — don't waste retries.</li>
+    <li><strong>Broker dedup ≠ consumer idempotency.</strong> Duplicate detection catches send-side duplicates. You still need idempotent consumers for receive-side redelivery. Always use an idempotency key in your database.</li>
+    <li><strong>The detection window is short.</strong> Default 10 minutes, max 7 days. Design your MessageId around business keys so resends are deterministic even after the window closes.</li>
+    <li><strong>DLQ messages don't auto-clean.</strong> You must explicitly process them. Build a DLQ monitoring and resubmission workflow.</li>
+  </ul>
+</div>
+
+<div class="lesson-footer">
+  <p><strong>📚 References:</strong>
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues" target="_blank">Dead-Letter Queues</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/duplicate-detection" target="_blank">Duplicate Detection</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-transfers-locks-settlement" target="_blank">Locks &amp; Settlement</a> ·
+    <a href="https://particular.net/blog/what-does-idempotent-mean" target="_blank">What Does Idempotent Mean?</a> ·
+    <a href="../reference/glossary.html" target="_blank">Glossary</a>
+  </p>
+
+  <p><strong>💻 Practice:</strong> Create a queue with duplicate detection enabled. Write a sender that sends with deterministic MessageIds, then simulate a crash by sending the same ID twice. Verify the broker drops the duplicate. Then create a consumer that uses a database idempotency key — test what happens when you abandon a message and it gets redelivered.</p>
+
+  <p><strong>❓ Questions?</strong> Ask me — especially about how to choose the dedup window size, or how to design idempotency keys across distributed services.</p>
+
+  <p><strong>📂 Next lesson:</strong> <em>Lesson 4: Topics, Subscriptions &amp; Filters</em> — fan-out, SQL filters, correlation filters, and building event-driven microservices with Service Bus.</p>
+</div>
+
+</body>
+</html>

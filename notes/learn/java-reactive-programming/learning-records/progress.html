@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning Record — Reactive Java</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;font-size:15px;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:1.5rem 2rem;}
+  h1{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700;color:#fff;}
+  .subtitle{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.3rem;}
+  .container{max-width:700px;margin:0 auto;padding:2rem;}
+  .overall{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.5rem;margin-bottom:2rem;display:flex;gap:2rem;align-items:center;}
+  .score-circle{width:80px;height:80px;border-radius:50%;border:3px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+  .score-num{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:700;color:#fff;line-height:1;}
+  .score-label{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:.2rem;}
+  .overall-text h3{font-family:'Fraunces',serif;font-size:1rem;color:#fff;margin-bottom:.3rem;}
+  .overall-text p{font-size:.85rem;color:var(--muted);}
+  .lesson-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 1.2rem;margin:.5rem 0;display:flex;align-items:center;gap:1rem;cursor:pointer;transition:border-color .15s;}
+  .lesson-row:hover{border-color:var(--accent);}
+  .lesson-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);min-width:50px;}
+  .lesson-title{flex:1;font-size:.9rem;}
+  .status{font-family:'DM Mono',monospace;font-size:.72rem;padding:.2em .6em;border-radius:4px;white-space:nowrap;}
+  .status.not-started{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+  .status.in-progress{background:#3d2200;color:var(--accent4);border:1px solid var(--accent4);}
+  .status.complete{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .score-badge{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);min-width:40px;text-align:right;}
+  h2{font-family:'DM Mono',monospace;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:1.8rem 0 .6rem;}
+  .note-area{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;margin:.5rem 0;}
+  .note-area textarea{background:transparent;border:none;width:100%;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;resize:vertical;min-height:80px;outline:none;line-height:1.6;}
+  .note-area textarea::placeholder{color:var(--muted);}
+  .save-btn{background:var(--accent);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:6px;font-family:'DM Mono',monospace;font-size:.75rem;cursor:pointer;margin-top:.5rem;}
+  .save-btn:hover{background:#4a7de0;}
+  .saved-msg{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent3);margin-left:.8rem;display:none;}
+  .reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.4rem 1rem;border-radius:6px;font-family:'DM Mono',monospace;font-size:.72rem;cursor:pointer;margin-top:1.5rem;}
+  .reset-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Learning Record</h1>
+  <div class="subtitle">Reactive Java @ Empower PMS · track your progress</div>
+</div>
+
+<div class="container">
+
+  <div class="overall">
+    <div class="score-circle" id="overallCircle">
+      <span class="score-num" id="overallPct">0%</span>
+      <span class="score-label">complete</span>
+    </div>
+    <div class="overall-text">
+      <h3 id="overallHeading">Not started</h3>
+      <p id="overallDesc">Mark lessons complete as you work through them. Your progress saves in the browser.</p>
+    </div>
+  </div>
+
+  <h2>Lessons</h2>
+
+  <div id="lessons-list"></div>
+
+  <h2>My Notes</h2>
+  <div class="note-area">
+    <textarea id="myNotes" placeholder="Jot down questions, insights, things to revisit in the Empower PMS codebase..."></textarea>
+  </div>
+  <button class="save-btn" onclick="saveNotes()">Save Notes</button>
+  <span class="saved-msg" id="savedMsg">✓ saved</span>
+
+  <br>
+  <button class="reset-btn" onclick="resetProgress()">Reset all progress</button>
+
+</div>
+
+<script>
+const LESSONS = [
+  { id:'L01', title:'Why Reactive & The Publisher/Subscriber Contract', file:'lessons/0001-why-reactive-and-the-contract.html' },
+  { id:'L02', title:'Core Operators: map, flatMap, filter, zip',         file:'lessons/0002-core-operators.html' },
+  { id:'L03', title:'Error Handling in Reactive Streams',                file:'lessons/0003-error-handling.html' },
+  { id:'L04', title:'Schedulers & Threading',                            file:'lessons/0004-schedulers-and-threading.html' },
+  { id:'L05', title:'Backpressure: Controlling the Flow',                file:'lessons/0005-backpressure.html' },
+  { id:'L06', title:'Spring WebFlux Integration',                        file:'lessons/0006-spring-webflux.html' },
+  { id:'L07', title:'Azure Service Bus with Reactive Streams',           file:'lessons/0007-azure-service-bus.html' },
+  { id:'L08', title:'Testing Reactive Code',                             file:'lessons/0008-testing-reactive-code.html' },
+];
+
+function getState() {
+  try { return JSON.parse(localStorage.getItem('reactive-java-progress') || '{}'); } catch { return {}; }
+}
+function saveState(s) { localStorage.setItem('reactive-java-progress', JSON.stringify(s)); }
+
+function cycleStatus(id) {
+  const s = getState();
+  const cur = s[id] || 'not-started';
+  const next = { 'not-started':'in-progress', 'in-progress':'complete', 'complete':'not-started' };
+  s[id] = next[cur];
+  saveState(s);
+  render();
+}
+
+function render() {
+  const s = getState();
+  const list = document.getElementById('lessons-list');
+  list.innerHTML = '';
+  let complete = 0;
+  LESSONS.forEach((l, i) => {
+    const status = s[l.id] || 'not-started';
+    if (status === 'complete') complete++;
+    const row = document.createElement('div');
+    row.className = 'lesson-row';
+    row.innerHTML = `
+      <span class="lesson-num">L0${i+1}</span>
+      <span class="lesson-title"><a href="${l.file}" style="color:var(--text);text-decoration:none;" target="_blank">${l.title}</a></span>
+      <span class="status ${status}" onclick="cycleStatus('${l.id}');event.stopPropagation();" title="Click to cycle status">
+        ${ status === 'not-started' ? '○ not started' : status === 'in-progress' ? '◑ in progress' : '✓ complete' }
+      </span>`;
+    list.appendChild(row);
+  });
+
+  const pct = Math.round(complete / LESSONS.length * 100);
+  document.getElementById('overallPct').textContent = pct + '%';
+
+  const circle = document.getElementById('overallCircle');
+  if (pct === 0) { circle.style.borderColor = 'var(--border)'; }
+  else if (pct < 50) { circle.style.borderColor = 'var(--accent4)'; }
+  else if (pct < 100) { circle.style.borderColor = 'var(--accent)'; }
+  else { circle.style.borderColor = 'var(--accent3)'; }
+
+  const headings = ['Not started','Just getting started','Building momentum','Halfway there','Almost there!','Curriculum complete 🎓'];
+  const descs = [
+    'Mark lessons complete as you work through them.',
+    'Great start — the fundamentals are in place.',
+    'Core operators and error handling are the most-used skills.',
+    'Schedulers and backpressure give you fine-grained control.',
+    'WebFlux and Service Bus tie directly into Empower PMS.',
+    'All 8 lessons complete. Reference sheets are your day-to-day companion.'
+  ];
+  const idx = complete === 0 ? 0 : complete === 1 ? 1 : complete <= 3 ? 2 : complete <= 5 ? 3 : complete <= 7 ? 4 : 5;
+  document.getElementById('overallHeading').textContent = headings[idx];
+  document.getElementById('overallDesc').textContent = descs[idx];
+
+  // Notes
+  const notes = localStorage.getItem('reactive-java-notes') || '';
+  document.getElementById('myNotes').value = notes;
+}
+
+function saveNotes() {
+  localStorage.setItem('reactive-java-notes', document.getElementById('myNotes').value);
+  const msg = document.getElementById('savedMsg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+function resetProgress() {
+  if (confirm('Reset all lesson progress? Notes will be kept.')) {
+    localStorage.removeItem('reactive-java-progress');
+    render();
+  }
+}
+
+render();
+</script>
+</body>
+</html>

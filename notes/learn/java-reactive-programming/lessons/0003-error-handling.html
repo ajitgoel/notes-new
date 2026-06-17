@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 3 — Error Handling in Reactive Streams</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+  :root { --bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;--highlight:#2a3556; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.75;font-size:16px;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:baseline;gap:2rem;}
+  .lesson-number{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .lesson-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:#fff;}
+  .progress-bar{height:3px;background:var(--border);position:relative;}
+  .progress-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:37.5%;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+  .container{max-width:860px;margin:0 auto;padding:3rem 2rem;}
+  h2{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;margin:2.5rem 0 1rem;padding-left:1rem;border-left:3px solid var(--accent);}
+  h3{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent3);letter-spacing:.08em;text-transform:uppercase;margin:1.8rem 0 .6rem;}
+  p{margin-bottom:1rem;}
+  a{color:var(--accent);text-decoration:none;}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;overflow-x:auto;margin:1.2rem 0;font-family:'DM Mono',monospace;font-size:.85rem;line-height:1.6;}
+  code{font-family:'DM Mono',monospace;font-size:.85em;background:var(--code-bg);padding:.15em .4em;border-radius:3px;color:#c5d0f0;}
+  pre code{background:none;padding:0;font-size:inherit;}
+  .kw{color:#7aa2f7;}.ty{color:#bb9af7;}.str{color:#9ece6a;}.cm{color:#565f89;font-style:italic;}.num{color:#ff9e64;}.fn{color:#7dcfff;}.ann{color:#e0af68;}
+  .callout{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:1.2rem 1.5rem;margin:1.5rem 0;}
+  .callout.danger{border-left-color:var(--accent2);}
+  .callout.success{border-left-color:var(--accent3);}
+  .callout.warn{border-left-color:var(--accent4);}
+  .callout-label{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;color:var(--accent);}
+  .callout.danger .callout-label{color:var(--accent2);}
+  .callout.success .callout-label{color:var(--accent3);}
+  .callout.warn .callout-label{color:var(--accent4);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.2rem 0;}
+  .card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1.2rem;}
+  .card h4{font-family:'DM Mono',monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent4);margin-bottom:.6rem;}
+  .quiz-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2rem;margin:2.5rem 0;}
+  .quiz-q{font-family:'Fraunces',serif;font-size:1.1rem;color:#fff;margin-bottom:1.2rem;}
+  .quiz-options{display:flex;flex-direction:column;gap:.6rem;}
+  .quiz-opt{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1.2rem;cursor:pointer;transition:all .15s;font-size:.9rem;text-align:left;color:var(--text);width:100%;font-family:'DM Mono',monospace;}
+  .quiz-opt:hover{border-color:var(--accent);background:var(--highlight);}
+  .quiz-opt.correct{border-color:var(--accent3);background:#0e3322;color:var(--accent3);}
+  .quiz-opt.wrong{border-color:var(--accent2);background:#3e1520;color:var(--accent2);}
+  .quiz-feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:6px;font-size:.9rem;display:none;}
+  .quiz-feedback.show{display:block;}
+  .quiz-feedback.correct{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .quiz-feedback.wrong{background:#3e1520;color:#f0a0b0;border:1px solid var(--accent2);}
+  .footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;}
+  .flow{display:flex;flex-direction:column;gap:.4rem;margin:1.2rem 0;}
+  .flow-step{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.8rem 1.2rem;font-family:'DM Mono',monospace;font-size:.8rem;position:relative;}
+  .flow-step::after{content:'↓';position:absolute;left:50%;bottom:-1.1rem;transform:translateX(-50%);color:var(--muted);font-size:.9rem;}
+  .flow-step:last-child::after{display:none;}
+  .flow-step.error-step{border-color:var(--accent2);color:var(--accent2);}
+  .flow-step.recovery{border-color:var(--accent3);color:var(--accent3);}
+  @media(max-width:600px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 03 / 08</span>
+  <span class="lesson-title">Error Handling in Reactive Streams</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <p>In a reactive stream, an error is a <strong>terminal signal</strong>. When <code>onError(Throwable)</code> fires, the stream ends — no more <code>onNext</code> calls. This is fundamentally different from try/catch, because errors travel <em>downstream</em> through the operator chain. This lesson is what separates production-grade reactive code from demo code.</p>
+
+  <div class="callout danger">
+    <div class="callout-label">Don't Do This</div>
+    <strong>Never</strong> put a try/catch inside a <code>flatMap</code> or <code>map</code> lambda and swallow exceptions. This leaves you with silent failures and orphaned streams. Let errors propagate through the reactive channel and handle them with dedicated operators.
+  </div>
+
+  <h2>The Error Propagation Model</h2>
+
+  <div class="flow">
+    <div class="flow-step">patientRepo.findById(id) → onNext(patient)</div>
+    <div class="flow-step">formularyService.check(patient) → <span style="color:var(--accent2)">throws FormularyException</span></div>
+    <div class="flow-step error-step">onError(FormularyException) ← error signal propagates DOWN</div>
+    <div class="flow-step">flatMap(rx -> repo.save(rx)) ← SKIPPED — stream terminated</div>
+    <div class="flow-step">eventBus.publish(...) ← SKIPPED</div>
+    <div class="flow-step recovery">onErrorResume / onErrorReturn ← handles here, OR subscriber.onError()</div>
+  </div>
+
+  <h2>The Three Error Strategies</h2>
+
+  <div class="grid">
+    <div class="card">
+      <h4>onErrorReturn</h4>
+      <p style="font-size:0.88rem;">Return a fallback value. Stream completes normally after the fallback.</p>
+    </div>
+    <div class="card">
+      <h4>onErrorResume</h4>
+      <p style="font-size:0.88rem;">Switch to a fallback publisher. Can do async recovery (another DB lookup, another service).</p>
+    </div>
+    <div class="card">
+      <h4>onErrorMap</h4>
+      <p style="font-size:0.88rem;">Transform the exception type. Useful for converting infra exceptions to domain exceptions.</p>
+    </div>
+    <div class="card">
+      <h4>retry / retryWhen</h4>
+      <p style="font-size:0.88rem;">Re-subscribe and replay the entire upstream. For transient failures (network, Service Bus).</p>
+    </div>
+  </div>
+
+  <h3>onErrorReturn — synchronous fallback value</h3>
+
+  <pre><code><span class="cm">// If formulary service fails, return a default coverage object</span>
+formularyService.<span class="fn">getCoverage</span>(patientId, ndc)
+    .<span class="fn">onErrorReturn</span>(<span class="ty">Coverage</span>.<span class="fn">defaultCoverage</span>());
+
+<span class="cm">// Target a specific exception type</span>
+formularyService.<span class="fn">getCoverage</span>(patientId, ndc)
+    .<span class="fn">onErrorReturn</span>(<span class="ty">FormularyTimeoutException</span>.<span class="kw">class</span>, <span class="ty">Coverage</span>.<span class="fn">defaultCoverage</span>());
+<span class="cm">// Other exception types will still propagate as errors</span></code></pre>
+
+  <h3>onErrorResume — async fallback publisher</h3>
+
+  <pre><code><span class="cm">// Primary: live formulary API. Fallback: cached value from Redis.</span>
+formularyService.<span class="fn">getCoverage</span>(patientId, ndc)
+    .<span class="fn">onErrorResume</span>(ex -&gt; {
+        log.<span class="fn">warn</span>(<span class="str">"Formulary API down, using cache: {}"</span>, ex.<span class="fn">getMessage</span>());
+        <span class="kw">return</span> redisCache.<span class="fn">getCoverage</span>(patientId, ndc);  <span class="cm">// returns Mono&lt;Coverage&gt;</span>
+    });
+
+<span class="cm">// Handle different exceptions differently</span>
+repo.<span class="fn">findById</span>(id)
+    .<span class="fn">onErrorResume</span>(<span class="ty">NotFoundException</span>.<span class="kw">class</span>,
+        ex -&gt; <span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">ResponseStatusException</span>(<span class="ty">NOT_FOUND</span>, ex.<span class="fn">getMessage</span>())))
+    .<span class="fn">onErrorResume</span>(<span class="ty">DataAccessException</span>.<span class="kw">class</span>,
+        ex -&gt; <span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">ServiceUnavailableException</span>(<span class="str">"DB"</span>)));</code></pre>
+
+  <h3>onErrorMap — translate exceptions</h3>
+
+  <pre><code><span class="cm">// Don't leak infrastructure exceptions to the API layer</span>
+rxRepo.<span class="fn">save</span>(prescription)
+    .<span class="fn">onErrorMap</span>(<span class="ty">DataIntegrityViolationException</span>.<span class="kw">class</span>,
+        ex -&gt; <span class="kw">new</span> <span class="ty">DuplicatePrescriptionException</span>(prescription.<span class="fn">getId</span>()))
+    .<span class="fn">onErrorMap</span>(<span class="ty">TransientDataAccessException</span>.<span class="kw">class</span>,
+        ex -&gt; <span class="kw">new</span> <span class="ty">RetryableException</span>(<span class="str">"DB transient failure"</span>, ex));</code></pre>
+
+  <h2>Retry: For Transient Failures</h2>
+  <p>Azure Service Bus calls, HTTP to external APIs, and SQL Server connections can have transient failures. Don't let them fail the stream — retry with exponential backoff.</p>
+
+  <pre><code><span class="kw">import</span> reactor.util.retry.Retry;
+<span class="kw">import</span> java.time.Duration;
+
+<span class="cm">// Simple: retry up to 3 times immediately</span>
+serviceBusClient.<span class="fn">sendMessage</span>(event)
+    .<span class="fn">retry</span>(<span class="num">3</span>);
+
+<span class="cm">// Production: exponential backoff with jitter</span>
+serviceBusClient.<span class="fn">sendMessage</span>(event)
+    .<span class="fn">retryWhen</span>(<span class="ty">Retry</span>.<span class="fn">backoff</span>(<span class="num">3</span>, <span class="ty">Duration</span>.<span class="fn">ofMillis</span>(<span class="num">200</span>))
+        .<span class="fn">maxBackoff</span>(<span class="ty">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">5</span>))
+        .<span class="fn">jitter</span>(<span class="num">0.5</span>)
+        .<span class="fn">filter</span>(ex -&gt; ex <span class="kw">instanceof</span> <span class="ty">TransientServiceBusException</span>)
+        .<span class="fn">onRetryExhaustedThrow</span>((spec, signal) -&gt;
+            <span class="kw">new</span> <span class="ty">ServiceBusUnavailableException</span>(<span class="str">"After 3 retries"</span>, signal.<span class="fn">failure</span>())));
+
+<span class="cm">// IMPORTANT: retry re-subscribes to the WHOLE upstream</span>
+<span class="cm">// If the DB lookup is also in the chain, it will run again too</span>
+<span class="cm">// Use .retryWhen() only on the specific operation that needs it</span></code></pre>
+
+  <div class="callout warn">
+    <div class="callout-label">Pharmacy Production Pattern</div>
+    For Azure Service Bus publish failures in Empower PMS: use <code>retryWhen</code> with backoff on the publish step only — not the entire prescription fill pipeline. Wrap just the <code>eventBus.publish()</code> call in its own reactive chain with retry.
+  </div>
+
+  <h2>doOnError — Observe Without Handling</h2>
+  <pre><code><span class="cm">// Log errors WITHOUT consuming them — they still propagate</span>
+prescriptionPipeline
+    .<span class="fn">doOnError</span>(ex -&gt; log.<span class="fn">error</span>(<span class="str">"Fill failed: patientId={}"</span>, patientId, ex))
+    .<span class="fn">onErrorResume</span>(ex -&gt; <span class="ty">Mono</span>.<span class="fn">error</span>(<span class="kw">new</span> <span class="ty">FillException</span>(<span class="str">"Fill failed"</span>, ex)));
+<span class="cm">// doOnError fires THEN the error continues downstream</span></code></pre>
+
+  <h2>Complete Error-Resilient Pipeline</h2>
+
+  <pre><code><span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">FillConfirmation</span>&gt; <span class="fn">fillWithResilience</span>(<span class="ty">FillRequest</span> req) {
+    <span class="kw">return</span> patientRepo.<span class="fn">findById</span>(req.<span class="fn">patientId</span>())
+
+        <span class="cm">// Convert infra ↦ domain exception at the boundary</span>
+        .<span class="fn">onErrorMap</span>(<span class="ty">DataAccessException</span>.<span class="kw">class</span>,
+            ex -&gt; <span class="kw">new</span> <span class="ty">PatientLookupException</span>(req.<span class="fn">patientId</span>(), ex))
+
+        .<span class="fn">flatMap</span>(patient -&gt;
+            formularyService.<span class="fn">getCoverage</span>(patient, req.<span class="fn">ndc</span>())
+
+                <span class="cm">// Formulary timeout → cached coverage</span>
+                .<span class="fn">onErrorResume</span>(<span class="ty">FormularyTimeoutException</span>.<span class="kw">class</span>,
+                    ex -&gt; redisCache.<span class="fn">getCoverage</span>(patient, req.<span class="fn">ndc</span>()))
+                .<span class="fn">map</span>(cov -&gt; <span class="fn">buildRx</span>(patient, cov, req))
+        )
+
+        .<span class="fn">flatMap</span>(rx -&gt; rxRepo.<span class="fn">save</span>(rx)
+            .<span class="fn">retryWhen</span>(<span class="ty">Retry</span>.<span class="fn">backoff</span>(<span class="num">2</span>, <span class="ty">Duration</span>.<span class="fn">ofMillis</span>(<span class="num">100</span>))
+                .<span class="fn">filter</span>(e -&gt; e <span class="kw">instanceof</span> <span class="ty">TransientDataAccessException</span>))
+        )
+
+        .<span class="fn">flatMap</span>(saved -&gt; eventBus.<span class="fn">publish</span>(<span class="kw">new</span> <span class="ty">RxFilledEvent</span>(saved))
+            .<span class="fn">retryWhen</span>(<span class="ty">Retry</span>.<span class="fn">backoff</span>(<span class="num">3</span>, <span class="ty">Duration</span>.<span class="fn">ofMillis</span>(<span class="num">200</span>)))
+            .<span class="fn">onErrorResume</span>(ex -&gt; {
+                log.<span class="fn">error</span>(<span class="str">"Event publish failed, fill succeeded: {}"</span>, saved.<span class="fn">getId</span>());
+                <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">empty</span>(); <span class="cm">// don't fail fill if event fails</span>
+            })
+            .<span class="fn">thenReturn</span>(saved)
+        )
+
+        .<span class="fn">map</span>(<span class="ty">FillConfirmation</span>::<span class="fn">from</span>)
+
+        .<span class="fn">doOnError</span>(ex -&gt; metrics.<span class="fn">increment</span>(<span class="str">"fill.error"</span>, <span class="str">"type"</span>, ex.<span class="fn">getClass</span>().<span class="fn">getSimpleName</span>()));
+}</code></pre>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.1em;margin-bottom:1rem;">KNOWLEDGE CHECK</p>
+
+    <div id="q1">
+      <p class="quiz-q">Azure Service Bus is temporarily unavailable. You want to retry the publish up to 3 times with exponential backoff. Which operator?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1',this,false)">.onErrorReturn(new ServiceBusEvent())</button>
+        <button class="quiz-opt" onclick="answer('q1',this,true)">.retryWhen(Retry.backoff(3, Duration.ofMillis(200)))</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">.onErrorResume(ex -> Mono.empty())</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">The prescription fill succeeds, but the event publish to Service Bus fails after all retries. You want the fill to still return a success response. What do you do?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Throw the exception and return HTTP 500</button>
+        <button class="quiz-opt" onclick="answer('q2',this,true)">onErrorResume on the publish step returning Mono.empty(), then .thenReturn(saved)</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Wrap the whole pipeline in try/catch</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q3">
+      <p class="quiz-q">What is the difference between <code>doOnError</code> and <code>onErrorResume</code>?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q3',this,true)">doOnError observes the error (for logging) but lets it propagate; onErrorResume catches and recovers from it</button>
+        <button class="quiz-opt" onclick="answer('q3',this,false)">doOnError catches the error; onErrorResume just logs it</button>
+        <button class="quiz-opt" onclick="answer('q3',this,false)">They are identical — different names for the same thing</button>
+      </div>
+      <div id="q3-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Ask your teacher</div>
+    How does error handling interact with retries on a Flux? How do you handle errors item-by-item without terminating the whole stream? Ask in chat.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 03 / 08 — Reactive Java @ Empower PMS</span>
+  <span>Next: <strong>Lesson 04 — Schedulers & Threading</strong></span>
+</div>
+
+<script>
+const fb = {
+  q1:{w:"onErrorReturn and onErrorResume handle after failure but don't retry. retryWhen re-subscribes to the upstream on failure.",r:"Correct. Retry.backoff() gives you exponential backoff with configurable max attempts, max delay, and jitter — essential for Service Bus."},
+  q2:{w:"",r:"Exactly. You handle the event publish failure independently with onErrorResume, log it, and return the saved prescription anyway. The fill is a different concern from the event notification."},
+  q3:{w:"You have them swapped.",r:"Correct. doOnError is a side-effect operator — it fires on error for logging/metrics but the error signal continues downstream unchanged. onErrorResume terminates the error signal and switches to a fallback publisher."}
+};
+function answer(qid,btn,correct){
+  const s=document.getElementById(qid);
+  s.querySelectorAll('.quiz-opt').forEach(o=>{o.disabled=true;});
+  btn.classList.add(correct?'correct':'wrong');
+  if(!correct)s.querySelectorAll('.quiz-opt').forEach(o=>{if(o.onclick.toString().includes('true'))o.classList.add('correct');});
+  const el=document.getElementById(qid+'-feedback');
+  el.textContent=(correct?'✓ ':'✗ ')+fb[qid][correct?'r':'w'];
+  el.className='quiz-feedback show '+(correct?'correct':'wrong');
+}
+</script>
+</body>
+</html>

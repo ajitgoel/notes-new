@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reactor Operators Cheatsheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700&family=DM+Sans:wght@300;400&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.6;font-size:14px;}
+  h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;color:#fff;padding:1.5rem 2rem .5rem;border-bottom:1px solid var(--border);}
+  .subtitle{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);padding:.4rem 2rem 1.5rem;border-bottom:1px solid var(--border);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;padding:1.5rem 2rem;}
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;}
+  .section-title{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.8rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);}
+  .op{display:flex;gap:.5rem;margin:.4rem 0;align-items:flex-start;}
+  .op-name{font-family:'DM Mono',monospace;font-size:.8rem;color:#c5d0f0;min-width:130px;flex-shrink:0;}
+  .op-desc{font-size:.8rem;color:var(--muted);line-height:1.4;}
+  .op-name.green{color:var(--accent3);}
+  .op-name.orange{color:var(--accent4);}
+  .op-name.red{color:var(--accent2);}
+  .op-name.blue{color:var(--accent);}
+  code{font-family:'DM Mono',monospace;font-size:.78em;background:var(--code-bg);padding:.1em .3em;border-radius:2px;color:#9ece6a;}
+  .print-note{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-align:center;padding:1rem;border-top:1px solid var(--border);}
+  @media print{body{background:#fff;color:#000;}h1{color:#000;}.section{border:1px solid #ccc;background:#f9f9f9;}.section-title{color:#333;}.op-name{color:#000;}.op-desc{color:#444;}}
+</style>
+</head>
+<body>
+<h1>Reactor Core — Operators Cheatsheet</h1>
+<div class="subtitle">Project Reactor 3.x · Spring Boot 3.x · Empower PMS reference</div>
+
+<div class="grid">
+
+  <div class="section">
+    <div class="section-title">Transform — Synchronous</div>
+    <div class="op"><span class="op-name green">.map(fn)</span><span class="op-desc">1:1 sync transform. fn must NOT block or do I/O.</span></div>
+    <div class="op"><span class="op-name green">.cast(Class)</span><span class="op-desc">Type-cast each item. ClassCastException on mismatch.</span></div>
+    <div class="op"><span class="op-name green">.index()</span><span class="op-desc">Adds a long index to each item → <code>Tuple2(index, T)</code></span></div>
+    <div class="op"><span class="op-name green">.timestamp()</span><span class="op-desc">Wraps each item with emission timestamp.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Transform — Async (Inner Publisher)</div>
+    <div class="op"><span class="op-name blue">.flatMap(fn)</span><span class="op-desc">1:N async. Concurrent, unordered. fn returns Mono/Flux.</span></div>
+    <div class="op"><span class="op-name blue">.flatMap(fn, n)</span><span class="op-desc">Same, with concurrency cap <code>n</code>.</span></div>
+    <div class="op"><span class="op-name blue">.concatMap(fn)</span><span class="op-desc">Sequential, ordered. Waits for inner to complete.</span></div>
+    <div class="op"><span class="op-name blue">.flatMapSequential</span><span class="op-desc">Concurrent fetch, but merge in order.</span></div>
+    <div class="op"><span class="op-name blue">.flatMapMany(fn)</span><span class="op-desc">Mono → Flux: fn returns Flux.</span></div>
+    <div class="op"><span class="op-name blue">.switchMap(fn)</span><span class="op-desc">Cancels previous inner on new item (like debounce).</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Filter</div>
+    <div class="op"><span class="op-name">.filter(pred)</span><span class="op-desc">Pass only items matching predicate.</span></div>
+    <div class="op"><span class="op-name">.filterWhen(fn)</span><span class="op-desc">Async filter — fn returns <code>Mono&lt;Boolean&gt;</code>.</span></div>
+    <div class="op"><span class="op-name">.take(n)</span><span class="op-desc">Take first n items, then cancel upstream.</span></div>
+    <div class="op"><span class="op-name">.takeLast(n)</span><span class="op-desc">Buffer and emit only last n items.</span></div>
+    <div class="op"><span class="op-name">.takeWhile(pred)</span><span class="op-desc">Take while predicate true, stop at first false.</span></div>
+    <div class="op"><span class="op-name">.skip(n)</span><span class="op-desc">Skip first n items.</span></div>
+    <div class="op"><span class="op-name">.distinct()</span><span class="op-desc">De-duplicate by equals/hashCode.</span></div>
+    <div class="op"><span class="op-name">.distinctUntilChanged</span><span class="op-desc">Drop consecutive duplicates.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Combine</div>
+    <div class="op"><span class="op-name orange">Mono.zip(a,b)</span><span class="op-desc">Run a & b in parallel, combine when both complete.</span></div>
+    <div class="op"><span class="op-name orange">Flux.zip(a,b)</span><span class="op-desc">Pair items by position from two Fluxes.</span></div>
+    <div class="op"><span class="op-name orange">.zipWith(other)</span><span class="op-desc">Pair this Flux with another by position.</span></div>
+    <div class="op"><span class="op-name orange">Flux.merge(a,b)</span><span class="op-desc">Concurrent: interleave items from both (unordered).</span></div>
+    <div class="op"><span class="op-name orange">Flux.concat(a,b)</span><span class="op-desc">Sequential: a completes, then b starts.</span></div>
+    <div class="op"><span class="op-name orange">Flux.combineLatest</span><span class="op-desc">Emit whenever either source emits, using latest.</span></div>
+    <div class="op"><span class="op-name orange">.mergeWith(other)</span><span class="op-desc">Merge this Flux with another concurrently.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Error Handling</div>
+    <div class="op"><span class="op-name red">.onErrorReturn(v)</span><span class="op-desc">Emit fallback value, complete normally.</span></div>
+    <div class="op"><span class="op-name red">.onErrorReturn(T,v)</span><span class="op-desc">Target specific exception type.</span></div>
+    <div class="op"><span class="op-name red">.onErrorResume(fn)</span><span class="op-desc">Switch to fallback publisher. fn returns Mono/Flux.</span></div>
+    <div class="op"><span class="op-name red">.onErrorMap(fn)</span><span class="op-desc">Transform exception type (wrap/translate).</span></div>
+    <div class="op"><span class="op-name red">.onErrorComplete()</span><span class="op-desc">Convert error to normal completion (empty).</span></div>
+    <div class="op"><span class="op-name red">.doOnError(fn)</span><span class="op-desc">Side-effect on error. Error still propagates.</span></div>
+    <div class="op"><span class="op-name red">.retry(n)</span><span class="op-desc">Re-subscribe up to n times on error.</span></div>
+    <div class="op"><span class="op-name red">.retryWhen(spec)</span><span class="op-desc">Retry with backoff, filter, jitter.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Fallback / Switching</div>
+    <div class="op"><span class="op-name">.switchIfEmpty(alt)</span><span class="op-desc">Use alt publisher if this emits nothing.</span></div>
+    <div class="op"><span class="op-name">.defaultIfEmpty(v)</span><span class="op-desc">Emit v if stream completes empty.</span></div>
+    <div class="op"><span class="op-name">.switchOnFirst(fn)</span><span class="op-desc">Inspect first item, branch to different Flux.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Side Effects (do*)</div>
+    <div class="op"><span class="op-name">.doOnNext(fn)</span><span class="op-desc">Inspect each item. Does NOT transform.</span></div>
+    <div class="op"><span class="op-name">.doOnComplete(fn)</span><span class="op-desc">Runs when stream completes normally.</span></div>
+    <div class="op"><span class="op-name">.doOnSubscribe(fn)</span><span class="op-desc">Runs when subscribed.</span></div>
+    <div class="op"><span class="op-name">.doOnCancel(fn)</span><span class="op-desc">Runs on cancel (useful for cleanup).</span></div>
+    <div class="op"><span class="op-name">.doOnTerminate(fn)</span><span class="op-desc">Runs on both complete AND error.</span></div>
+    <div class="op"><span class="op-name">.doFinally(fn)</span><span class="op-desc">Runs on complete, error, OR cancel.</span></div>
+    <div class="op"><span class="op-name">.log()</span><span class="op-desc">Log all signals. Dev/debug only.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Aggregation (Flux → Mono)</div>
+    <div class="op"><span class="op-name">.collectList()</span><span class="op-desc">All items into <code>Mono&lt;List&lt;T&gt;&gt;</code>.</span></div>
+    <div class="op"><span class="op-name">.collectMap(fn)</span><span class="op-desc">Items into <code>Mono&lt;Map&lt;K,T&gt;&gt;</code>.</span></div>
+    <div class="op"><span class="op-name">.reduce(fn)</span><span class="op-desc">Fold all items to single value.</span></div>
+    <div class="op"><span class="op-name">.count()</span><span class="op-desc"><code>Mono&lt;Long&gt;</code> of item count.</span></div>
+    <div class="op"><span class="op-name">.last()</span><span class="op-desc">Emit only the last item.</span></div>
+    <div class="op"><span class="op-name">.next()</span><span class="op-desc">Take first item as Mono.</span></div>
+    <div class="op"><span class="op-name">.then()</span><span class="op-desc">Discard items, return <code>Mono&lt;Void&gt;</code> on complete.</span></div>
+    <div class="op"><span class="op-name">.thenReturn(v)</span><span class="op-desc">Discard items, emit v on complete.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Threading / Scheduling</div>
+    <div class="op"><span class="op-name">.subscribeOn(s)</span><span class="op-desc">Where upstream source executes. First one wins.</span></div>
+    <div class="op"><span class="op-name">.publishOn(s)</span><span class="op-desc">Switch thread for downstream ops from here.</span></div>
+    <div class="op"><span class="op-name">Schedulers.parallel()</span><span class="op-desc">CPU-bound, non-blocking. Fixed pool.</span></div>
+    <div class="op"><span class="op-name">Schedulers.boundedElastic()</span><span class="op-desc">Blocking I/O. Elastic, capped pool.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Backpressure</div>
+    <div class="op"><span class="op-name">.limitRate(n)</span><span class="op-desc">Request n items, refill at 75%.</span></div>
+    <div class="op"><span class="op-name">.onBackpressureBuffer(n)</span><span class="op-desc">Buffer up to n, then overflow error.</span></div>
+    <div class="op"><span class="op-name">.onBackpressureDrop(fn)</span><span class="op-desc">Drop excess items, callback on drop.</span></div>
+    <div class="op"><span class="op-name">.onBackpressureLatest()</span><span class="op-desc">Keep newest item, drop older ones.</span></div>
+    <div class="op"><span class="op-name">.onBackpressureError()</span><span class="op-desc">OverflowException on overflow. Fail-fast.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Creating Publishers</div>
+    <div class="op"><span class="op-name">Mono.just(v)</span><span class="op-desc">Eager: value captured immediately.</span></div>
+    <div class="op"><span class="op-name">Mono.defer(fn)</span><span class="op-desc">Lazy: fn called per subscription.</span></div>
+    <div class="op"><span class="op-name">Mono.fromCallable(fn)</span><span class="op-desc">Wrap blocking/throwing supplier.</span></div>
+    <div class="op"><span class="op-name">Mono.fromRunnable(fn)</span><span class="op-desc">Wrap side-effecting void action.</span></div>
+    <div class="op"><span class="op-name">Mono.empty()</span><span class="op-desc">Completes immediately, no item.</span></div>
+    <div class="op"><span class="op-name">Mono.error(ex)</span><span class="op-desc">Immediately errors.</span></div>
+    <div class="op"><span class="op-name">Flux.fromIterable(c)</span><span class="op-desc">Wrap any Iterable/Collection.</span></div>
+    <div class="op"><span class="op-name">Flux.range(n,cnt)</span><span class="op-desc">Emit integers n to n+cnt-1.</span></div>
+    <div class="op"><span class="op-name">Sinks.many().multicast()</span><span class="op-desc">Hot: push to multiple subscribers.</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Testing (reactor-test)</div>
+    <div class="op"><span class="op-name">StepVerifier.create(p)</span><span class="op-desc">Start verifier for publisher p.</span></div>
+    <div class="op"><span class="op-name">.assertNext(fn)</span><span class="op-desc">Assert next item with assertions fn.</span></div>
+    <div class="op"><span class="op-name">.expectNextCount(n)</span><span class="op-desc">Expect exactly n items.</span></div>
+    <div class="op"><span class="op-name">.verifyComplete()</span><span class="op-desc">Assert onComplete(). Terminal.</span></div>
+    <div class="op"><span class="op-name">.verifyError(T)</span><span class="op-desc">Assert onError of type T. Terminal.</span></div>
+    <div class="op"><span class="op-name">.withVirtualTime()</span><span class="op-desc">Virtual clock for time-based tests.</span></div>
+    <div class="op"><span class="op-name">.thenAwait(dur)</span><span class="op-desc">Advance virtual clock by duration.</span></div>
+  </div>
+
+</div>
+
+<div class="print-note">print with Ctrl+P · source: projectreactor.io/docs · Empower PMS reactive reference</div>
+</body>
+</html>

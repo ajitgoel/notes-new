@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 1: What Is Azure Service Bus?</title>
+<style>
+  :root {
+    --bg: #fcfcfc;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #0078d4;
+    --accent-hover: #005a9e;
+    --success: #107c10;
+    --warn: #d83b01;
+    --border: #e1e1e1;
+    --card-bg: #fff;
+    --code-bg: #f4f4f4;
+    --highlight: #fff4ce;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* Typography */
+  h1 { font-size: 2rem; margin-bottom: 0.2rem; font-weight: 700; }
+  h2 { font-size: 1.35rem; margin: 2.5rem 0 0.8rem; font-weight: 600; color: #111; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+  /* Cards */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.4rem;
+    margin: 1rem 0;
+  }
+  .card.accent-left {
+    border-left: 4px solid var(--accent);
+  }
+  .card.warn-left {
+    border-left: 4px solid var(--warn);
+  }
+  .card.success-left {
+    border-left: 4px solid var(--success);
+  }
+
+  /* Code */
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* Comparison table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    padding: 0.6rem 0.8rem;
+    background: var(--code-bg);
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* Quiz */
+  .quiz { margin: 2rem 0; }
+  .quiz .question {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+  .quiz .q-label {
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    display: block;
+  }
+  .quiz label {
+    display: block;
+    padding: 0.45rem 0.8rem;
+    margin: 0.2rem 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .quiz label:hover { background: #f0f6ff; }
+  .quiz input[type="radio"] { margin-right: 0.5rem; }
+  .quiz .feedback {
+    margin-top: 0.7rem;
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: none;
+  }
+  .quiz .feedback.correct {
+    display: block;
+    background: #dff6dd;
+    color: #0b4a0b;
+    border: 1px solid #c6e6c4;
+  }
+  .quiz .feedback.incorrect {
+    display: block;
+    background: #fde7e9;
+    color: #8b1a1a;
+    border: 1px solid #f5c6cb;
+  }
+  .quiz .check-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.6rem;
+  }
+  .quiz .check-btn:hover { background: var(--accent-hover); }
+  .quiz .explanation {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+
+  /* Decision framework */
+  .decision-box {
+    background: var(--highlight);
+    border: 1px solid #e8d56a;
+    border-radius: var(--radius);
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .decision-box strong {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 1.05rem;
+  }
+
+  /* Footer */
+  .lesson-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .lesson-footer a { color: var(--accent); }
+
+  /* Citation */
+  .cite {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-left: 0.3rem;
+  }
+  .cite a { color: var(--muted); text-decoration: underline; text-decoration-style: dotted; }
+
+  @media print {
+    body { font-size: 11pt; max-width: 100%; }
+    .quiz { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Lesson 1: What Is Azure Service Bus?</h1>
+<p class="meta">Estimated time: 15–20 minutes &nbsp;|&nbsp; Focus: Concepts &amp; Positioning</p>
+
+<div class="card accent-left">
+  <strong>🎯 What you'll learn</strong><br>
+  By the end of this lesson, you'll be able to <strong>explain where Service Bus sits in the Azure messaging landscape</strong> and <strong>choose between it and other Azure messaging services</strong> for a given scenario. You'll understand the core entities and Service Bus's "superpowers" that differentiate it from RabbitMQ, Kafka, and SQS.
+</div>
+
+<h2>The 30-Second Definition</h2>
+
+<p>Azure Service Bus is a <strong>fully managed, serverless enterprise message broker</strong>. It provides:</p>
+
+<div class="card">
+  <ol style="padding-left: 1.3rem;">
+    <li><strong>Message queues</strong> — point-to-point, competing consumers, FIFO</li>
+    <li><strong>Publish-subscribe topics</strong> — one-to-many with per-subscriber filtering</li>
+    <li><strong>Enterprise-grade guarantees</strong> — transactions, duplicate detection, sessions, dead-lettering</li>
+  </ol>
+</div>
+
+<p>If you've used RabbitMQ: Service Bus is like a fully-managed RabbitMQ cluster where you never touch a server. If you've used SQS: it's SQS plus topics, transactions, automatic dead-lettering, and FIFO without the throughput limits.</p>
+
+<h2>Where It Fits: The Azure Messaging Trinity</h2>
+
+<p>Azure has three messaging services. They're complementary — many systems use all three. The distinction hinges on one question: <strong>events or messages?</strong><span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/compare-messaging-services" target="_blank">[source]</a></span></p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Event Grid</th>
+      <th>Event Hubs</th>
+      <th>Service Bus</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>What it moves</strong></td>
+      <td>Event notifications (lightweight)</td>
+      <td>Event streams (high volume)</td>
+      <td>Messages (data + contract)</td>
+    </tr>
+    <tr>
+      <td><strong>Pattern</strong></td>
+      <td>Push (webhooks)</td>
+      <td>Pull (partition cursor)</td>
+      <td>Pull (long-polling with lock)</td>
+    </tr>
+    <tr>
+      <td><strong>Delivery</strong></td>
+      <td>At-least-once</td>
+      <td>At-least-once</td>
+      <td>At-least-once, optionally at-most-once</td>
+    </tr>
+    <tr>
+      <td><strong>Scale</strong></td>
+      <td>Serverless, auto-scaling</td>
+      <td>Millions/sec, partitioned</td>
+      <td>100s–1000s/sec per MU</td>
+    </tr>
+    <tr>
+      <td><strong>Settlement</strong></td>
+      <td>None (fire-and-forget)</td>
+      <td>None (checkpoint-based)</td>
+      <td>Complete / Abandon / DeadLetter</td>
+    </tr>
+    <tr>
+      <td><strong>Best for</strong></td>
+      <td>Reacting to state changes</td>
+      <td>Telemetry, streaming analytics</td>
+      <td>Order processing, financial txns</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="decision-box">
+  <strong>🧭 Quick Heuristic</strong>
+  <p style="margin:0;">
+    <strong>Is the consumer expected to <em>act on</em> and <em>acknowledge</em> each item?</strong> → Service Bus<br>
+    <strong>Is the data a firehose of telemetry for analysis?</strong> → Event Hubs<br>
+    <strong>Are you wiring Azure services together reactively?</strong> → Event Grid
+  </p>
+</div>
+
+<h2>Core Entities: Queues vs. Topics</h2>
+
+<div class="card">
+  <h3 style="margin-top:0;">📬 Queues</h3>
+  <p>A queue is a <strong>point-to-point</strong> channel. Each message is consumed by exactly one receiver. Multiple receivers compete for messages — this is the <em>competing consumers</em> pattern you know from RabbitMQ and SQS.</p>
+
+  <p><strong>Key characteristics:</strong></p>
+  <ul style="padding-left:1.3rem;">
+    <li>FIFO ordering (timestamped on arrival)</li>
+    <li>Durable storage in triple-redundant storage</li>
+    <li>Pull-based with long-polling (not busy-polling)</li>
+    <li>Supports sessions for strict FIFO within a group</li>
+  </ul>
+  <p style="font-size:0.85rem;color:var(--muted);">Use when: distributing work across workers, load leveling, temporal decoupling.</p>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">📢 Topics &amp; Subscriptions</h3>
+  <p>A topic enables <strong>one-to-many</strong> publish-subscribe. Each <strong>subscription</strong> acts like a virtual queue — it gets a copy of every message (subject to filters). Subscribers compete for messages <em>within</em> a subscription independently from other subscriptions.</p>
+
+  <p><strong>Key superpower — Subscription Filters:</strong></p>
+  <ul style="padding-left:1.3rem;">
+    <li><strong>SQL filters</strong> — e.g., <code>Priority = 'High' AND Region = 'eastus'</code></li>
+    <li><strong>Correlation filters</strong> — match on specific property values (more efficient)</li>
+    <li><strong>Filter actions</strong> — modify message properties as they pass through the subscription (e.g., add a <code>RoutedAt</code> timestamp)</li>
+  </ul>
+  <p style="font-size:0.85rem;color:var(--muted);">Use when: multiple services need to react to the same event, fan-out, event-driven microservices.</p>
+</div>
+
+<h2>What Makes Service Bus Unique</h2>
+
+<p>You've used other brokers. Here is what Service Bus gives you that they don't:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Service Bus</th>
+      <th>RabbitMQ</th>
+      <th>SQS</th>
+      <th>Kafka</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Managed (no servers)</td>
+      <td>✅ Fully</td>
+      <td>❌ (unless CloudAMQP)</td>
+      <td>✅</td>
+      <td>❌ (unless Confluent)</td>
+    </tr>
+    <tr>
+      <td>Atomic transactions</td>
+      <td>✅ Cross-entity</td>
+      <td>✅ Channel-level</td>
+      <td>❌</td>
+      <td>✅ Limited</td>
+    </tr>
+    <tr>
+      <td>Duplicate detection</td>
+      <td>✅ Broker-side</td>
+      <td>❌ Client-side only</td>
+      <td>❌ Client-side only</td>
+      <td>✅ Idempotent producer</td>
+    </tr>
+    <tr>
+      <td>Message deferral</td>
+      <td>✅ Built-in</td>
+      <td>❌</td>
+      <td>❌</td>
+      <td>❌</td>
+    </tr>
+    <tr>
+      <td>Scheduled delivery</td>
+      <td>✅ Built-in</td>
+      <td>❌ (via plugin)</td>
+      <td>✅ Delay queues (capped)</td>
+      <td>❌</td>
+    </tr>
+    <tr>
+      <td>DLQ built-in</td>
+      <td>✅ Every entity</td>
+      <td>❌ Manual setup</td>
+      <td>✅ Configurable</td>
+      <td>❌ (conceptual)</td>
+    </tr>
+    <tr>
+      <td>Sessions (FIFO groups)</td>
+      <td>✅ Built-in</td>
+      <td>❌</td>
+      <td>✅ FIFO queues (limited)</td>
+      <td>✅ Partitions</td>
+    </tr>
+    <tr>
+      <td>Geo-replication</td>
+      <td>✅ Built-in</td>
+      <td>❌ Federation plugin</td>
+      <td>❌</td>
+      <td>❌ MirrorMaker</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card warn-left">
+  <strong>⚠️ Important: SBMP Protocol Retirement — 30 September 2026</strong>
+  <p style="margin:0.3rem 0 0;">The legacy SBMP protocol and older SDKs (WindowsAzure.ServiceBus, Microsoft.Azure.ServiceBus) are being retired. All new development should use the <strong>Azure.Messaging.ServiceBus</strong> SDK with <strong>AMQP</strong>. This will come up again in Lesson 2.<span class="cite"><a href="https://azure.microsoft.com/updates/retirement-notice-update-your-azure-service-bus-sdk-libraries-by-30-september-2026/" target="_blank">[source]</a></span></p>
+</div>
+
+<h2>Standard vs. Premium: The Tier Decision</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Standard</th>
+      <th>Premium</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Infrastructure</strong></td>
+      <td>Shared multi-tenant</td>
+      <td>Dedicated, isolated (Messaging Units)</td>
+    </tr>
+    <tr>
+      <td><strong>Throughput</strong></td>
+      <td>Variable, best-effort</td>
+      <td>Predictable, ~4 MB/s per MU</td>
+    </tr>
+    <tr>
+      <td><strong>Latency</strong></td>
+      <td>Variable</td>
+      <td>Consistent, low</td>
+    </tr>
+    <tr>
+      <td><strong>Message size</strong></td>
+      <td>256 KB</td>
+      <td>Up to 100 MB</td>
+    </tr>
+    <tr>
+      <td><strong>Pricing</strong></td>
+      <td>Pay-per-operation</td>
+      <td>Fixed hourly per MU</td>
+    </tr>
+    <tr>
+      <td><strong>VNet / Private endpoints</strong></td>
+      <td>❌</td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td><strong>Customer-managed keys</strong></td>
+      <td>❌</td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td><strong>Availability Zones</strong></td>
+      <td>❌</td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td><strong>JMS 2.0</strong></td>
+      <td>JMS 1.1 (queues only)</td>
+      <td>Full JMS 2.0</td>
+    </tr>
+    <tr>
+      <td><strong>Best for</strong></td>
+      <td>Dev/test, low throughput</td>
+      <td>Production, mission-critical</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="decision-box">
+  <strong>🧭 Rule of Thumb</strong>
+  <p style="margin:0;">If your system is production, needs predictable latency, or requires VNet isolation → <strong>Premium</strong>. If you're prototyping or throughput is modest and variable → <strong>Standard</strong>.</p>
+</div>
+
+<h2>Check Your Understanding</h2>
+
+<div class="quiz" id="quiz">
+
+  <div class="question" id="q1">
+    <span class="q-label">Q1. You're building a system that processes purchase orders. Each order must be processed exactly once, with an audit trail. Which Azure service?</span>
+    <label><input type="radio" name="q1" value="a"> Event Grid</label>
+    <label><input type="radio" name="q1" value="b"> Event Hubs</label>
+    <label><input type="radio" name="q1" value="c"> Service Bus</label>
+    <div class="feedback" id="q1-correct"></div>
+    <div class="feedback" id="q1-incorrect"></div>
+    <button class="check-btn" onclick="checkQ1()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q2">
+    <span class="q-label">Q2. True or False: A Service Bus subscription can filter messages so it only receives a subset of what's published to the topic.</span>
+    <label><input type="radio" name="q2" value="true"> True</label>
+    <label><input type="radio" name="q2" value="false"> False</label>
+    <div class="feedback" id="q2-correct"></div>
+    <div class="feedback" id="q2-incorrect"></div>
+    <button class="check-btn" onclick="checkQ2()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q3">
+    <span class="q-label">Q3. Your workload is production, needs VNet integration, and messages can be up to 50 MB. Which tier must you use?</span>
+    <label><input type="radio" name="q3" value="a"> Standard</label>
+    <label><input type="radio" name="q3" value="b"> Premium</label>
+    <label><input type="radio" name="q3" value="c"> Either — both support these features</label>
+    <div class="feedback" id="q3-correct"></div>
+    <div class="feedback" id="q3-incorrect"></div>
+    <button class="check-btn" onclick="checkQ3()">Check Answer</button>
+  </div>
+</div>
+
+<script>
+function checkQ1() {
+  const selected = document.querySelector('input[name="q1"]:checked');
+  const correctEl = document.getElementById('q1-correct');
+  const incorrectEl = document.getElementById('q1-incorrect');
+  if (!selected) return;
+  [correctEl, incorrectEl].forEach(el => { el.className = 'feedback'; });
+
+  if (selected.value === 'c') {
+    correctEl.textContent = '✅ Correct! Purchase orders need reliable per-message settlement and exactly-once semantics. Service Bus provides this with PeekLock, transactions, and dead-lettering. Event Grid and Event Hubs are fire-and-forget — they cannot guarantee per-message processing.';
+    correctEl.className = 'feedback correct';
+  } else {
+    incorrectEl.textContent = '❌ Not quite. ' + (selected.value === 'a' ? 'Event Grid is for reactive notifications (e.g., "a blob was created"), not for reliably processing business transactions.' : 'Event Hubs is for high-volume telemetry streaming and analytics, not per-message business transaction processing.') + ' Service Bus is the right choice here — it provides per-message settlement, transactions, and dead-lettering.';
+    incorrectEl.className = 'feedback incorrect';
+  }
+}
+
+function checkQ2() {
+  const selected = document.querySelector('input[name="q2"]:checked');
+  const correctEl = document.getElementById('q2-correct');
+  const incorrectEl = document.getElementById('q2-incorrect');
+  if (!selected) return;
+  [correctEl, incorrectEl].forEach(el => { el.className = 'feedback'; });
+
+  if (selected.value === 'true') {
+    correctEl.textContent = '✅ Correct! Subscriptions support SQL and correlation filters. For example, a subscription can receive only messages where Priority = "High". Multiple subscriptions on the same topic can each get different subsets.';
+    correctEl.className = 'feedback correct';
+  } else {
+    incorrectEl.textContent = '❌ Actually, this is true. Service Bus subscriptions support powerful filtering — SQL-based filters (e.g., Priority = \'High\') and correlation filters (matching on specific property values). This is one of Service Bus\'s differentiating features.';
+    incorrectEl.className = 'feedback incorrect';
+  }
+}
+
+function checkQ3() {
+  const selected = document.querySelector('input[name="q3"]:checked');
+  const correctEl = document.getElementById('q3-correct');
+  const incorrectEl = document.getElementById('q3-incorrect');
+  if (!selected) return;
+  [correctEl, incorrectEl].forEach(el => { el.className = 'feedback'; });
+
+  if (selected.value === 'b') {
+    correctEl.textContent = '✅ Correct! Only Premium supports messages larger than 256 KB (up to 100 MB) and VNet/private endpoint integration. For production workloads with these requirements, Premium is the only choice.';
+    correctEl.className = 'feedback correct';
+  } else {
+    incorrectEl.textContent = '❌ Incorrect. Standard tier limits messages to 256 KB and does not support VNet integration or private endpoints. Premium is required for large messages (up to 100 MB) and network security features.';
+    incorrectEl.className = 'feedback incorrect';
+  }
+}
+</script>
+
+<h2>Key Takeaway</h2>
+
+<div class="card success-left">
+  <p style="margin:0;"><strong>Service Bus is the "enterprise message broker" of Azure.</strong> It's the service you reach for when each message matters — when you need to know whether a message was processed, retry it if not, move it to a dead-letter queue if it's poison, and do it all within atomic transactions.</p>
+</div>
+
+<div class="lesson-footer">
+  <p><strong>📚 References:</strong> <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview" target="_blank">Service Bus Overview</a> · <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/compare-messaging-services" target="_blank">Compare Azure Messaging Services</a> · <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-premium-messaging" target="_blank">Premium Tier Details</a> · <a href="../reference/glossary.html" target="_blank">Glossary</a></p>
+
+  <p><strong>❓ Questions?</strong> Ask me anything that's unclear — I can clarify concepts, provide more examples, or compare to RabbitMQ/Kafka/SQS in more detail.</p>
+
+  <p><strong>📂 Next lesson:</strong> <em>Lesson 2: Sending and Receiving Messages with the .NET SDK</em> — we'll write real code using Azure.Messaging.ServiceBus.</p>
+</div>
+
+</body>
+</html>

@@ -55,43 +55,169 @@ All design decisions in this blueprint are governed by the following six archite
 | **Batch & Lot Traceability** | End-to-end visibility from ingredient to patient | Lot number propagation via Service Bus; CompoundingWorkflow service correlates batch ↔ formula ↔ prescription |
 
 ---
+
 ## 3. System Context — C4 Level 1
+
 The Pharmacy Management System sits at the center of Empower's Marketplace Platform, mediating between external actors (providers, patients, regulators) and internal backend systems (ERP, CRM, MDM, fulfillment, shipping).
+
 ### 3.1 External Actors
 
-| Actor                         | Type            | Interaction Channel                             | Data Exchanged                                           |
-| ----------------------------- | --------------- | ----------------------------------------------- | -------------------------------------------------------- |
-| Provider (HCP / Clinic)       | External Human  | Provider Portal (Web) / Provider Exp Mobile App | Rx orders, patient context, formulary queries            |
-| Patient                       | External Human  | Customer Support Portal / MarketPlace           | Order status, shipment tracking, Rx history              |
-| External Integration Partners | External System | REST API / GraphQL (via API Gateway)            | Rx intake feeds, lab results, refill automation          |
-| Shipping Carrier (UPS/FedEx)  | External System | Fulfillment Service → Carrier API               | Shipping labels, tracking numbers, delivery confirmation |
-| Payment Gateway (Stripe/etc.) | External System | Billing Service → Payment Connector             | Charge authorization, settlement, refunds                |
-| EHR / EMR Systems             | External System | HL7 FHIR / SFTP Connector                       | Patient records, formulary updates, lab orders           |
+| Actor | Type | Interaction Channel | Data Exchanged |
+|---|---|---|---|
+| Provider (HCP / Clinic) | External Human | Provider Portal (Web) / Provider Exp Mobile App | Rx orders, patient context, formulary queries |
+| Patient | External Human | Customer Support Portal / MarketPlace | Order status, shipment tracking, Rx history |
+| External Integration Partners | External System | REST API / GraphQL (via API Gateway) | Rx intake feeds, lab results, refill automation |
+| Shipping Carrier (UPS/FedEx) | External System | Fulfillment Service → Carrier API | Shipping labels, tracking numbers, delivery confirmation |
+| Payment Gateway (Stripe/etc.) | External System | Billing Service → Payment Connector | Charge authorization, settlement, refunds |
+| EHR / EMR Systems | External System | HL7 FHIR / SFTP Connector | Patient records, formulary updates, lab orders |
+
 ### 3.2 Internal Platform Systems
 
-| System                       | Role                                                                          | Integration Mode                                              |
-| ---------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| ERP (NetSuite / SAP)         | Financial transactions, procurement, inventory ledger, invoice generation     | ERP Connector → Azure Service Bus; batch reconciliation jobs  |
-| CRM (Salesforce)             | Lead capture, provider onboarding, opportunity tracking, customer 360         | SF Connector; MDM sync for Provider golden records            |
-| MDM (Master Data Management) | Golden records: Provider, Patient, Formula, Product/SKU, Vendor, Raw Material | Event-driven sync; all services resolve IDs via MDM APIs      |
-| Centralized AI Platform      | LLM, Vector DB, RAG prompts for clinical decision support                     | Internal gRPC / REST; async inference results via Service Bus |
-| Azure Service Bus            | Enterprise event backbone — all domain events routed here                     | Native Spring AMQP / azure-servicebus SDK integration         |
+| System | Role | Integration Mode |
+|---|---|---|
+| ERP (NetSuite / SAP) | Financial transactions, procurement, inventory ledger, invoice generation | ERP Connector → Azure Service Bus; batch reconciliation jobs |
+| CRM (Salesforce) | Lead capture, provider onboarding, opportunity tracking, customer 360 | SF Connector; MDM sync for Provider golden records |
+| MDM (Master Data Management) | Golden records: Provider, Patient, Formula, Product/SKU, Vendor, Raw Material | Event-driven sync; all services resolve IDs via MDM APIs |
+| Centralized AI Platform | LLM, Vector DB, RAG prompts for clinical decision support | Internal gRPC / REST; async inference results via Service Bus |
+| Azure Service Bus | Enterprise event backbone — all domain events routed here | Native Spring AMQP / azure-servicebus SDK integration |
+
+### 3.3 System Interaction Diagram
+
+The following C4-style container diagram shows how external actors, internal platform systems, and the nine bounded-context microservices interact. Synchronous GraphQL calls flow left-to-right through the API gateway; domain events flow right-to-left through Azure Service Bus for state propagation.
+
+```mermaid
+flowchart TB
+    subgraph ExternalActors["External Actors"]
+        PROVIDER["Provider (HCP / Clinic)<br/>Submits Rx orders, queries formulary"]
+        PATIENT["Patient<br/>Checks order status, Rx history"]
+        PARTNER["Integration Partners<br/>Rx intake feeds, refill automation"]
+        SHIPPING["Shipping Carrier (UPS/FedEx)<br/>Label gen, tracking, delivery conf."]
+        PAYMENT["Payment Gateway (Stripe)<br/>Charge authorization, settlement"]
+        EHR_SYS["EHR / EMR Systems<br/>Patient records, formulary, lab orders"]
+    end
+
+    subgraph InternalSystems["Internal Platform Systems"]
+        ERP_SYS["ERP (NetSuite / SAP)<br/>Financial txns, procurement, GL"]
+        CRM_SYS["CRM (Salesforce)<br/>Lead capture, provider onboarding"]
+        MDM_SYS["MDM Platform<br/>Golden records: Provider, Patient, Product"]
+        AI_SYS["Centralized AI Platform<br/>LLM, RAG for clinical decision support"]
+    end
+
+    subgraph APILayer["API and Gateway Layer"]
+        APIM["Azure API Management<br/>OAuth, throttling, routing, mTLS"]
+        GQL["GraphQL Federation Gateway<br/>Aggregates all 9 subgraphs into unified schema"]
+    end
+
+    subgraph MS["Bounded Contexts (Microservices)"]
+        direction TB
+        RX["Rx Intake Service<br/>Receives, validates, routes prescriptions"]
+        CLIN["Clinical Review Service<br/>Pharmacist review, DUR, e-Signature"]
+        FML["Formula Service<br/>Compound formulas, BOM, USP compliance"]
+        COMP["Compounding Service<br/>Batch creation, mfg steps, QC checks"]
+        INV["Inventory Service<br/>Stock mgmt, ATP, lot tracking"]
+        ORD["Order Service<br/>Order lifecycle: place through dispatch"]
+        FUL["Fulfillment Service<br/>Warehouse alloc, shipments, carrier API"]
+        BILL["Billing Service<br/>Contract pricing, invoices, payments"]
+        COMM["Communication Service<br/>Email, SMS, push notifications"]
+    end
+
+    subgraph Backbone["Event Backbone and Data"]
+        SB["Azure Service Bus (9 Topics)<br/>Enterprise event backbone, pub/sub"]
+        SQL[("Azure SQL Managed Instance<br/>Per-service schemas, TDE encrypted")]
+        REDIS["Azure Cache for Redis<br/>ATP hot reads, session tokens, query cache"]
+        DLAKE["Azure Data Lake<br/>Analytics, reporting, AI training"]
+    end
+
+    %% External to API Gateway
+    PROVIDER -->|"HTTPS / GraphQL"| APIM
+    PATIENT -->|"HTTPS / GraphQL"| APIM
+    PARTNER -->|"REST API"| APIM
+    EHR_SYS -->|"HL7 FHIR / SFTP"| APIM
+    APIM --> GQL
+
+    %% GraphQL Federation to Microservices
+    GQL --> RX
+    GQL --> CLIN
+    GQL --> FML
+    GQL --> COMP
+    GQL --> INV
+    GQL --> ORD
+    GQL --> FUL
+    GQL --> BILL
+    GQL --> COMM
+
+    %% Microservices to Service Bus (publish domain events)
+    RX --> SB
+    CLIN --> SB
+    FML --> SB
+    COMP --> SB
+    INV --> SB
+    ORD --> SB
+    FUL --> SB
+    BILL --> SB
+
+    %% Service Bus to Subscribers
+    SB --> CLIN
+    SB --> COMP
+    SB --> ORD
+    SB --> INV
+    SB --> FUL
+    SB --> BILL
+    SB --> COMM
+
+    %% Internal Systems to Service Bus
+    ERP_SYS -->|"Invoice sync, PO"| SB
+    CRM_SYS -->|"Provider onboarding"| MDM_SYS
+    MDM_SYS -->|"Golden record broadcasts"| SB
+    AI_SYS -.->|"Inference results"| SB
+
+    %% External integrations via connectors
+    FUL ---|"Carrier API"| SHIPPING
+    BILL ---|"Payment SDK"| PAYMENT
+    CLIN ---|"Lab results"| EHR_SYS
+
+    %% Infrastructure connections
+    RX --> SQL
+    CLIN --> SQL
+    FML --> SQL
+    COMP --> SQL
+    INV --> SQL
+    ORD --> SQL
+    FUL --> SQL
+    BILL --> SQL
+    COMM --> SQL
+    INV -->|"ATP cache"| REDIS
+    GQL -->|"Query cache"| REDIS
+    SB -->|"Event capture"| DLAKE
+
+    %% Styling
+    style ExternalActors fill:#F5F5F5,stroke:#666,stroke-dasharray: 5 5
+    style InternalSystems fill:#E8F8F5,stroke:#27AE60,stroke-dasharray: 5 5
+    style APILayer fill:#FEF9E7,stroke:#F39C12
+    style MS fill:#EBF5FB,stroke:#2980B9
+    style Backbone fill:#F4ECF7,stroke:#8E44AD
+    style SB fill:#4A90D9,color:#fff
+    style GQL fill:#E535AB,color:#fff
+    style APIM fill:#0078D4,color:#fff
+```
 
 ---
+
 ## 4. Bounded Contexts & Microservice Inventory
+
 The PMS is decomposed into nine bounded contexts, each implemented as an independently deployable Spring Boot microservice. Each service owns its schema, publishes and consumes domain events, and exposes a GraphQL subgraph to the Federation Gateway.
 
-| #   | Bounded Context      | Service Name            | Core Responsibility                                                             | Key Domain Events Published                                       |
-| --- | -------------------- | ----------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1   | Rx Intake            | rx-intake-service       | Receive, validate, and route prescriptions from providers and integrations      | PrescriptionReceived, PrescriptionValidated, PrescriptionRejected |
-| 2   | Clinical Review      | clinical-review-service | Pharmacist review, DUR checking, formulary compliance, e-Signature              | PharmacistApproved, ClinicalHoldPlaced, RxModified                |
-| 3   | Formula Management   | formula-service         | Compound formulas, BOM, ingredient specifications, USP compliance               | FormulaCreated, FormulaUpdated, FormulaDeprecated                 |
-| 4   | Compounding Workflow | compounding-service     | Batch creation, lot assignment, manufacturing steps, QC checks                  | BatchCreated, BatchCompleted, LotAssigned, QCPassed               |
-| 5   | Inventory Management | inventory-service       | Raw material stock, ATP (available-to-promise), reservations, FIFO lot tracking | StockUpdated, InventoryReserved, LowStockAlert, LotExpired        |
-| 6   | Order Management     | order-service           | Order lifecycle: validate → submit → confirm → fulfill → dispatch               | OrderPlaced, OrderConfirmed, OrderCancelled, OrderDispatched      |
-| 7   | Fulfillment          | fulfillment-service     | Warehouse batch allocation, packaging, shipment creation, carrier integration   | ShipmentCreated, PackageDispatched, DeliveryConfirmed             |
-| 8   | Billing & Payments   | billing-service         | Charge calculation, contract pricing, invoice generation, payment processing    | InvoiceGenerated, PaymentReceived, ChargebackRaised               |
-| 9   | Communication        | communication-service   | Patient/provider notifications — Email (SES), SMS (Twilio), in-app alerts       | NotificationSent, NotificationFailed                              |
+| # | Bounded Context | Service Name | Core Responsibility | Key Domain Events Published |
+|---|---|---|---|---|
+| 1 | Rx Intake | rx-intake-service | Receive, validate, and route prescriptions from providers and integrations | PrescriptionReceived, PrescriptionValidated, PrescriptionRejected |
+| 2 | Clinical Review | clinical-review-service | Pharmacist review, DUR checking, formulary compliance, e-Signature | PharmacistApproved, ClinicalHoldPlaced, RxModified |
+| 3 | Formula Management | formula-service | Compound formulas, BOM, ingredient specifications, USP compliance | FormulaCreated, FormulaUpdated, FormulaDeprecated |
+| 4 | Compounding Workflow | compounding-service | Batch creation, lot assignment, manufacturing steps, QC checks | BatchCreated, BatchCompleted, LotAssigned, QCPassed |
+| 5 | Inventory Management | inventory-service | Raw material stock, ATP (available-to-promise), reservations, FIFO lot tracking | StockUpdated, InventoryReserved, LowStockAlert, LotExpired |
+| 6 | Order Management | order-service | Order lifecycle: validate → submit → confirm → fulfill → dispatch | OrderPlaced, OrderConfirmed, OrderCancelled, OrderDispatched |
+| 7 | Fulfillment | fulfillment-service | Warehouse batch allocation, packaging, shipment creation, carrier integration | ShipmentCreated, PackageDispatched, DeliveryConfirmed |
+| 8 | Billing & Payments | billing-service | Charge calculation, contract pricing, invoice generation, payment processing | InvoiceGenerated, PaymentReceived, ChargebackRaised |
+| 9 | Communication | communication-service | Patient/provider notifications — Email (SES), SMS (Twilio), in-app alerts | NotificationSent, NotificationFailed |
 
 ---
 
@@ -340,9 +466,156 @@ flowchart LR
     style APIM fill:#0078D4,color:#fff
 ```
 
+### 4.1 Rx Intake Service (rx-intake-service)
+
+Responsible for receiving, validating, and routing prescription submissions from providers and external integration partners. Every inbound prescription passes schema validation, DEA schedule checks, and duplicate detection before being published as a domain event.
+
+| Capability | Detail |
+|---|---|
+| Prescription Submission | Accepts Rx via REST POST; supports structured and attachment-based submissions |
+| Schema Validation | Validates prescription structure, required fields, and DEA schedule compliance |
+| Duplicate Detection | Checks for duplicate prescriptions within configurable time window |
+| Rx Attachment Handling | Stores uploaded attachments (images, PDFs) in Azure Blob Storage |
+| Status & History Queries | Provides real-time prescription status and full history for patient portals |
+| Route Validated Rx | Publishes PrescriptionValidated events to empower.rx.events topic |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| POST | /api/v1/rx/submit | Submit a new prescription |
+| GET | /api/v1/rx/{rxId} | Get prescription details and status |
+| GET | /api/v1/rx/history/{patientId} | Get prescription history for a patient |
+| POST | /api/v1/rx/validate | Validate a prescription without submitting |
+| GET | /api/v1/rx/{rxId}/attachments | Get attachments for a prescription |
+
+### 4.2 Clinical Review Service (clinical-review-service)
+
+Manages the pharmacist review workflow: review queue assignment, drug utilization review (DUR), formulary compliance checking, e-Signature capture, and clinical hold management. Each review decision is recorded immutably for audit compliance.
+
+| Capability | Detail |
+|---|---|
+| Review Queue Management | Maintains prioritized queue of prescriptions awaiting pharmacist review |
+| DUR Checking | Performs drug-drug interaction, allergy, and duplicate therapy checks |
+| Formulary Compliance | Validates prescribed drugs against active formulary and patient-specific plans |
+| e-Signature Capture | Captures pharmacist e-Signature with tamper-evident audit record |
+| Clinical Hold | Places and resolves clinical holds with reason codes and timestamps |
+| State Rule Enforcement | Applies state-specific dispensing rules via configurable rule engine (Drools / SpEL) |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/v1/review/queue | Get the pharmacist review queue |
+| GET | /api/v1/review/queue/{pharmacistId} | Get queue for a specific pharmacist |
+| POST | /api/v1/review/approve | Approve a prescription (with e-Signature payload) |
+| POST | /api/v1/review/hold | Place or update a clinical hold |
+| POST | /api/v1/review/modify | Modify a prescription during clinical review |
+| GET | /api/v1/review/{rxId}/history | Get full review history for a prescription |
+
+### 4.3 Formula Service (formula-service)
+
+Manages the master catalog of compound formulas including their bill of materials (BOM), ingredient specifications, USP compliance designations, and version-controlled lifecycle. Serves as the system of record for all formula data consumed by compounding and inventory services.
+
+| Capability | Detail |
+|---|---|
+| Formula CRUD | Create, update, version, and deprecate compound formulas |
+| BOM Management | Defines ingredients, quantities, units, and alternate suppliers per formula |
+| Ingredient Specifications | Tracks ingredient monographs, USP grade, storage requirements |
+| USP Compliance Flags | Designates USP 795 (non-sterile) vs USP 797 (sterile) vs USP 800 (hazardous) |
+| Version Control | Immutable version history; each change creates a new formula version |
+| 503A/503B Designation | Maintains office-use vs patient-specific compounding designation |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/v1/formulas | Search formulas with filters (name, status, USP class) |
+| GET | /api/v1/formulas/{formulaId} | Get formula details and current version |
+| GET | /api/v1/formulas/{formulaId}/bom | Get bill of materials for a formula |
+| POST | /api/v1/formulas | Create a new formula |
+| PUT | /api/v1/formulas/{formulaId} | Update formula (creates new version) |
+| PUT | /api/v1/formulas/{formulaId}/deprecate | Deprecate a formula |
+| GET | /api/v1/formulas/{formulaId}/versions | Get version history |
+
+### 4.4 Compounding Service (compounding-service)
+
+Orchestrates the compounding workflow from batch creation through manufacturing and QC. Creates batches from approved formulas, assigns lot numbers, tracks each manufacturing step, and records quality control results before marking batches as ready for fulfillment.
+
+| Capability | Detail |
+|---|---|
+| Batch Creation | Creates compounding batches from approved formulas with lot assignment |
+| Manufacturing Step Tracking | Records each production step with operator, timestamp, and parameters |
+| QC Check Management | Submits and tracks QC results; enforces pass/fail gates |
+| Equipment Usage | Records equipment assignments and cleaning verification per batch |
+| Lot Traceability | Correlates batch number to formula, ingredients, and destination prescriptions |
+| Environmental Monitoring | Records cleanroom conditions, garbing compliance (USP 797) |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| POST | /api/v1/batches | Create a new compounding batch |
+| GET | /api/v1/batches/{batchId} | Get batch details and current status |
+| GET | /api/v1/batches/trace/{lotNumber} | End-to-end trace by lot number |
+| PUT | /api/v1/batches/{batchId}/steps | Record a manufacturing step |
+| POST | /api/v1/batches/{batchId}/qc | Submit QC test results |
+| GET | /api/v1/batches/{batchId}/qcrecords | Get QC history for a batch |
+| PUT | /api/v1/batches/{batchId}/complete | Mark batch as completed |
+
+### 4.5 Inventory Service (inventory-service)
+
+Manages raw material inventory, available-to-promise (ATP) calculations, stock reservations, and FIFO lot tracking. The ATP endpoint is on the critical path for order placement and uses reactive non-blocking I/O via R2DBC and Redis caching to meet P99 \< 50ms latency targets.
+
+| Capability | Detail |
+|---|---|
+| ATP Query | Checks available-to-promise for a SKU using real-time stock minus reservations |
+| Stock Reservation | Reserves inventory against an order; releases on cancellation |
+| FIFO Lot Tracking | Assigns lots in FIFO order; tracks expiry and enforces rotation |
+| Low Stock Alerting | Publishes LowStockAlert when stock drops below configurable thresholds |
+| Lot Expiry Management | Monitors approaching expiry dates; publishes LotExpired events |
+| Stock Adjustments | Handles physical count adjustments, returns, and write-offs |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/v1/inventory/atp/{sku} | Check available-to-promise for a SKU |
+| GET | /api/v1/inventory/items | List inventory items with filters (category, stock level) |
+| GET | /api/v1/inventory/lots/{lotId} | Get lot record details |
+| GET | /api/v1/inventory/movements | Query stock movement history with date range |
+| POST | /api/v1/inventory/reserve | Reserve inventory against an order |
+| POST | /api/v1/inventory/release | Release previously reserved inventory |
+| POST | /api/v1/inventory/adjust | Adjust stock levels (physical count, return, write-off) |
+| GET | /api/v1/inventory/expiring | Get lots nearing expiry within configurable window |
+
+### 4.6 Order Service (order-service)
+
+Manages the full order lifecycle from placement through fulfillment and dispatch. Orchestrates the Choreography Saga for order placement — coordinating with inventory reservation, pharmacy approval, and batch creation via Service Bus events.
+
+| Capability | Detail |
+|---|---|
+| Order Placement | Creates orders from validated prescriptions with line-item decomposition |
+| Order Lifecycle | Manages state machine: placed → confirmed → fulfilled → dispatched |
+| Inventory Coordination | Triggers ATP check and reservation via Service Bus event |
+| Order Cancellation | Handles cancellation with compensating inventory release |
+| Status Tracking | Maintains full order status history with timestamps per state transition |
+| Provider Portal Queries | Supports real-time order status and history for Provider Portal |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| POST | /api/v1/orders | Place a new order |
+| GET | /api/v1/orders/{orderId} | Get order details and line items |
+| GET | /api/v1/orders/history/{customerId} | Get order history for a customer |
+| PUT | /api/v1/orders/{orderId}/cancel | Cancel an order (triggers compensation saga) |
+| GET | /api/v1/orders/{orderId}/status | Get current order status |
+| GET | /api/v1/orders/{orderId}/timeline | Get full order state transition timeline |
+
 ### 4.7 Fulfillment Service (fulfillment-service)
 
-Handles post-compounding logistics: warehouse batch allocation, packaging instructions, shipment creation, and carrier API integration. Corresponds to the Fulfillment Service block in the Marketplace Component View.
+Handles post-compounding logistics: warehouse batch allocation, packaging instructions, shipment creation, and carrier API integration.
 
 | Capability | Detail |
 |---|---|
@@ -352,6 +625,16 @@ Handles post-compounding logistics: warehouse batch allocation, packaging instru
 | Call Carrier API | Integrates with UPS, FedEx, USPS via Shipping Carrier adapter |
 | Order Dispatch Carrier Integration | Updates carrier tracking details; publishes shipment.created event |
 | Publish Events | shipment.created, package.dispatched, delivery.confirmed |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| POST | /api/v1/fulfillment/shipments | Create a shipment from allocated batches |
+| GET | /api/v1/fulfillment/shipments/{shipmentId} | Get shipment details and contents |
+| GET | /api/v1/fulfillment/shipments/{shipmentId}/tracking | Get carrier tracking information |
+| PUT | /api/v1/fulfillment/shipments/{shipmentId}/dispatch | Mark shipment as dispatched |
+| GET | /api/v1/fulfillment/shipments/by-order/{orderId} | List all shipments for an order |
 
 ### 4.8 Billing Service (billing-service)
 
@@ -365,9 +648,20 @@ Implements contract-aware pricing, invoice generation, and payment lifecycle. In
 | ERP Financial Sync | Publishes invoice.generated events consumed by ERP Connector for GL posting |
 | Dispute Management | Tracks chargeback cases; supports manual override with audit trail |
 
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/v1/billing/invoices/{orderId} | Get invoice for a specific order |
+| GET | /api/v1/billing/invoices/{invoiceId}/details | Get full invoice details and line items |
+| POST | /api/v1/billing/payments/process | Process a payment for an invoice |
+| POST | /api/v1/billing/payments/refund | Process a refund |
+| GET | /api/v1/billing/contracts/{providerId} | Get contract pricing rates for a provider |
+| GET | /api/v1/billing/invoices | List invoices with status and date range filters |
+
 ### 4.9 Communication Service (communication-service)
 
-Delivers all patient and provider notifications. Subscribes to domain events from upstream services and routes messages via the appropriate channel — Email (AWS SES / Azure Communication Services), SMS (Twilio / NICE), or in-app push.
+Delivers all patient and provider notifications. Subscribes to domain events from upstream services and routes messages via the appropriate channel — Email (Azure Communication Services), SMS (Twilio / NICE), or in-app push.
 
 | Capability | Detail |
 |---|---|
@@ -377,6 +671,15 @@ Delivers all patient and provider notifications. Subscribes to domain events fro
 | Send SMS | SMS via Twilio integration; fallback to NICE |
 | Welcome Email on Sign-up | Triggered by CRM onboarding event; personalized provider welcome |
 | Preference Management | Stores per-patient/provider notification preferences; opt-out compliance |
+
+**REST Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/v1/communication/notifications/{userId} | Get notification history for a user |
+| GET | /api/v1/communication/preferences/{userId} | Get notification preferences for a user |
+| PUT | /api/v1/communication/preferences | Update notification preferences |
+| POST | /api/v1/communication/send | Send a one-off notification (admin/testing) |
 
 ---
 

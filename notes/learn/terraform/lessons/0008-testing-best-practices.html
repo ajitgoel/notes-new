@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 8 — Testing, Linting & Best Practices</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#3fb950;--accent2:#58a6ff;--accent3:#f78166;--accent4:#d2a8ff;--text:#e6edf3;--muted:#8b949e;--code-bg:#1c2128}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7}
+.hero{background:linear-gradient(135deg,#0d1117,#0d1f12,#0d1117);border-bottom:1px solid var(--border);padding:60px 48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:400px;height:400px;background:radial-gradient(circle,rgba(63,185,80,.07),transparent 70%);border-radius:50%}
+.lesson-meta{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.tag{background:#1a3a22;color:var(--accent);padding:4px 12px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid rgba(63,185,80,.3)}
+.tag.b{background:#1f3a5f;color:var(--accent2);border-color:rgba(88,166,255,.3)}
+.tag.gold{background:#3a2a10;color:#e3b341;border-color:rgba(227,179,65,.3)}
+h1{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1.1;margin-bottom:12px}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:1rem;max-width:640px}
+.wrap{max-width:900px;margin:0 auto;padding:48px}
+h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin:44px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:600;color:var(--accent4);margin:24px 0 10px}
+p{color:var(--muted);margin-bottom:14px}
+p strong,li strong{color:var(--text)}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px 24px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;margin:16px 0 24px;position:relative}
+.lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;position:absolute;top:-1px;right:12px}
+.k{color:#ff7b72}.s{color:#a5d6ff}.c{color:#3d5c42;font-style:italic}.f{color:#d2a8ff}.v{color:#79c0ff}.var{color:#ffa657}.r{color:#7ee787}.a{color:#3fb950}
+.box{border-radius:8px;padding:16px 20px;margin:20px 0;border-left:3px solid}
+.box.i{background:rgba(88,166,255,.06);border-color:var(--accent2)}
+.box.w{background:rgba(247,129,102,.06);border-color:var(--accent3)}
+.box.t{background:rgba(63,185,80,.06);border-color:var(--accent)}
+.box.gold{background:rgba(227,179,65,.06);border-color:#e3b341}
+.bt{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.box.i .bt{color:var(--accent2)}.box.w .bt{color:var(--accent3)}.box.t .bt{color:var(--accent)}.box.gold .bt{color:#e3b341}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px}
+.card h4{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:600;color:var(--accent);margin-bottom:8px}
+.card p{font-size:13px}
+.checklist{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 28px;margin:24px 0}
+.checklist h3{margin-top:0;margin-bottom:16px}
+.check-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.check-item:last-child{border-bottom:none}
+.check-box{width:20px;height:20px;border:2px solid var(--border);border-radius:4px;flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.check-box.done{background:var(--accent);border-color:var(--accent)}
+.check-box.done::after{content:'✓';color:#000;font-size:12px;font-weight:700}
+.check-text{font-size:14px;color:var(--muted)}
+.check-text strong{color:var(--text)}
+.tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0 28px}
+.tier{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.tier-icon{font-size:1.6rem;margin-bottom:8px}
+.tier-name{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.tier-desc{font-size:12px;color:var(--muted)}
+.tier-cost{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:8px;padding:3px 8px;border-radius:4px;display:inline-block}
+.tier-cost.fast{background:rgba(63,185,80,.1);color:var(--accent)}
+.tier-cost.med{background:rgba(88,166,255,.1);color:var(--accent2)}
+.tier-cost.slow{background:rgba(247,129,102,.1);color:var(--accent3)}
+.qs{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;margin:48px 0}
+.qs h2{border:none;margin-top:0}
+.q{margin-bottom:28px}
+.q p{color:var(--text);font-weight:500;margin-bottom:12px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:10px 16px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;transition:all .2s;color:var(--text)}
+.opt:hover{border-color:var(--accent);color:var(--accent)}
+.opt.ok{border-color:var(--accent)!important;background:rgba(63,185,80,.1)!important;color:var(--accent)!important}
+.opt.no{border-color:var(--accent3)!important;background:rgba(247,129,102,.1)!important;color:var(--accent3)!important}
+.fb{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:4px;display:none}
+.fb.on{display:block}
+.fb.ok{background:rgba(63,185,80,.1);color:var(--accent)}
+.fb.no{background:rgba(247,129,102,.1);color:var(--accent3)}
+.pb{background:var(--border);border-radius:4px;height:4px;margin-bottom:40px}
+.pf{background:var(--accent);border-radius:4px;height:100%;width:100%}
+.complete-badge{background:linear-gradient(135deg,#1a3a22,#0d2a16);border:1px solid var(--accent);border-radius:12px;padding:32px;text-align:center;margin:48px 0}
+.badge-icon{font-size:3rem;margin-bottom:12px}
+.badge-title{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--accent);margin-bottom:8px}
+.badge-sub{color:var(--muted);font-size:14px;max-width:500px;margin:0 auto}
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:13px}
+footer a{color:var(--accent);text-decoration:none}
+code{background:var(--code-bg);padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent4)}
+ul{padding-left:20px;color:var(--muted);margin-bottom:14px}
+li{margin-bottom:5px}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="lesson-meta">
+    <span class="tag">LESSON 08 / 08</span>
+    <span class="tag b">TESTING</span>
+    <span class="tag gold">BEST PRACTICES</span>
+    <span class="tag">~40 MIN</span>
+  </div>
+  <h1>Testing, Linting &amp;<br><span>Best Practices</span></h1>
+  <p class="sub">How to validate, lint, and test your Terraform before it touches production — from fast static checks to full integration tests that provision real infrastructure.</p>
+</div>
+<div class="wrap">
+  <div class="pb"><div class="pf"></div></div>
+
+  <h2>🔬 The Testing Pyramid</h2>
+  <p>Terraform testing has four tiers, ordered by speed and cost. Run all of them in CI; run the fast ones locally before every push:</p>
+
+  <div class="tier-grid">
+    <div class="tier">
+      <div class="tier-icon">⚡</div>
+      <div class="tier-name">Static Analysis</div>
+      <div class="tier-desc">fmt, validate, tflint, checkov</div>
+      <div class="tier-cost fast">seconds · free</div>
+    </div>
+    <div class="tier">
+      <div class="tier-icon">📋</div>
+      <div class="tier-name">Plan Testing</div>
+      <div class="tier-desc">terraform plan + OPA / conftest policies</div>
+      <div class="tier-cost med">minutes · free</div>
+    </div>
+    <div class="tier">
+      <div class="tier-icon">🧪</div>
+      <div class="tier-name">Unit Tests</div>
+      <div class="tier-desc">terraform test (HCL-native, TF 1.6+)</div>
+      <div class="tier-cost med">minutes · low cost</div>
+    </div>
+    <div class="tier">
+      <div class="tier-icon">🌐</div>
+      <div class="tier-name">Integration Tests</div>
+      <div class="tier-desc">Terratest (Go) — real infra, real APIs</div>
+      <div class="tier-cost slow">30–60 min · Azure cost</div>
+    </div>
+  </div>
+
+  <h2>⚡ Tier 1: Static Analysis</h2>
+  <p>These run in seconds and catch most issues before anything touches Azure:</p>
+
+<pre><span class="lbl">Makefile — local dev workflow</span>lint:
+	terraform fmt -recursive -check .
+	terraform validate
+	tflint --recursive
+	checkov -d . --framework terraform --compact
+
+fix:
+	terraform fmt -recursive .
+
+<span class="c"># Run before every commit:</span>
+<span class="c"># make lint && git add -A && git commit -m "feat: add sql module"</span></pre>
+
+<pre><span class="lbl">.tflint.hcl — tflint config</span>plugin <span class="s">"azurerm"</span> {
+  enabled = true
+  version = <span class="s">"0.26.0"</span>
+  source  = <span class="s">"github.com/terraform-linters/tflint-ruleset-azurerm"</span>
+}
+
+rule <span class="s">"terraform_naming_convention"</span> { enabled = true }
+rule <span class="s">"terraform_documented_variables"</span> { enabled = true }
+rule <span class="s">"terraform_documented_outputs"</span> { enabled = true }
+rule <span class="s">"azurerm_resource_missing_tags"</span> {
+  enabled  = true
+  tags     = [<span class="s">"Environment"</span>, <span class="s">"ManagedBy"</span>, <span class="s">"CostCenter"</span>]
+}</pre>
+
+  <div class="box t">
+    <div class="bt">checkov — security scanning</div>
+    <p>Checkov is a policy-as-code scanner. It ships with 1,000+ Azure checks out of the box: things like <em>"Key Vault must have purge protection"</em>, <em>"SQL Server must have TLS 1.2"</em>, <em>"AKS must have RBAC enabled"</em>. Run it in CI as a gate for every PR.</p>
+  </div>
+
+  <h2>📋 Tier 2: Plan Policy Enforcement (OPA / Conftest)</h2>
+  <p>Run <code>terraform plan -out=tfplan.binary</code>, convert to JSON, then enforce policies with Open Policy Agent. This is how you prevent devs from accidentally deploying prod-only resources to dev:</p>
+
+<pre><span class="lbl">policy/deny_public_sql.rego</span>package terraform
+
+deny[msg] {
+  r := input.resource_changes[_]
+  r.type == "azurerm_mssql_server"
+  r.change.after.public_network_access_enabled == true
+  msg := sprintf("SQL Server '%s' must not have public network access enabled", [r.address])
+}
+
+deny[msg] {
+  r := input.resource_changes[_]
+  r.type == "azurerm_key_vault"
+  r.change.after.purge_protection_enabled == false
+  msg := sprintf("Key Vault '%s' must have purge_protection_enabled = true (HIPAA)", [r.address])
+}</pre>
+
+<pre><span class="lbl">CI pipeline step — conftest check</span><span class="c"># Convert binary plan to JSON</span>
+terraform show -json tfplan.binary > tfplan.json
+
+<span class="c"># Enforce OPA policies — fails build if any deny rule fires</span>
+conftest test tfplan.json --policy policy/</pre>
+
+  <h2>🧪 Tier 3: terraform test (HCL-Native, TF 1.6+)</h2>
+  <p>Terraform 1.6 introduced a native test framework. Write test files in HCL, use <code>run</code> blocks with <code>assert</code> to validate expected values:</p>
+
+<pre><span class="lbl">tests/key_vault_test.tftest.hcl</span>variables {
+  environment = <span class="s">"test"</span>
+  location    = <span class="s">"westus2"</span>
+}
+
+run <span class="s">"key_vault_sku_is_standard_in_non_prod"</span> {
+  command = plan
+
+  assert {
+    condition     = <span class="r">azurerm_key_vault.main</span>.sku_name == <span class="s">"standard"</span>
+    error_message = <span class="s">"Non-prod environment should use standard SKU"</span>
+  }
+}
+
+run <span class="s">"key_vault_has_purge_protection"</span> {
+  command = plan
+
+  assert {
+    condition     = <span class="r">azurerm_key_vault.main</span>.purge_protection_enabled == <span class="v">true</span>
+    error_message = <span class="s">"purge_protection_enabled must be true in all environments"</span>
+  }
+}
+
+run <span class="s">"network_acls_deny_by_default"</span> {
+  command = apply   <span class="c"># actually creates the resource</span>
+
+  assert {
+    condition     = <span class="r">azurerm_key_vault.main</span>.network_acls[0].default_action == <span class="s">"Deny"</span>
+    error_message = <span class="s">"Key Vault must deny all traffic by default"</span>
+  }
+}</pre>
+
+<pre><span class="lbl">running tests</span><span class="c"># Run all tests in the tests/ directory</span>
+terraform test
+
+<span class="c"># Run a specific test file</span>
+terraform test -filter=tests/key_vault_test.tftest.hcl
+
+<span class="c"># Verbose output</span>
+terraform test -verbose</pre>
+
+  <h2>🌐 Tier 4: Terratest (Integration)</h2>
+  <p>Terratest (Go library by Gruntwork) deploys real infrastructure, runs assertions, then destroys. Expensive but the highest confidence:</p>
+
+<pre><span class="lbl">test/aks_test.go (abbreviated)</span><span class="k">func</span> TestAKSModule(t *testing.T) {
+    t.Parallel()
+
+    opts := &terraform.Options{
+        TerraformDir: <span class="s">"../modules/aks"</span>,
+        Vars: map[string]interface{}{
+            <span class="s">"environment"</span>:   <span class="s">"test"</span>,
+            <span class="s">"location"</span>:      <span class="s">"westus2"</span>,
+            <span class="s">"cluster_name"</span>:  <span class="s">"aks-test-terratest"</span>,
+        },
+    }
+
+    <span class="c">// Destroy at end of test regardless of pass/fail</span>
+    defer terraform.Destroy(t, opts)
+    terraform.InitAndApply(t, opts)
+
+    clusterID := terraform.Output(t, opts, <span class="s">"cluster_id"</span>)
+    assert.NotEmpty(t, clusterID)
+    assert.Contains(t, clusterID, <span class="s">"/providers/Microsoft.ContainerService"</span>)
+}</pre>
+
+  <h2>✅ Production Readiness Checklist</h2>
+  <div class="checklist">
+    <h3 style="color:var(--accent4)">Before merging any Terraform PR</h3>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>terraform fmt</strong> — all files formatted</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>terraform validate</strong> — no syntax or type errors</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>tflint</strong> — no linting violations, required tags present</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>checkov</strong> — no HIGH/CRITICAL security findings unaddressed</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>terraform plan reviewed</strong> — someone read the diff, no unexpected destroys</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>conftest policy checks pass</strong> — no deny rules triggered</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>No secrets in code</strong> — sensitive variables use TF_VAR_* or Key Vault references</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>.terraform.lock.hcl committed</strong> — provider versions pinned</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>terraform.tfstate never committed</strong> — .gitignore covers *.tfstate, *.tfstate.backup</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>All variables documented</strong> — description field on every variable block</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>All outputs documented</strong> — description field on every output block</div></div>
+    <div class="check-item"><div class="check-box" onclick="toggle(this)"></div><div class="check-text"><strong>terraform test passes</strong> — all .tftest.hcl files green</div></div>
+  </div>
+
+  <h2>🏆 Golden Rules</h2>
+  <div class="g2">
+    <div class="card">
+      <h4>Never edit state manually</h4>
+      <p>Use <code>terraform state mv</code>, <code>state rm</code>, or <code>import</code>. Direct JSON editing corrupts state and is unsupported.</p>
+    </div>
+    <div class="card">
+      <h4>for_each over count for named resources</h4>
+      <p>If the resource has a meaningful name, use for_each with that name as the key. Reserve count for truly numeric/toggle cases.</p>
+    </div>
+    <div class="card">
+      <h4>Pin provider versions</h4>
+      <p>Always use <code>~> X.Y</code> version constraints. Unpinned providers will drift and break on CI. Commit the lock file.</p>
+    </div>
+    <div class="card">
+      <h4>One state file per environment</h4>
+      <p>Dev, staging, prod each have their own backend key. Never share state between environments.</p>
+    </div>
+    <div class="card">
+      <h4>Small, focused modules</h4>
+      <p>A module should do one thing: AKS, Key Vault, networking. If a module is over 300 lines, split it.</p>
+    </div>
+    <div class="card">
+      <h4>Tags are not optional</h4>
+      <p>Every resource must have Environment, ManagedBy, and CostCenter tags. Enforce with tflint + checkov. Cost allocation depends on it.</p>
+    </div>
+  </div>
+
+  <div class="qs">
+    <h2>🧠 Final Knowledge Check</h2>
+    <p style="color:var(--muted);margin-bottom:28px">Four questions to close out the course.</p>
+
+    <div class="q" id="q1">
+      <p>1. <code>terraform validate</code> passes but <code>tflint</code> fails. What kinds of issues does tflint catch that validate misses?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q1',this,false)">A. Syntax errors in HCL</div>
+        <div class="opt" onclick="ans('q1',this,true)">B. Semantic issues like unsupported resource arguments, missing required tags, deprecated attributes, and naming convention violations</div>
+        <div class="opt" onclick="ans('q1',this,false)">C. Authentication failures to Azure</div>
+        <div class="opt" onclick="ans('q1',this,false)">D. State file corruption</div>
+      </div>
+      <div class="fb" id="q1-fb"></div>
+    </div>
+
+    <div class="q" id="q2">
+      <p>2. What is the key advantage of <code>terraform test</code> (TF 1.6+) over Terratest for unit-level checks?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q2',this,false)">A. It tests against real Azure infrastructure</div>
+        <div class="opt" onclick="ans('q2',this,true)">B. Tests are written in HCL (no Go required), run against plan output or apply, and integrate natively with the Terraform CLI</div>
+        <div class="opt" onclick="ans('q2',this,false)">C. It generates test coverage reports</div>
+        <div class="opt" onclick="ans('q2',this,false)">D. It is faster than terraform validate</div>
+      </div>
+      <div class="fb" id="q2-fb"></div>
+    </div>
+
+    <div class="q" id="q3">
+      <p>3. An OPA/conftest policy fires during a CI pipeline plan check. What should happen?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q3',this,false)">A. Log a warning but continue to apply</div>
+        <div class="opt" onclick="ans('q3',this,true)">B. Fail the build — the PR cannot be merged until the policy violation is resolved</div>
+        <div class="opt" onclick="ans('q3',this,false)">C. Override the policy and apply anyway if a senior engineer approves</div>
+        <div class="opt" onclick="ans('q3',this,false)">D. Email the security team for manual review</div>
+      </div>
+      <div class="fb" id="q3-fb"></div>
+    </div>
+
+    <div class="q" id="q4">
+      <p>4. What does <code>terraform fmt -recursive -check .</code> do, and when does it exit non-zero?</p>
+      <div class="opts">
+        <div class="opt" onclick="ans('q4',this,false)">A. Formats all files in place; exits non-zero if any file has a syntax error</div>
+        <div class="opt" onclick="ans('q4',this,true)">B. Checks formatting without modifying files; exits non-zero if any file would be reformatted — used as a CI gate</div>
+        <div class="opt" onclick="ans('q4',this,false)">C. Runs terraform validate on all subdirectories</div>
+        <div class="opt" onclick="ans('q4',this,false)">D. Lists all .tf files that need formatting</div>
+      </div>
+      <div class="fb" id="q4-fb"></div>
+    </div>
+  </div>
+
+  <div class="complete-badge">
+    <div class="badge-icon">🎓</div>
+    <div class="badge-title">Course Complete</div>
+    <p class="badge-sub">You've covered HCL fundamentals, state &amp; backends, variables &amp; outputs, expressions &amp; functions, modules, multi-environment patterns, Azure core resources, and testing. You're ready to build production-grade Terraform for Empower PMS.</p>
+    <p style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">Next step: open the reference/ folder → GLOSSARY.md and CHEATSHEET.md</p>
+  </div>
+</div>
+
+<footer>
+  <div><strong style="color:var(--text)">Terraform Course</strong> — Lesson 8 of 8 &nbsp;|&nbsp; <a href="https://developer.hashicorp.com/terraform/language/tests" target="_blank">Testing Docs ↗</a> &nbsp;|&nbsp; <a href="https://www.checkov.io" target="_blank">Checkov ↗</a></div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent)">🎉 All lessons complete</div>
+</footer>
+<script>
+const ex={
+  q1:{ok:"Correct. validate only checks HCL syntax and type correctness. tflint checks provider-specific semantics: invalid argument names, deprecated resource types, missing required tags, and your own custom naming rules.",no:"validate checks syntax and types. tflint goes deeper: it knows the Azure provider's schema (via the azurerm ruleset) and can catch things like an invalid vm_size string or missing mandatory tags."},
+  q2:{ok:"Correct. terraform test is HCL-native — no Go, no external test framework. You write .tftest.hcl files alongside your modules. Terratest is still better for full integration tests that need arbitrary Go assertions.",no:"terraform test is HCL-native and runs natively with the CLI. Terratest requires Go and is better suited for full integration tests that provision real infra and need complex assertion logic."},
+  q3:{ok:"Correct. A policy failure must block the build. Policies as warnings are useless — they get ignored. The value of OPA/conftest is that it makes security and compliance requirements machine-enforced, not human-advisory.",no:"Policy violations must fail the build. That's the entire point of policy-as-code: shift compliance checks left and make them blocking. Warnings get ignored."},
+  q4:{ok:"Correct. The -check flag makes fmt read-only — it reports unformatted files and exits non-zero, which fails the CI step. Use terraform fmt -recursive . (without -check) to actually reformat files.",no:"The -check flag is the CI mode: read-only, exits non-zero if anything would change. Without -check, fmt modifies files in place. Use -check in pipelines, plain fmt locally."}
+};
+function ans(qid,el,ok){
+  const q=document.getElementById(qid);
+  if(q.querySelector('.ok')||q.querySelector('.no')) return;
+  el.classList.add(ok?'ok':'no');
+  const fb=document.getElementById(qid+'-fb');
+  fb.textContent=(ok?'✓ ':'✗ ')+(ok?ex[qid].ok:ex[qid].no);
+  fb.className='fb on '+(ok?'ok':'no');
+}
+function toggle(el){
+  el.classList.toggle('done');
+}
+</script>
+</body>
+</html>

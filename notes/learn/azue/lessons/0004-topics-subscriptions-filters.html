@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 4: Topics, Subscriptions &amp; Filters</title>
+<style>
+  :root {
+    --bg: #fcfcfc; --text: #1a1a1a; --muted: #5a5a5a;
+    --accent: #0078d4; --accent-hover: #005a9e; --success: #107c10; --warn: #d83b01;
+    --border: #e1e1e1; --card-bg: #fff; --code-bg: #f4f4f4; --highlight: #fff4ce;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem;
+  }
+  h1 { font-size: 2rem; margin-bottom: 0.2rem; font-weight: 700; }
+  h2 { font-size: 1.35rem; margin: 2.5rem 0 0.8rem; font-weight: 600; color: #111; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.4rem; margin: 1rem 0;
+  }
+  .card.accent-left { border-left: 4px solid var(--accent); }
+  .card.warn-left { border-left: 4px solid var(--warn); }
+  .card.success-left { border-left: 4px solid var(--success); }
+  pre {
+    background: #1e1e1e; color: #d4d4d4; padding: 1.2rem 1.4rem;
+    border-radius: var(--radius); overflow-x: auto; font-size: 0.84rem;
+    line-height: 1.55; margin: 0.8rem 0;
+  }
+  :not(pre) > code {
+    background: var(--code-bg); padding: 0.15em 0.4em;
+    border-radius: 3px; color: #333; font-size: 0.88em;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem;
+  }
+  th {
+    text-align: left; font-weight: 600; padding: 0.6rem 0.8rem;
+    background: var(--code-bg); border-bottom: 2px solid var(--border);
+  }
+  td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .quiz .question {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0;
+  }
+  .quiz .q-label { font-weight: 600; margin-bottom: 0.8rem; display: block; }
+  .quiz label {
+    display: block; padding: 0.45rem 0.8rem; margin: 0.2rem 0;
+    border-radius: 6px; cursor: pointer; transition: background 0.15s;
+  }
+  .quiz label:hover { background: #f0f6ff; }
+  .quiz input[type="radio"] { margin-right: 0.5rem; }
+  .quiz .feedback {
+    margin-top: 0.7rem; padding: 0.7rem 1rem; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 500; display: none;
+  }
+  .quiz .feedback.correct {
+    display: block; background: #dff6dd; color: #0b4a0b; border: 1px solid #c6e6c4;
+  }
+  .quiz .feedback.incorrect {
+    display: block; background: #fde7e9; color: #8b1a1a; border: 1px solid #f5c6cb;
+  }
+  .quiz .check-btn {
+    background: var(--accent); color: white; border: none;
+    padding: 0.5rem 1.2rem; border-radius: 6px; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer; margin-top: 0.6rem;
+  }
+  .quiz .check-btn:hover { background: var(--accent-hover); }
+  .diagram {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin: 1.5rem 0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.8rem; line-height: 1.8; white-space: pre; overflow-x: auto;
+  }
+  .lesson-footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--border);
+    color: var(--muted); font-size: 0.9rem;
+  }
+  .lesson-footer a { color: var(--accent); }
+  .cite { font-size: 0.78rem; color: var(--muted); margin-left: 0.3rem; }
+  .cite a { color: var(--muted); text-decoration: underline; text-decoration-style: dotted; }
+  @media print {
+    body { font-size: 11pt; max-width: 100%; }
+    pre { background: #f4f4f4; color: #1a1a1a; border: 1px solid #ddd; }
+    .quiz { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Lesson 4: Topics, Subscriptions &amp; Filters</h1>
+<p class="meta">Estimated time: 25–30 minutes &nbsp;|&nbsp; Focus: Pub/Sub, Filtering, Routing Patterns</p>
+
+<div class="card accent-left">
+  <strong>🎯 What you'll learn</strong><br>
+  How to use <strong>topics and subscriptions</strong> for one-to-many publish-subscribe, apply <strong>SQL and correlation filters</strong> to route messages selectively, use <strong>filter actions</strong> to transform messages in-flight, and implement common patterns like broadcast, partitioning, and content-based routing — all with the Java SDK.
+</div>
+
+<h2>Recap: Queues vs. Topics</h2>
+
+<table>
+  <thead>
+    <tr><th></th><th>Queue</th><th>Topic + Subscriptions</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Pattern</td><td>Point-to-point</td><td>Publish-subscribe (one-to-many)</td></tr>
+    <tr><td>Consumers per message</td><td>Exactly one</td><td>One per subscription (each sub gets a copy)</td></tr>
+    <tr><td>Filtering</td><td>Not supported</td><td>SQL and correlation filters per subscription</td></tr>
+    <tr><td>Analogy</td><td>RabbitMQ queue with competing consumers</td><td>RabbitMQ topic exchange + bound queues</td></tr>
+  </tbody>
+</table>
+
+<div class="diagram">
+                         Topic "orders"
+                    ┌──────────┼──────────┐
+                    ▼          ▼          ▼
+           Subscription   Subscription   Subscription
+           "order-audit"  "high-prio"    "fulfillment"
+           (all messages) (filter:       (filter:
+                           Priority=High) Region=eastus)
+
+ Publishers send to the TOPIC.
+ Each SUBSCRIPTION acts like an independent queue.
+ Each subscription can have different FILTERS.
+ Each subscription has its OWN dead-letter queue.
+</div>
+
+<h2>Subscription Filters: The Core Concept</h2>
+
+<p>Every subscription has <strong>rules</strong>. A rule is a <strong>filter</strong> (which messages to select) plus an optional <strong>action</strong> (how to modify them). The default rule on every new subscription is a <strong>TrueFilter</strong> — it selects everything.<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/topic-filters" target="_blank">[source]</a></span></p>
+
+<h3>Filter Types</h3>
+
+<table>
+  <thead>
+    <tr><th>Type</th><th>How it works</th><th>Performance</th><th>Use when</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>SQL Filter</strong></td>
+      <td>SQL-like expression: <code>Priority = 'High' AND Amount > 1000</code></td>
+      <td>⚠️ Slower (requires parsing/eval)</td>
+      <td>Complex conditions, arithmetic, LIKE, EXISTS</td>
+    </tr>
+    <tr>
+      <td><strong>Correlation Filter</strong></td>
+      <td>Exact match on properties: <code>Subject = 'order/created'</code></td>
+      <td>✅ Fast (hash lookup)</td>
+      <td>Simple property matching — <strong>prefer this</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TrueFilter / FalseFilter</strong></td>
+      <td>Select all / select none</td>
+      <td>✅ Fastest</td>
+      <td>Broadcast (TrueFilter) or temporarily disabling a sub (FalseFilter)</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card warn-left">
+  <strong>⚠️ Performance note:</strong> SQL filters consume CPU on the broker. Under high throughput, prefer correlation filters. They use hash-based matching and have significantly less impact on throughput. SQL filters are powerful but expensive — use them when you genuinely need expressions, not just property matching.
+</div>
+
+<h2>Java: Creating Topics and Subscriptions Programmatically</h2>
+
+<pre>TopicSetup.java
+import com.azure.messaging.servicebus.administration.*;
+import com.azure.messaging.servicebus.administration.models.*;
+import java.time.Duration;
+
+public class TopicSetup {
+
+    private final ServiceBusAdministrationClient adminClient;
+
+    public TopicSetup(String connectionString) {
+        this.adminClient = new ServiceBusAdministrationClientBuilder()
+            .connectionString(connectionString)
+            .buildClient();
+    }
+
+    public void setup() {
+        String topicName = "orders";
+
+        // 1. Create the topic
+        adminClient.createTopic(new CreateTopicOptions(topicName)
+            .setMaxSizeInMegabytes(5120)
+            .setDefaultMessageTimeToLive(Duration.ofDays(14))
+            .setDuplicateDetectionHistoryTimeWindow(Duration.ofMinutes(10)));
+
+        // 2. Subscription: all orders (audit trail)
+        adminClient.createSubscription(
+            new CreateSubscriptionOptions(topicName, "order-audit"));
+
+        // 3. Subscription: high priority only (SQL filter)
+        adminClient.createSubscription(topicName, "high-priority");
+        adminClient.createRule(topicName, "high-priority",
+            new CreateRuleOptions("high-prio-rule",
+                new SqlRuleFilter("Priority = 'High'")));
+
+        // 4. Subscription: large orders (SQL filter with compound condition)
+        adminClient.createSubscription(topicName, "large-orders");
+        adminClient.createRule(topicName, "large-orders",
+            new CreateRuleOptions("large-orders-rule",
+                new SqlRuleFilter("Amount > 5000 AND Region = 'eastus'")));
+
+        // 5. Subscription: fulfillment for eastus (correlation filter — faster)
+        adminClient.createSubscription(topicName, "fulfillment-eastus");
+        adminClient.createRule(topicName, "fulfillment-eastus",
+            new CreateRuleOptions("eastus-rule",
+                new CreateRuleFilter()
+                    .setSubject("order/created")
+                    .addProperty("Region", "eastus")));
+
+        // 6. Subscription with a FILTER ACTION: transform message
+        adminClient.createSubscription(topicName, "discounted-orders");
+        adminClient.createRule(topicName, "discounted-orders",
+            new CreateRuleOptions("discount-rule",
+                new SqlRuleFilter("HasDiscount = true"),
+                new SqlRuleAction("SET Amount = Amount * 0.9; " +
+                                  "SET DiscountedAt = sys.EnqueuedTimeUtc")));
+
+        System.out.println("Topic + 6 subscriptions created.");
+    }
+}</pre>
+
+<div class="card accent-left">
+  <strong>Key detail: rules without actions combine via OR.</strong> If you create two rules without actions on a subscription and a message matches both, you get <strong>one copy</strong> on the subscription. Rules <strong>with</strong> actions each produce their <strong>own copy</strong>. So if a message matches 2 rules with actions and 3 without, you get 3 copies: 2 (one per action rule) + 1 (combined OR from the 3 non-action rules).
+</div>
+
+<h2>Sending to a Topic (Same API as Queues)</h2>
+
+<p>From the sender's perspective, sending to a topic is identical to sending to a queue. You don't know or care how many subscriptions exist.</p>
+
+<pre>TopicPublisher.java
+import com.azure.messaging.servicebus.*;
+import reactor.core.publisher.Mono;
+import java.util.Map;
+
+public class TopicPublisher {
+
+    private final ServiceBusSenderAsyncClient sender;
+
+    public TopicPublisher(String connectionString, String topicName) {
+        this.sender = new ServiceBusClientBuilder()
+            .connectionString(connectionString)
+            .sender()
+            .topicName(topicName)    // &lt;-- topic, not queue
+            .buildAsyncClient();
+    }
+
+    public Mono&lt;Void&gt; publishOrder(Order order) {
+        ServiceBusMessage message = new ServiceBusMessage(order.toJson())
+            .setMessageId(order.getId())
+            .setContentType("application/json")
+            .setSubject("order/created")         // used by correlation filters
+            .setCorrelationId(order.getRegion()); // also used by correlation filters
+
+        // Application properties — filterable by both SQL and correlation filters
+        message.getApplicationProperties().putAll(Map.of(
+            "Priority", order.isRush() ? "High" : "Normal",
+            "Amount", order.getAmount(),
+            "Region", order.getRegion(),
+            "HasDiscount", order.hasDiscount()
+        ));
+
+        return sender.sendMessage(message);
+    }
+
+    public void close() { sender.close(); }
+}</pre>
+
+<h2>Receiving from a Subscription (Same API as Queues)</h2>
+
+<p>A subscription is consumed exactly like a queue. Multiple consumers on the same subscription compete for messages.</p>
+
+<pre>SubscriptionConsumer.java
+import com.azure.messaging.servicebus.*;
+import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
+
+public class SubscriptionConsumer {
+
+    private final ServiceBusProcessorClient processor;
+
+    public SubscriptionConsumer(String connectionString,
+                                String topicName,
+                                String subscriptionName) {
+        this.processor = new ServiceBusClientBuilder()
+            .connectionString(connectionString)
+            .processor()
+            .topicName(topicName)              // &lt;-- topic
+            .subscriptionName(subscriptionName) // &lt;-- subscription
+            .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+            .maxConcurrentCalls(5)
+            .autoComplete(false)
+            .processMessage(ctx -&gt; {
+                System.out.printf("[%s] Received: %s%n",
+                    subscriptionName,
+                    ctx.getMessage().getBody().toString());
+                ctx.complete();
+            })
+            .processError(ctx -&gt;
+                System.err.println("Error: " + ctx.getException().getMessage()))
+            .buildProcessorClient();
+    }
+
+    public void start() { processor.start(); }
+    public void close() { processor.close(); }
+}</pre>
+
+<h2>Pattern 1: Broadcast (TrueFilter)</h2>
+
+<p>Every subscription gets every message. This is the default — no custom rules needed.</p>
+
+<div class="diagram">
+  Publisher ──► Topic ──► sub "audit"      (all messages)
+                    ──► sub "analytics"   (all messages)
+                    ──► sub "notification"(all messages)
+
+  Use case: Multiple independent services all need to react to every order.
+</div>
+
+<h2>Pattern 2: Partitioning (Mutually Exclusive Filters)</h2>
+
+<p>Each subscription gets a non-overlapping subset. Used to scale out processing by shard key.</p>
+
+<div class="diagram">
+  Topic "orders"
+     │
+     ├── sub "region-eastus"   (filter: Region = 'eastus')
+     ├── sub "region-westus"   (filter: Region = 'westus')
+     └── sub "region-europe"   (filter: Region = 'europe')
+
+  Use case: Each region has its own fulfillment service.
+  Each message goes to exactly ONE subscription.
+</div>
+
+<h2>Pattern 3: Content-Based Routing (Overlapping Filters)</h2>
+
+<p>Messages route to different services based on their content. Some messages may go to multiple subscriptions.</p>
+
+<div class="diagram">
+  Order #1: Priority=High, Amount=2000, Region=eastus
+     │
+     ├── sub "high-priority"   ✅ (Priority = High)
+     ├── sub "large-orders"    ❌ (Amount &lt; 5000)
+     └── sub "audit"           ✅ (all messages)
+
+  Order #2: Priority=Normal, Amount=7500, Region=eastus
+     │
+     ├── sub "high-priority"   ❌
+     ├── sub "large-orders"    ✅ (Amount > 5000 AND Region = eastus)
+     └── sub "audit"           ✅ (all messages)
+</div>
+
+<h2>Pattern 4: Filter Actions — Transform in Flight</h2>
+
+<p>Filter actions modify message <strong>application properties</strong> before they land in the subscription. The original message on the topic is unchanged — only the subscription's copy is modified.</p>
+
+<pre>// Example: Apply a regional discount before consumers see the message
+CreateRuleOptions discountRule = new CreateRuleOptions("eastus-discount",
+    new SqlRuleFilter("Region = 'eastus'"),
+    new SqlRuleAction(
+        "SET Amount = Amount * 0.85; " +
+        "SET AppliedDiscount = '15%'; " +
+        "SET DiscountedBy = 'region-promo'"
+    ));
+
+adminClient.createRule("orders", "fulfillment-eastus", discountRule);
+
+// The consumer reading from "fulfillment-eastus" sees Amount at 85%
+// Consumers reading from other subscriptions see the original Amount</pre>
+
+<div class="card warn-left">
+  <strong>⚠️ Actions cannot modify the message body or system properties.</strong> You can SET, REMOVE, or update application properties only. Changing system properties like <code>MessageId</code> or <code>SessionId</code> can break deduplication and session routing.
+</div>
+
+<h2>SQL Filter Language Reference</h2>
+
+<table>
+  <thead>
+    <tr><th>Operation</th><th>Syntax</th><th>Example</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Equals</td><td><code>=</code></td><td><code>Priority = 'High'</code></td></tr>
+    <tr><td>Not equals</td><td><code>&lt;&gt;</code></td><td><code>Region &lt;&gt; 'westus'</code></td></tr>
+    <tr><td>Greater/less than</td><td><code>&gt; &lt; &gt;= &lt;=</code></td><td><code>Amount &gt; 1000</code></td></tr>
+    <tr><td>AND / OR / NOT</td><td><code>AND OR NOT</code></td><td><code>Priority = 'High' AND Amount &gt; 1000</code></td></tr>
+    <tr><td>Property exists</td><td><code>EXISTS</code></td><td><code>EXISTS(DiscountCode)</code></td></tr>
+    <tr><td>Null check</td><td><code>IS NULL</code></td><td><code>DiscountCode IS NULL</code></td></tr>
+    <tr><td>Pattern matching</td><td><code>LIKE</code></td><td><code>Email LIKE '%@contoso.com'</code></td></tr>
+    <tr><td>System properties</td><td><code>sys.</code> prefix</td><td><code>sys.Label = 'order'</code></td></tr>
+    <tr><td>Arithmetic</td><td><code>+ - * /</code></td><td><code>Amount * Quantity &gt; 5000</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Check Your Understanding</h2>
+
+<div class="quiz" id="quiz">
+
+  <div class="question" id="q1">
+    <span class="q-label">Q1. You have a topic "orders" with subscriptions "audit" (TrueFilter), "high-priority" (Priority = 'High'), and "large" (Amount > 5000). You publish an order with Priority=High AND Amount=7500. How many copies does the broker create?</span>
+    <label><input type="radio" name="q1" value="a"> 1 — the message is delivered once</label>
+    <label><input type="radio" name="q1" value="b"> 3 — one for each matching subscription</label>
+    <label><input type="radio" name="q1" value="c"> 2 — high-priority and large, because they match the filters</label>
+    <div class="feedback" id="q1-fb"></div>
+    <button class="check-btn" onclick="checkQ1()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q2">
+    <span class="q-label">Q2. You need to route messages to different microservices based on event type. You have 20 event types and expect very high throughput (1,000+ msg/sec). Which filter type should you prefer?</span>
+    <label><input type="radio" name="q2" value="a"> SQL filters: <code>EventType = 'OrderCreated'</code></label>
+    <label><input type="radio" name="q2" value="b"> Correlation filters matching on Subject or a custom property</label>
+    <label><input type="radio" name="q2" value="c"> Create 20 separate topics, one per event type</label>
+    <div class="feedback" id="q2-fb"></div>
+    <button class="check-btn" onclick="checkQ2()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q3">
+    <span class="q-label">Q3. A subscription has two rules: Rule A (with a filter and action) and Rule B (with a filter, no action). A message matches both rules. How many copies land on the subscription?</span>
+    <label><input type="radio" name="q3" value="a"> 1 — the rules combine with OR</label>
+    <label><input type="radio" name="q3" value="b"> 2 — one from Rule A (with action) and one from the combined non-action rules (Rule B)</label>
+    <label><input type="radio" name="q3" value="c"> 2 — each rule produces its own copy</label>
+    <div class="feedback" id="q3-fb"></div>
+    <button class="check-btn" onclick="checkQ3()">Check Answer</button>
+  </div>
+
+</div>
+
+<script>
+function showFeedback(qId, isCorrect, correctMsg, incorrectMsg) {
+  const fb = document.getElementById(qId + '-fb');
+  fb.style.display = 'block';
+  if (isCorrect) {
+    fb.textContent = '✅ Correct! ' + correctMsg;
+    fb.className = 'feedback correct';
+  } else {
+    fb.textContent = '❌ ' + incorrectMsg;
+    fb.className = 'feedback incorrect';
+  }
+}
+
+function checkQ1() {
+  const sel = document.querySelector('input[name="q1"]:checked');
+  if (!sel) return;
+  showFeedback('q1', sel.value === 'b',
+    'All three subscriptions match: "audit" gets everything, "high-priority" matches Priority=High, and "large" matches Amount>5000. Every matching subscription gets its own independent copy. This is the key difference from queue-based competing consumers.',
+    sel.value === 'a' ? 'Incorrect. Topics create copies for each matching subscription — unlike queues where each message goes to exactly one consumer. All three subscriptions match this message.' : 'Incorrect. All three subscriptions match: audit gets everything, high-priority matches, AND large matches. Every matching subscription gets a copy.'
+  );
+}
+
+function checkQ2() {
+  const sel = document.querySelector('input[name="q2"]:checked');
+  if (!sel) return;
+  showFeedback('q2', sel.value === 'b',
+    'Correct. Correlation filters use hash-based matching and are significantly faster than SQL filters at high throughput. Set the event type as the Subject or a custom application property, and use correlation filters for exact-match routing. This is the recommended performant approach.',
+    sel.value === 'a' ? 'SQL filters work but are slower — at 1,000+ msg/sec the parsing overhead adds up. For simple property matching, correlation filters are much more efficient.' : '20 separate topics works but adds management complexity. A single topic with correlation-filtered subscriptions is cleaner and more maintainable.'
+  );
+}
+
+function checkQ3() {
+  const sel = document.querySelector('input[name="q3"]:checked');
+  if (!sel) return;
+  showFeedback('q3', sel.value === 'b',
+    'Correct. Rules WITH actions each produce their own copy. Rules WITHOUT actions are combined via OR and produce a single copy. So you get: 1 copy from Rule A (action) + 1 copy from the OR-combined non-action rules (just Rule B here) = 2 copies total.',
+    sel.value === 'a' ? 'Not quite. When a rule has an action, it always produces its own copy — actions transform the message, so combining them via OR would lose information. Only rules without actions are OR-combined.' : 'Close, but not exactly. Rules without actions are combined with OR and produce one copy combined. Only rules with actions produce individual copies. So: 1 (action rule) + 1 (OR of non-action rules) = 2.'
+  );
+}
+</script>
+
+<h2>Key Takeaways</h2>
+
+<div class="card success-left">
+  <ul style="padding-left:1.3rem;">
+    <li><strong>Topics send copies, not references.</strong> Each matching subscription gets its own independent copy of the message, with its own lock, delivery count, and DLQ.</li>
+    <li><strong>Prefer correlation filters over SQL filters.</strong> They're faster (hash match vs. expression eval) and have less throughput impact. Use SQL only when you need arithmetic, LIKE, or compound conditions.</li>
+    <li><strong>Rules with actions produce separate copies.</strong> Rules without actions combine via OR. Plan your rule count — each rule with an action adds broker CPU overhead.</li>
+    <li><strong>Sending to a topic is identical to sending to a queue.</strong> Receiving from a subscription is identical to receiving from a queue. The only difference is in entity setup.</li>
+    <li><strong>Each subscription has its own DLQ.</strong> A message can succeed on one subscription and dead-letter on another — they're independent.</li>
+  </ul>
+</div>
+
+<div class="lesson-footer">
+  <p><strong>📚 References:</strong>
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/topic-filters" target="_blank">Topic Filters</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-queues-topics-subscriptions" target="_blank">Queues, Topics &amp; Subscriptions</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-sql-filter" target="_blank">SQL Filter Syntax</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-auto-forwarding" target="_blank">Autoforwarding (chaining)</a> ·
+    <a href="../reference/glossary.html" target="_blank">Glossary</a>
+  </p>
+
+  <p><strong>💻 Practice:</strong> Create a topic with 4 subscriptions using different filter types. Publish 50 messages with varied properties and verify each subscription only receives what it should. Try a filter action — publish messages with <code>Amount=100</code> and use an action to double it; verify the subscribing consumer sees <code>Amount=200</code>.</p>
+
+  <p><strong>❓ Questions?</strong> Ask me about filter performance trade-offs at scale, combining filters with autoforwarding for complex routing topologies, or how this compares to Kafka topics and RabbitMQ exchanges.</p>
+
+  <p><strong>📂 Next lesson:</strong> <em>Lesson 5: Message Sessions — Ordered Processing and Workflows</em> — we'll cover FIFO guarantees, session state, and request-response patterns.</p>
+</div>
+
+</body>
+</html>

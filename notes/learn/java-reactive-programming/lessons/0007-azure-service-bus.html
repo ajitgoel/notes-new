@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 7 — Azure Service Bus with Reactive Streams</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;--highlight:#2a3556;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.75;font-size:16px;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:baseline;gap:2rem;}
+  .lesson-number{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .lesson-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:#fff;}
+  .progress-bar{height:3px;background:var(--border);position:relative;}
+  .progress-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:87.5%;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+  .container{max-width:860px;margin:0 auto;padding:3rem 2rem;}
+  h2{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;margin:2.5rem 0 1rem;padding-left:1rem;border-left:3px solid var(--accent);}
+  h3{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent3);letter-spacing:.08em;text-transform:uppercase;margin:1.8rem 0 .6rem;}
+  p{margin-bottom:1rem;}
+  a{color:var(--accent);}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;overflow-x:auto;margin:1.2rem 0;font-family:'DM Mono',monospace;font-size:.85rem;line-height:1.6;}
+  code{font-family:'DM Mono',monospace;font-size:.85em;background:var(--code-bg);padding:.15em .4em;border-radius:3px;color:#c5d0f0;}
+  pre code{background:none;padding:0;}
+  .kw{color:#7aa2f7;}.ty{color:#bb9af7;}.str{color:#9ece6a;}.cm{color:#565f89;font-style:italic;}.num{color:#ff9e64;}.fn{color:#7dcfff;}.ann{color:#e0af68;}
+  .callout{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:1.2rem 1.5rem;margin:1.5rem 0;}
+  .callout.danger{border-left-color:var(--accent2);}
+  .callout.success{border-left-color:var(--accent3);}
+  .callout.warn{border-left-color:var(--accent4);}
+  .callout-label{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;color:var(--accent);}
+  .callout.danger .callout-label{color:var(--accent2);}
+  .callout.success .callout-label{color:var(--accent3);}
+  .callout.warn .callout-label{color:var(--accent4);}
+  .event-flow{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin:1.2rem 0;display:flex;flex-direction:column;gap:.4rem;font-family:'DM Mono',monospace;font-size:.78rem;}
+  .ef-row{display:flex;align-items:center;gap:.6rem;}
+  .ef-box{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.3rem .8rem;white-space:nowrap;}
+  .ef-box.blue{border-color:var(--accent);color:var(--accent);}
+  .ef-box.green{border-color:var(--accent3);color:var(--accent3);}
+  .ef-box.orange{border-color:var(--accent4);color:var(--accent4);}
+  .ef-box.red{border-color:var(--accent2);color:var(--accent2);}
+  .ef-arr{color:var(--muted);}
+  .quiz-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2rem;margin:2.5rem 0;}
+  .quiz-q{font-family:'Fraunces',serif;font-size:1.1rem;color:#fff;margin-bottom:1.2rem;}
+  .quiz-options{display:flex;flex-direction:column;gap:.6rem;}
+  .quiz-opt{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1.2rem;cursor:pointer;transition:all .15s;font-size:.88rem;text-align:left;color:var(--text);width:100%;font-family:'DM Mono',monospace;}
+  .quiz-opt:hover{border-color:var(--accent);background:var(--highlight);}
+  .quiz-opt.correct{border-color:var(--accent3);background:#0e3322;color:var(--accent3);}
+  .quiz-opt.wrong{border-color:var(--accent2);background:#3e1520;color:var(--accent2);}
+  .quiz-feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:6px;font-size:.9rem;display:none;}
+  .quiz-feedback.show{display:block;}
+  .quiz-feedback.correct{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .quiz-feedback.wrong{background:#3e1520;color:#f0a0b0;border:1px solid var(--accent2);}
+  .footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.2rem 0;}
+  .col-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1.2rem;}
+  .col-card h4{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="lesson-number">Lesson 07 / 08</span>
+  <span class="lesson-title">Azure Service Bus with Reactive Streams</span>
+</div>
+<div class="progress-bar"></div>
+
+<div class="container">
+
+  <p>This lesson ties everything together for Empower PMS's event-driven architecture. Azure Service Bus is the messaging backbone connecting your microservices — prescription fill events, inventory updates, DEA reporting triggers. You'll wire Service Bus to Reactor using two approaches: Spring Cloud Azure's binder (declarative) and the raw SDK (imperative/custom).</p>
+
+  <h2>Empower PMS Event Topology</h2>
+
+  <div class="event-flow">
+    <div class="ef-row">
+      <div class="ef-box blue">PMS API</div>
+      <span class="ef-arr">→ topic: rx-events →</span>
+      <div class="ef-box green">Fill Service</div>
+      <span class="ef-arr">→ topic: rx-filled →</span>
+      <div class="ef-box orange">Inventory Svc</div>
+    </div>
+    <div class="ef-row" style="margin-top:.3rem;">
+      <div class="ef-box blue">PMS API</div>
+      <span class="ef-arr">→ topic: rx-events →</span>
+      <div class="ef-box green">DEA Reporting</div>
+    </div>
+    <div class="ef-row" style="margin-top:.3rem;">
+      <div class="ef-box orange">Inventory Svc</div>
+      <span class="ef-arr">→ topic: inventory-alerts →</span>
+      <div class="ef-box red">Notification Svc</div>
+    </div>
+  </div>
+
+  <h2>Approach 1: Spring Cloud Stream Binder (Recommended)</h2>
+  <p>The simplest way. Spring Cloud Azure's Service Bus binder maps <code>Consumer&lt;Flux&lt;T&gt;&gt;</code> and <code>Supplier&lt;Flux&lt;T&gt;&gt;</code> beans to Service Bus topics automatically.</p>
+
+  <h3>Dependencies</h3>
+  <pre><code><span class="cm">&lt;!-- pom.xml --&gt;</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;com.azure.spring&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-azure-stream-binder-servicebus&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-stream&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+
+  <h3>application.yml</h3>
+  <pre><code>spring:
+  cloud:
+    azure:
+      servicebus:
+        connection-string: ${AZURE_SERVICE_BUS_CONNECTION_STRING}
+    stream:
+      bindings:
+        publishRxEvent-out-0:
+          destination: rx-events
+        processRxFilled-in-0:
+          destination: rx-filled
+          group: fill-service-sub
+      servicebus:
+        bindings:
+          processRxFilled-in-0:
+            consumer:
+              max-concurrent-calls: 10
+              max-concurrent-sessions: 5</code></pre>
+
+  <h3>Publisher: Supplier&lt;Flux&lt;T&gt;&gt;</h3>
+  <pre><code><span class="ann">@Configuration</span>
+<span class="kw">public class</span> <span class="ty">RxEventPublisher</span> {
+
+    <span class="cm">// Sinks.Many is a hot publisher — push events into it from anywhere</span>
+    <span class="kw">private final</span> <span class="ty">Sinks</span>.<span class="ty">Many</span>&lt;<span class="ty">RxEvent</span>&gt; sink =
+        <span class="ty">Sinks</span>.<span class="fn">many</span>().<span class="fn">multicast</span>().<span class="fn">onBackpressureBuffer</span>(<span class="num">1000</span>);
+
+    <span class="cm">// Spring Cloud Stream calls this to get the Flux to publish</span>
+    <span class="ann">@Bean</span>
+    <span class="kw">public</span> <span class="ty">Supplier</span>&lt;<span class="ty">Flux</span>&lt;<span class="ty">RxEvent</span>&gt;&gt; <span class="fn">publishRxEvent</span>() {
+        <span class="kw">return</span> sink::asFlux;
+    }
+
+    <span class="cm">// Call this from your service layer to emit an event</span>
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; <span class="fn">emit</span>(<span class="ty">RxEvent</span> event) {
+        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">fromRunnable</span>(() -&gt; {
+            <span class="ty">Sinks</span>.<span class="ty">EmitResult</span> result = sink.<span class="fn">tryEmitNext</span>(event);
+            <span class="kw">if</span> (result.<span class="fn">isFailure</span>()) {
+                <span class="kw">throw</span> <span class="kw">new</span> <span class="ty">RuntimeException</span>(<span class="str">"Emit failed: "</span> + result);
+            }
+        });
+    }
+}</code></pre>
+
+  <h3>Consumer: Consumer&lt;Flux&lt;T&gt;&gt;</h3>
+  <pre><code><span class="ann">@Configuration</span>
+<span class="kw">public class</span> <span class="ty">RxFilledConsumer</span> {
+
+    <span class="kw">private final</span> <span class="ty">InventoryService</span> inventorySvc;
+
+    <span class="cm">// Spring Cloud Stream injects the Flux from Service Bus</span>
+    <span class="ann">@Bean</span>
+    <span class="kw">public</span> <span class="ty">Consumer</span>&lt;<span class="ty">Flux</span>&lt;<span class="ty">Message</span>&lt;<span class="ty">RxFilledEvent</span>&gt;&gt;&gt; <span class="fn">processRxFilled</span>() {
+        <span class="kw">return</span> messages -&gt; messages
+            .<span class="fn">flatMap</span>(
+                msg -&gt; <span class="fn">handleFilled</span>(msg.<span class="fn">getPayload</span>())
+                    .<span class="cm">// Acknowledge on success, dead-letter on failure</span>
+                    <span class="fn">doOnSuccess</span>(v -&gt; <span class="fn">ack</span>(msg))
+                    .<span class="fn">onErrorResume</span>(ex -&gt; {
+                        log.<span class="fn">error</span>(<span class="str">"Process failed, dead-lettering: {}"</span>, msg.<span class="fn">getPayload</span>(), ex);
+                        <span class="fn">deadLetter</span>(msg, ex.<span class="fn">getMessage</span>());
+                        <span class="kw">return</span> <span class="ty">Mono</span>.<span class="fn">empty</span>();
+                    }),
+                <span class="num">10</span>  <span class="cm">// concurrency — matches max-concurrent-calls in yml</span>
+            )
+            .<span class="fn">subscribe</span>();
+    }
+
+    <span class="kw">private</span> <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; <span class="fn">handleFilled</span>(<span class="ty">RxFilledEvent</span> event) {
+        <span class="kw">return</span> inventorySvc.<span class="fn">decrementStock</span>(event.<span class="fn">getNdc</span>(), event.<span class="fn">getQuantity</span>())
+            .<span class="fn">flatMap</span>(updated -&gt; <span class="kw">updated</span>.<span class="fn">isLow</span>()
+                ? alertSvc.<span class="fn">sendLowStockAlert</span>(updated)
+                : <span class="ty">Mono</span>.<span class="fn">empty</span>());
+    }
+}</code></pre>
+
+  <h2>Approach 2: Raw Service Bus SDK (for custom control)</h2>
+  <p>When you need fine-grained control over sessions, DLQ processing, or scheduling — use the SDK directly:</p>
+
+  <pre><code><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="ty">ServiceBusReactiveClient</span> {
+
+    <span class="kw">private final</span> <span class="ty">ServiceBusSenderAsyncClient</span> sender;
+    <span class="kw">private final</span> <span class="ty">ServiceBusReceiverAsyncClient</span> receiver;
+
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; <span class="fn">send</span>(<span class="ty">RxEvent</span> event) {
+        <span class="ty">ServiceBusMessage</span> msg = <span class="kw">new</span> <span class="ty">ServiceBusMessage</span>(<span class="fn">serialize</span>(event))
+            .<span class="fn">setContentType</span>(<span class="str">"application/json"</span>)
+            .<span class="fn">setSubject</span>(event.<span class="fn">getType</span>())
+            .<span class="fn">setMessageId</span>(event.<span class="fn">getId</span>().<span class="fn">toString</span>());
+
+        <span class="kw">return</span> sender.<span class="fn">sendMessage</span>(msg)
+            .<span class="fn">retryWhen</span>(<span class="ty">Retry</span>.<span class="fn">backoff</span>(<span class="num">3</span>, <span class="ty">Duration</span>.<span class="fn">ofMillis</span>(<span class="num">500</span>)));
+    }
+
+    <span class="kw">public</span> <span class="ty">Flux</span>&lt;<span class="ty">ServiceBusReceivedMessage</span>&gt; <span class="fn">receive</span>() {
+        <span class="kw">return</span> receiver.<span class="fn">receiveMessages</span>()
+            .<span class="cm">// Process with bounded concurrency</span>
+            <span class="fn">flatMap</span>(msg -&gt; <span class="fn">process</span>(msg)
+                .<span class="fn">flatMap</span>(ok -&gt; receiver.<span class="fn">complete</span>(msg))
+                .<span class="fn">onErrorResume</span>(ex -&gt; receiver.<span class="fn">deadLetter</span>(msg,
+                    <span class="kw">new</span> <span class="ty">DeadLetterOptions</span>()
+                        .<span class="fn">setDeadLetterReason</span>(ex.<span class="fn">getMessage</span>()))),
+                <span class="num">10</span>
+            );
+    }
+
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; <span class="fn">scheduleMessage</span>(<span class="ty">RxEvent</span> event, <span class="ty">OffsetDateTime</span> at) {
+        <span class="ty">ServiceBusMessage</span> msg = <span class="kw">new</span> <span class="ty">ServiceBusMessage</span>(<span class="fn">serialize</span>(event));
+        <span class="kw">return</span> sender.<span class="fn">scheduleMessage</span>(msg, at).<span class="fn">then</span>();
+    }
+}</code></pre>
+
+  <div class="callout success">
+    <div class="callout-label">Sinks.Many — Bridging Imperative to Reactive</div>
+    <code>Sinks.Many&lt;T&gt;</code> is Reactor's thread-safe way to programmatically push items into a Flux from imperative code (e.g. a REST endpoint that triggers an event). Think of it as a reactive queue you can push into from anywhere. Use <code>tryEmitNext()</code> — never <code>emitNext()</code> from concurrent threads.
+  </div>
+
+  <div class="two-col">
+    <div class="col-card">
+      <h4>Sinks.many().unicast()</h4>
+      <p style="font-size:.85rem;">Only one subscriber. Fast — no fan-out overhead. Use for pipeline hand-off between two components.</p>
+    </div>
+    <div class="col-card">
+      <h4>Sinks.many().multicast()</h4>
+      <p style="font-size:.85rem;">Multiple subscribers see the same items. Use for fan-out (e.g. audit log + inventory update both receive rx-filled events).</p>
+    </div>
+  </div>
+
+  <!-- Quiz -->
+  <div class="quiz-section">
+    <p style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.1em;margin-bottom:1rem;">KNOWLEDGE CHECK</p>
+
+    <div id="q1">
+      <p class="quiz-q">A Service Bus message fails processing. What's the correct reactive pattern — acknowledge, ignore, or dead-letter?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q1',this,false)">Acknowledge — it'll be redelivered automatically</button>
+        <button class="quiz-opt" onclick="answer('q1',this,false)">Swallow the error with Mono.empty() and move on</button>
+        <button class="quiz-opt" onclick="answer('q1',this,true)">Dead-letter with a reason, then return Mono.empty() to keep the consumer alive</button>
+      </div>
+      <div id="q1-feedback" class="quiz-feedback"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.8rem 0;">
+
+    <div id="q2">
+      <p class="quiz-q">You need to push an event into a Flux from a REST controller handler. What do you use?</p>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="answer('q2',this,true)">Sinks.Many&lt;T&gt; — push via tryEmitNext(), expose as Flux via asFlux()</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Flux.create() with a FluxSink stored as a field</button>
+        <button class="quiz-opt" onclick="answer('q2',this,false)">Subject from RxJava</button>
+      </div>
+      <div id="q2-feedback" class="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">Ask your teacher</div>
+    How do you handle Service Bus sessions (ordered message delivery)? How do you process the Dead Letter Queue reactively? Ask in chat.
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Lesson 07 / 08 — Reactive Java @ Empower PMS</span>
+  <span>Next: <strong>Lesson 08 — Testing Reactive Code</strong></span>
+</div>
+
+<script>
+const fb={
+  q1:{w:"Not acknowledging leaves the message locked — it'll redeliver after the lock timeout, causing duplicate processing. Dead-lettering is explicit: it removes the message from the main queue and preserves it for inspection.",r:"Correct. Dead-lettering moves poison messages to the DLQ where they can be inspected, replayed, or discarded. Return Mono.empty() so the consumer stream continues processing the next message."},
+  q2:{w:"FluxSink stored as a field is not thread-safe and has complex lifecycle management. Sinks.Many is the modern Reactor API designed for exactly this use case.",r:"Correct. Sinks.Many is Reactor's thread-safe, lifecycle-managed bridge between imperative push and reactive pull. It replaced the older FluxSink field pattern."}
+};
+function answer(qid,btn,correct){
+  const s=document.getElementById(qid);
+  s.querySelectorAll('.quiz-opt').forEach(o=>{o.disabled=true;});
+  btn.classList.add(correct?'correct':'wrong');
+  if(!correct)s.querySelectorAll('.quiz-opt').forEach(o=>{if(o.onclick.toString().includes('true'))o.classList.add('correct');});
+  const el=document.getElementById(qid+'-feedback');
+  el.textContent=(correct?'✓ ':'✗ ')+fb[qid][correct?'r':'w'];
+  el.className='quiz-feedback show '+(correct?'correct':'wrong');
+}
+</script>
+</body>
+</html>

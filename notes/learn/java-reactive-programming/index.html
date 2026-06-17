@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reactive Java — Empower PMS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1c2030;--border:#252a38;--accent:#5b8dee;--accent2:#e85d75;--accent3:#52d9a4;--accent4:#f4a261;--text:#d4daf0;--muted:#6b7594;--code-bg:#0a0c10;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.75;font-size:16px;}
+
+  .hero{padding:4rem 3rem 3rem;max-width:860px;margin:0 auto;}
+  .hero-tag{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem;}
+  .hero-title{font-family:'Fraunces',serif;font-size:3rem;font-weight:700;color:#fff;line-height:1.15;margin-bottom:1rem;}
+  .hero-title em{font-style:italic;color:var(--accent3);}
+  .hero-sub{font-size:1.05rem;color:var(--muted);max-width:580px;line-height:1.7;}
+
+  .progress-strip{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1rem 3rem;display:flex;align-items:center;gap:1.5rem;}
+  .strip-label{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);}
+  .strip-bar{flex:1;height:6px;background:var(--border);border-radius:3px;max-width:300px;position:relative;overflow:hidden;}
+  .strip-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:width .4s;}
+  .strip-pct{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent3);}
+  .strip-link{margin-left:auto;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;}
+  .strip-link:hover{border-bottom-color:var(--accent);}
+
+  .main{max-width:860px;margin:0 auto;padding:2rem 3rem 4rem;}
+
+  h2{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff;margin:2.5rem 0 1rem;padding-left:1rem;border-left:3px solid var(--accent);}
+
+  .lesson-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:1rem 0;}
+  .lesson-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.3rem;text-decoration:none;color:var(--text);display:flex;gap:1rem;align-items:flex-start;transition:border-color .15s;}
+  .lesson-card:hover{border-color:var(--accent);}
+  .lc-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);min-width:28px;padding-top:.15rem;}
+  .lc-body{}
+  .lc-title{font-size:.92rem;font-weight:400;color:#fff;margin-bottom:.2rem;}
+  .lc-desc{font-size:.78rem;color:var(--muted);line-height:1.5;}
+  .lc-badge{font-family:'DM Mono',monospace;font-size:.65rem;padding:.15em .5em;border-radius:3px;margin-top:.4rem;display:inline-block;}
+  .badge-foundation{background:#1a2a5e;color:var(--accent);border:1px solid var(--accent);}
+  .badge-core{background:#0e3322;color:var(--accent3);border:1px solid var(--accent3);}
+  .badge-applied{background:#3d2200;color:var(--accent4);border:1px solid var(--accent4);}
+  .badge-integration{background:#2e1a3e;color:#bb9af7;border:1px solid #bb9af7;}
+
+  .ref-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1rem 0;}
+  .ref-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 1.2rem;text-decoration:none;color:var(--text);transition:border-color .15s;}
+  .ref-card:hover{border-color:var(--accent3);}
+  .ref-icon{font-size:1.2rem;margin-bottom:.4rem;}
+  .ref-title{font-size:.88rem;font-weight:400;color:#fff;margin-bottom:.2rem;}
+  .ref-desc{font-size:.75rem;color:var(--muted);}
+
+  .callout{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent4);border-radius:6px;padding:1.2rem 1.5rem;margin:1.5rem 0;}
+  .callout-label{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent4);margin-bottom:.4rem;}
+
+  @media(max-width:600px){
+    .hero{padding:2.5rem 1.5rem 2rem;}
+    .hero-title{font-size:2rem;}
+    .main{padding:1.5rem 1.5rem 3rem;}
+    .lesson-grid,.ref-grid{grid-template-columns:1fr;}
+    .progress-strip{padding:1rem 1.5rem;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">Reactive Java · 8 lessons · Empower PMS</div>
+  <h1 class="hero-title">Java Reactive<br>Programming<br><em>from first principles</em></h1>
+  <p class="hero-sub">Project Reactor · Spring WebFlux · Azure Service Bus · R2DBC · StepVerifier — everything you need to build the non-blocking backbone of Empower PMS.</p>
+</div>
+
+<div class="progress-strip">
+  <span class="strip-label">progress</span>
+  <div class="strip-bar"><div class="strip-fill" id="stripFill" style="width:0%"></div></div>
+  <span class="strip-pct" id="stripPct">0 / 8</span>
+  <a href="learning-records/progress.html" class="strip-link">open full tracker →</a>
+</div>
+
+<div class="main">
+
+  <h2>Lessons</h2>
+
+  <div class="lesson-grid">
+    <a href="lessons/0001-why-reactive-and-the-contract.html" class="lesson-card">
+      <span class="lc-num">01</span>
+      <div class="lc-body">
+        <div class="lc-title">Why Reactive & The Publisher/Subscriber Contract</div>
+        <div class="lc-desc">The blocking problem, Reactive Streams spec, Mono vs Flux, cold vs hot publishers.</div>
+        <span class="lc-badge badge-foundation">foundation</span>
+      </div>
+    </a>
+    <a href="lessons/0002-core-operators.html" class="lesson-card">
+      <span class="lc-num">02</span>
+      <div class="lc-body">
+        <div class="lc-title">Core Operators: map, flatMap, filter, zip</div>
+        <div class="lc-desc">The operators you'll use in 80% of pipelines. Async vs sync transforms, parallel lookups.</div>
+        <span class="lc-badge badge-foundation">foundation</span>
+      </div>
+    </a>
+    <a href="lessons/0003-error-handling.html" class="lesson-card">
+      <span class="lc-num">03</span>
+      <div class="lc-body">
+        <div class="lc-title">Error Handling in Reactive Streams</div>
+        <div class="lc-desc">onErrorReturn, onErrorResume, onErrorMap, retry with backoff. Production resilience patterns.</div>
+        <span class="lc-badge badge-core">core</span>
+      </div>
+    </a>
+    <a href="lessons/0004-schedulers-and-threading.html" class="lesson-card">
+      <span class="lc-num">04</span>
+      <div class="lc-body">
+        <div class="lc-title">Schedulers & Threading</div>
+        <div class="lc-desc">subscribeOn vs publishOn, scheduler types, wrapping legacy JDBC, BlockHound.</div>
+        <span class="lc-badge badge-core">core</span>
+      </div>
+    </a>
+    <a href="lessons/0005-backpressure.html" class="lesson-card">
+      <span class="lc-num">05</span>
+      <div class="lc-body">
+        <div class="lc-title">Backpressure: Controlling the Flow</div>
+        <div class="lc-desc">Buffer, drop, latest, error strategies. limitRate. flatMap concurrency cap. Service Bus consumers.</div>
+        <span class="lc-badge badge-core">core</span>
+      </div>
+    </a>
+    <a href="lessons/0006-spring-webflux.html" class="lesson-card">
+      <span class="lc-num">06</span>
+      <div class="lc-body">
+        <div class="lc-title">Spring WebFlux Integration</div>
+        <div class="lc-desc">Reactive controllers, R2DBC repositories, WebClient, global error handling.</div>
+        <span class="lc-badge badge-applied">applied</span>
+      </div>
+    </a>
+    <a href="lessons/0007-azure-service-bus.html" class="lesson-card">
+      <span class="lc-num">07</span>
+      <div class="lc-body">
+        <div class="lc-title">Azure Service Bus with Reactive Streams</div>
+        <div class="lc-desc">Spring Cloud Azure binder, Sinks.Many publisher, raw SDK receiver, DLQ handling.</div>
+        <span class="lc-badge badge-integration">integration</span>
+      </div>
+    </a>
+    <a href="lessons/0008-testing-reactive-code.html" class="lesson-card">
+      <span class="lc-num">08</span>
+      <div class="lc-body">
+        <div class="lc-title">Testing Reactive Code</div>
+        <div class="lc-desc">StepVerifier, virtual time for retries, WebTestClient integration tests, Mockito with Reactor.</div>
+        <span class="lc-badge badge-applied">applied</span>
+      </div>
+    </a>
+  </div>
+
+  <h2>Reference</h2>
+
+  <div class="ref-grid">
+    <a href="reference/operators-cheatsheet.html" class="ref-card">
+      <div class="ref-icon">📋</div>
+      <div class="ref-title">Operators Cheatsheet</div>
+      <div class="ref-desc">All operators grouped by category. Printable. Day-to-day reference.</div>
+    </a>
+    <a href="reference/glossary.html" class="ref-card">
+      <div class="ref-icon">📖</div>
+      <div class="ref-title">Glossary</div>
+      <div class="ref-desc">Definitions for every term — Mono, Flux, backpressure, Sinks, Context, and more.</div>
+    </a>
+    <a href="reference/patterns-and-recipes.html" class="ref-card">
+      <div class="ref-icon">🍳</div>
+      <div class="ref-title">Patterns & Recipes</div>
+      <div class="ref-desc">Copy-paste patterns for the most common Empower PMS reactive scenarios.</div>
+    </a>
+  </div>
+
+  <h2>Supporting Files</h2>
+
+  <div class="ref-grid">
+    <a href="learning-records/progress.html" class="ref-card">
+      <div class="ref-icon">📊</div>
+      <div class="ref-title">Progress Tracker</div>
+      <div class="ref-desc">Mark lessons complete, take notes, track your learning journey.</div>
+    </a>
+    <a href="RESOURCES.md" class="ref-card">
+      <div class="ref-icon">🔗</div>
+      <div class="ref-title">Resources</div>
+      <div class="ref-desc">Official docs, Reactor reference, Spring Cloud Azure, RxMarbles, Stack Overflow tags.</div>
+    </a>
+    <a href="MISSION.md" class="ref-card">
+      <div class="ref-icon">🎯</div>
+      <div class="ref-title">Mission</div>
+      <div class="ref-desc">Why this curriculum exists. Success criteria and scope for Empower PMS.</div>
+    </a>
+  </div>
+
+  <div class="callout" style="margin-top:2.5rem;">
+    <div class="callout-label">Suggested order</div>
+    Work through lessons 01→08 in sequence — each builds on the last. If you're already comfortable with Mono/Flux basics, start at Lesson 03 (Error Handling). The reference sheets are designed for daily use alongside the Empower PMS codebase, not just learning.
+  </div>
+
+</div>
+
+<script>
+// Read progress from localStorage and update strip
+function updateStrip() {
+  try {
+    const s = JSON.parse(localStorage.getItem('reactive-java-progress') || '{}');
+    const complete = Object.values(s).filter(v => v === 'complete').length;
+    const pct = Math.round(complete / 8 * 100);
+    document.getElementById('stripFill').style.width = pct + '%';
+    document.getElementById('stripPct').textContent = complete + ' / 8';
+  } catch(e) {}
+}
+updateStrip();
+</script>
+</body>
+</html>

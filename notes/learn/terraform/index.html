@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Terraform Course — Empower PMS</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#58a6ff;--accent2:#3fb950;--accent3:#f78166;--accent4:#d2a8ff;--text:#e6edf3;--muted:#8b949e;--code-bg:#1c2128}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7}
+.hero{background:linear-gradient(135deg,#0d1117 0%,#0d1628 40%,#0d1f14 70%,#0d1117 100%);border-bottom:1px solid var(--border);padding:72px 64px 60px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-80px;width:500px;height:500px;background:radial-gradient(circle,rgba(88,166,255,.06),transparent 70%);border-radius:50%}
+.hero::after{content:'';position:absolute;bottom:-60px;left:-60px;width:400px;height:400px;background:radial-gradient(circle,rgba(63,185,80,.04),transparent 70%);border-radius:50%}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+h1{font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;line-height:1.05;margin-bottom:16px}
+h1 .dim{color:var(--muted)}
+.hero-sub{color:var(--muted);font-size:1.05rem;max-width:580px;margin-bottom:32px}
+.hero-stats{display:flex;gap:32px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent)}
+.stat-label{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.wrap{max-width:1000px;margin:0 auto;padding:56px 64px}
+h2{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;color:var(--text);margin:48px 0 20px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.lesson-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:48px}
+.lesson-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;text-decoration:none;color:inherit;transition:all .2s;display:block;position:relative}
+.lesson-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.lc-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.lc-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.lc-tag{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;border-radius:12px;border:1px solid}
+.tag-foundation{background:rgba(88,166,255,.1);color:var(--accent);border-color:rgba(88,166,255,.3)}
+.tag-state{background:rgba(63,185,80,.1);color:var(--accent2);border-color:rgba(63,185,80,.3)}
+.tag-inputs{background:rgba(210,168,255,.1);color:var(--accent4);border-color:rgba(210,168,255,.3)}
+.tag-expr{background:rgba(255,166,87,.1);color:#ffa657;border-color:rgba(255,166,87,.3)}
+.tag-modules{background:rgba(63,185,80,.1);color:var(--accent2);border-color:rgba(63,185,80,.3)}
+.tag-envs{background:rgba(255,166,87,.1);color:#ffa657;border-color:rgba(255,166,87,.3)}
+.tag-azure{background:rgba(88,166,255,.1);color:var(--accent);border-color:rgba(88,166,255,.3)}
+.tag-testing{background:rgba(227,179,65,.1);color:#e3b341;border-color:rgba(227,179,65,.3)}
+.lc-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px}
+.lc-desc{font-size:13px;color:var(--muted)}
+.lc-time{position:absolute;bottom:16px;right:18px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.ref-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.ref-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 22px;text-decoration:none;color:inherit;transition:all .2s;display:block}
+.ref-card:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.ref-icon{font-size:1.8rem;margin-bottom:10px}
+.ref-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:6px}
+.ref-desc{font-size:13px;color:var(--muted)}
+.tip-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 28px;margin-top:48px}
+.tip-box h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--accent2);margin-bottom:12px}
+.tip-box p{color:var(--muted);font-size:14px;margin-bottom:8px}
+.tip-box p:last-child{margin-bottom:0}
+.tip-box code{background:var(--code-bg);padding:2px 7px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent4)}
+footer{border-top:1px solid var(--border);padding:28px 64px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:13px}
+footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="eyebrow">Terraform Programming Course</div>
+  <h1>Infrastructure as Code<br><span class="dim">for Empower PMS</span></h1>
+  <p class="hero-sub">A complete 8-lesson Terraform curriculum tailored for building HIPAA-compliant pharmacy infrastructure on Azure — AKS, Key Vault, Service Bus, SQL Server, and beyond.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">8</div><div class="stat-label">Lessons</div></div>
+    <div class="stat"><div class="stat-num">30</div><div class="stat-label">Quiz Questions</div></div>
+    <div class="stat"><div class="stat-num">~5h</div><div class="stat-label">Total Time</div></div>
+    <div class="stat"><div class="stat-num">Azure</div><div class="stat-label">Platform</div></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <h2>📚 Lessons</h2>
+  <div class="lesson-grid">
+
+    <a class="lesson-card" href="lessons/0001-hcl-fundamentals.html">
+      <div class="lc-meta">
+        <span class="lc-num">01 / 08</span>
+        <span class="lc-tag tag-foundation">FOUNDATION</span>
+      </div>
+      <div class="lc-title">HCL Fundamentals &amp; Project Structure</div>
+      <div class="lc-desc">File layout, block types, type system, references, the core workflow.</div>
+      <div class="lc-time">~30 min</div>
+    </a>
+
+    <a class="lesson-card" href="lessons/0002-providers-state.html">
+      <div class="lc-meta">
+        <span class="lc-num">02 / 08</span>
+        <span class="lc-tag tag-state">STATE</span>
+      </div>
+      <div class="lc-title">Providers, State &amp; Azure Backend</div>
+      <div class="lc-desc">Provider plugins, what state is, remote backend on Blob Storage, authentication.</div>
+      <div class="lc-time">~35 min</div>
+    </a>
+
+    <a class="lesson-card" href="lessons/0003-variables-outputs.html">
+      <div class="lc-meta">
+        <span class="lc-num">03 / 08</span>
+        <span class="lc-tag tag-inputs">INPUTS</span>
+      </div>
+      <div class="lc-title">Variables, Outputs &amp; Locals</div>
+      <div class="lc-desc">Module input API, precedence rules, locals for derived values, sensitive outputs.</div>
+      <div class="lc-time">~30 min</div>
+    </a>
+
+    <a class="lesson-card" href="lessons/0004-expressions-functions.html">
+      <div class="lc-meta">
+        <span class="lc-num">04 / 08</span>
+        <span class="lc-tag tag-expr">EXPRESSIONS</span>
+      </div>
+      <div class="lc-title">Expressions, Functions &amp; Meta-Arguments</div>
+      <div class="lc-desc">count, for_each, dynamic blocks, for expressions, the 12 essential functions.</div>
+      <div class="lc-time">~35 min</div>
+    </a>
+
+    <a class="lesson-card" href="lessons/0005-modules.html">
+      <div class="lc-meta">
+        <span class="lc-num">05 / 08</span>
+        <span class="lc-tag tag-modules">MODULES</span>
+      </div>
+      <div class="lc-title">Modules: Reusable Infrastructure</div>
+      <div class="lc-desc">Root vs child modules, production layout, writing AKS/KV modules, module versioning.</div>
+      <div class="lc-time">~40 min</div>
+    </a>
+
+    <a class="lesson-card" href="lessons/0006-workspaces-envs.html">
+      <div class="lc-meta">
+        <span class="lc-num">06 / 08</span>
+        <span class="lc-tag tag-envs">ENVIRONMENTS</span>
+      </div>
+      <div class="lc-title">Workspaces &amp; Multi-Env Patterns</div>
+      <div class="lc-desc">Workspaces vs directory-per-env, HIPAA recommendation, CI/CD pipeline patterns.</div>
+      <div class="lc-time">~30 min</div>
+    </a>
+
+    <a class="lesson-card" href="lessons/0007-azure-core-resources.html">
+      <div class="lc-meta">
+        <span class="lc-num">07 / 08</span>
+        <span class="lc-tag tag-azure">AZURE</span>
+      </div>
+      <div class="lc-title">Azure Core Resources for Empower PMS</div>
+      <div class="lc-desc">Production Terraform for VNet, AKS, Key Vault, Service Bus, SQL Server — HIPAA config included.</div>
+      <div class="lc-time">~45 min</div>
+    </a>
+
+    <a class="lesson-card" href="lessons/0008-testing-best-practices.html">
+      <div class="lc-meta">
+        <span class="lc-num">08 / 08</span>
+        <span class="lc-tag tag-testing">TESTING</span>
+      </div>
+      <div class="lc-title">Testing, Linting &amp; Best Practices</div>
+      <div class="lc-desc">Testing pyramid, tflint, checkov, OPA/conftest, terraform test, golden rules.</div>
+      <div class="lc-time">~40 min</div>
+    </a>
+
+  </div>
+
+  <h2>📖 Reference</h2>
+  <div class="ref-grid">
+    <a class="ref-card" href="reference/GLOSSARY.md">
+      <div class="ref-icon">📘</div>
+      <div class="ref-title">Glossary</div>
+      <div class="ref-desc">Every Terraform term defined. CLI commands table. Type system quick reference.</div>
+    </a>
+    <a class="ref-card" href="reference/CHEATSHEET.md">
+      <div class="ref-icon">⚡</div>
+      <div class="ref-title">Cheatsheet</div>
+      <div class="ref-desc">Copy-paste patterns: for_each, dynamic blocks, merge tags, backend bootstrap, .gitignore.</div>
+    </a>
+    <a class="ref-card" href="learning-records/LEARNING-RECORD.md">
+      <div class="ref-icon">📝</div>
+      <div class="ref-title">Learning Record</div>
+      <div class="ref-desc">Track quiz scores, architecture decisions, open questions, and post-course build phases.</div>
+    </a>
+  </div>
+
+  <div class="tip-box">
+    <h3>💡 How to use this course</h3>
+    <p>Work through lessons in order — each builds on the last. Every lesson ends with a 3–4 question quiz; click answers for immediate feedback.</p>
+    <p>After finishing all 8, open <code>reference/CHEATSHEET.md</code> as your day-to-day reference while building Empower PMS. Use <code>learning-records/LEARNING-RECORD.md</code> to track your build phases.</p>
+    <p>Recommended next step after Lesson 8: start the <strong>Phase 2 networking module</strong> — VNet, AKS subnet, data subnet with service endpoints — then layer in AKS, Key Vault, Service Bus, and SQL one module at a time.</p>
+  </div>
+</div>
+
+<footer>
+  <div><strong style="color:var(--text)">Terraform Course</strong> — Built for Empower PMS &nbsp;|&nbsp; <a href="https://developer.hashicorp.com/terraform/docs" target="_blank">Official Docs ↗</a> &nbsp;|&nbsp; <a href="https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs" target="_blank">azurerm Provider ↗</a></div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">8 lessons · 30 questions · ~5 hours</div>
+</footer>
+</body>
+</html>

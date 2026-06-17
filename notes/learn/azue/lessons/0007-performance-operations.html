@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 7: Performance &amp; Operations</title>
+<style>
+  :root {
+    --bg: #fcfcfc; --text: #1a1a1a; --muted: #5a5a5a;
+    --accent: #0078d4; --accent-hover: #005a9e; --success: #107c10; --warn: #d83b01;
+    --border: #e1e1e1; --card-bg: #fff; --code-bg: #f4f4f4; --highlight: #fff4ce;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem;
+  }
+  h1 { font-size: 2rem; margin-bottom: 0.2rem; font-weight: 700; }
+  h2 { font-size: 1.35rem; margin: 2.5rem 0 0.8rem; font-weight: 600; color: #111; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.4rem; margin: 1rem 0;
+  }
+  .card.accent-left { border-left: 4px solid var(--accent); }
+  .card.warn-left { border-left: 4px solid var(--warn); }
+  .card.success-left { border-left: 4px solid var(--success); }
+  pre {
+    background: #1e1e1e; color: #d4d4d4; padding: 1.2rem 1.4rem;
+    border-radius: var(--radius); overflow-x: auto; font-size: 0.84rem;
+    line-height: 1.55; margin: 0.8rem 0;
+  }
+  :not(pre) > code {
+    background: var(--code-bg); padding: 0.15em 0.4em;
+    border-radius: 3px; color: #333; font-size: 0.88em;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem;
+  }
+  th {
+    text-align: left; font-weight: 600; padding: 0.6rem 0.8rem;
+    background: var(--code-bg); border-bottom: 2px solid var(--border);
+  }
+  td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .quiz .question {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0;
+  }
+  .quiz .q-label { font-weight: 600; margin-bottom: 0.8rem; display: block; }
+  .quiz label {
+    display: block; padding: 0.45rem 0.8rem; margin: 0.2rem 0;
+    border-radius: 6px; cursor: pointer; transition: background 0.15s;
+  }
+  .quiz label:hover { background: #f0f6ff; }
+  .quiz input[type="radio"] { margin-right: 0.5rem; }
+  .quiz .feedback {
+    margin-top: 0.7rem; padding: 0.7rem 1rem; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 500; display: none;
+  }
+  .quiz .feedback.correct {
+    display: block; background: #dff6dd; color: #0b4a0b; border: 1px solid #c6e6c4;
+  }
+  .quiz .feedback.incorrect {
+    display: block; background: #fde7e9; color: #8b1a1a; border: 1px solid #f5c6cb;
+  }
+  .quiz .check-btn {
+    background: var(--accent); color: white; border: none;
+    padding: 0.5rem 1.2rem; border-radius: 6px; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer; margin-top: 0.6rem;
+  }
+  .quiz .check-btn:hover { background: var(--accent-hover); }
+  .lesson-footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--border);
+    color: var(--muted); font-size: 0.9rem;
+  }
+  .lesson-footer a { color: var(--accent); }
+  .cite { font-size: 0.78rem; color: var(--muted); margin-left: 0.3rem; }
+  .cite a { color: var(--muted); text-decoration: underline; text-decoration-style: dotted; }
+  @media print {
+    body { font-size: 11pt; max-width: 100%; }
+    pre { background: #f4f4f4; color: #1a1a1a; border: 1px solid #ddd; }
+    .quiz { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Lesson 7: Performance &amp; Operations</h1>
+<p class="meta">Estimated time: 20–25 minutes &nbsp;|&nbsp; Focus: Throughput Tuning, Monitoring, Geo-Replication</p>
+
+<div class="card accent-left">
+  <strong>🎯 What you'll learn</strong><br>
+  How to <strong>tune throughput</strong> with prefetch, batching, and partitioning; how to <strong>monitor and alert</strong> on key metrics; how to configure <strong>geo-replication</strong> for disaster recovery; and how to plan <strong>messaging unit capacity</strong> in Premium tier.
+</div>
+
+<h2>Part 1: Throughput Tuning</h2>
+
+<h3>Prefetch: The Biggest Lever</h3>
+
+<p>Prefetch downloads messages into a local cache before your code asks for them, dramatically reducing round trips. Default is 0 (disabled).<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-performance-improvements" target="_blank">[source]</a></span></p>
+
+<table>
+  <thead>
+    <tr><th>Setting</th><th>Guideline</th><th>Tradeoff</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>prefetchCount = 0</code></td>
+      <td>Default — no prefetch</td>
+      <td>Lowest latency per-message, more round trips</td>
+    </tr>
+    <tr>
+      <td><code>prefetchCount = 20 × processing_rate</code></td>
+      <td>High throughput (recommended starting point)</td>
+      <td>Higher throughput, messages locked in cache until processed</td>
+    </tr>
+    <tr>
+      <td><code>prefetchCount too high</code></td>
+      <td>Messages expire in cache while locked</td>
+      <td>Wasted locks, redelivery, confused consumers</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre>// Configure prefetch on receiver
+ServiceBusReceiverAsyncClient receiver = new ServiceBusClientBuilder()
+    .connectionString(connectionString)
+    .receiver()
+    .queueName("orders")
+    .prefetchCount(200)               // cache 200 messages locally
+    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+    .buildAsyncClient();
+
+// Or on processor
+ServiceBusProcessorClient processor = new ServiceBusClientBuilder()
+    .connectionString(connectionString)
+    .processor()
+    .queueName("orders")
+    .prefetchCount(200)
+    .maxConcurrentCalls(20)
+    .buildProcessorClient();</pre>
+
+<h3>Concurrent Operations &amp; Client Reuse</h3>
+
+<div class="card success-left">
+  <ol style="padding-left:1.3rem;margin:0;">
+    <li><strong>Reuse clients.</strong> Create <code>ServiceBusSenderAsyncClient</code> and <code>ServiceBusProcessorClient</code> as Spring singletons. The AMQP connection is expensive — don't create per-message.</li>
+    <li><strong>Send asynchronously and concurrently.</strong> Don't await each send sequentially. Fire multiple sends and await them together with <code>Mono.when()</code>.</li>
+    <li><strong>Use <code>maxConcurrentCalls</code></strong> on the processor to control parallel message processing. Default is 1 — increase for higher throughput.</li>
+    <li><strong>AMQP is faster than HTTP.</strong> The SDK uses AMQP by default. Never use HTTP for production throughput.</li>
+  </ol>
+</div>
+
+<pre>// BAD: sequential sends
+for (Order order : orders) {
+    sender.sendMessage(toMessage(order)).block(); // blocks N times
+}
+
+// GOOD: concurrent sends
+List&lt;Mono&lt;Void&gt;&gt; sends = orders.stream()
+    .map(o -&gt; sender.sendMessage(toMessage(o)))
+    .collect(Collectors.toList());
+Mono.when(sends).block();    // all sent concurrently</pre>
+
+<h3>Partitioning: Scale Through Parallelism</h3>
+
+<p>Partitioning splits a queue or topic across multiple brokers internally. In Standard tier, partitioning creates 16 partitions. In Premium, you specify the partition count at namespace creation.<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-partitioning" target="_blank">[source]</a></span></p>
+
+<table>
+  <thead>
+    <tr><th></th><th>Non-Partitioned</th><th>Partitioned</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Throughput</td><td>Limited to single broker</td><td>Scales linearly with partitions</td></tr>
+    <tr><td>Ordering</td><td>FIFO within queue</td><td>FIFO within partition only</td></tr>
+    <tr><td>Duplicate detection</td><td>MessageId only</td><td>MessageId + PartitionKey</td></tr>
+    <tr><td>Sessions</td><td>Single broker</td><td>SessionId = PartitionKey</td></tr>
+    <tr><td>Use when</td><td>Simple, low-medium throughput</td><td>High throughput (&gt;1,000 msg/sec)</td></tr>
+  </tbody>
+</table>
+
+<h2>Part 2: Messaging Unit Capacity Planning (Premium)</h2>
+
+<p>Each Messaging Unit (MU) provides approximately <strong>~4 MB/s combined ingress + egress</strong>. Monitor CPU usage to decide when to scale.<span class="cite"><a href="https://techcommunity.microsoft.com/t5/Service-Bus-blog/Premium-Messaging-How-fast-is-it/ba-p/370722" target="_blank">[source]</a></span></p>
+
+<table>
+  <thead>
+    <tr><th>CPU metric</th><th>Action</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>&lt; 20%</td><td>Consider scaling DOWN (reduce MUs to save cost)</td></tr>
+    <tr><td>20–70%</td><td>Healthy range — no action needed</td></tr>
+    <tr><td>&gt; 70%</td><td>Scale UP (add MUs to avoid throttling)</td></tr>
+  </tbody>
+</table>
+
+<p>Features that consume CPU and reduce throughput:</p>
+<ul style="padding-left:1.3rem;">
+  <li>Sessions</li>
+  <li>Fan-out to many subscriptions on a single topic</li>
+  <li>SQL filters (especially many per subscription)</li>
+  <li>Scheduled messages, deferred messages, transactions</li>
+  <li>Duplicate detection</li>
+</ul>
+
+<pre># Auto-scale messaging units (via Azure Monitor alert + Logic App/Automation)
+# Or manual scaling:
+az servicebus namespace update \
+  --resource-group myrg \
+  --name mysb \
+  --capacity 4           # 4 messaging units</pre>
+
+<h2>Part 3: Monitoring &amp; Alerting</h2>
+
+<h3>Key Metrics to Watch</h3>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>What it tells you</th><th>Alert threshold (suggestion)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>CPU Usage</strong> (Premium)</td><td>MU saturation</td><td>Alert at &gt;70%</td></tr>
+    <tr><td><strong>Server Errors</strong> / <strong>User Errors</strong></td><td>Throttling, auth failures, bad requests</td><td>Alert at &gt;0/hour</td></tr>
+    <tr><td><strong>Throttled Requests</strong></td><td>Namespace hitting throughput limits</td><td>Alert at &gt;0</td></tr>
+    <tr><td><strong>Queue Length</strong> / <strong>Active Messages</strong></td><td>Consumer falling behind</td><td>Alert at &gt;N (your SLA)</td></tr>
+    <tr><td><strong>DLQ Message Count</strong></td><td>Messages failing permanently</td><td>Alert at &gt;0</td></tr>
+    <tr><td><strong>Incoming / Outgoing Messages</strong></td><td>Throughput trends</td><td>Anomaly detection</td></tr>
+  </tbody>
+</table>
+
+<pre># CLI: view queue metrics
+az monitor metrics list \
+  --resource /subscriptions/.../namespaces/mysb/queues/orders \
+  --metric "ActiveMessages" "DeadletteredMessages" \
+  --interval PT1M
+
+# Create an alert on DLQ count
+az monitor metrics alert create \
+  --name "DLQ-Not-Empty" \
+  --resource /subscriptions/.../namespaces/mysb/queues/orders \
+  --condition "avg DeadletteredMessages > 0" \
+  --window-size 5m \
+  --evaluation-frequency 1m \
+  --action /subscriptions/.../actionGroups/oncall</pre>
+
+<h3>Spring Boot: Expose Metrics via Actuator</h3>
+
+<pre>application.yml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Azure SDK metrics are automatically collected by Micrometer
+# when spring-boot-starter-actuator is on the classpath</pre>
+
+<h2>Part 4: Geo-Replication &amp; Disaster Recovery</h2>
+
+<p>Geo-replication continuously replicates metadata AND data from a primary namespace to one or more secondary regions. Promoting a secondary is nearly instantaneous.<span class="cite"><a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-geo-replication" target="_blank">[source]</a></span></p>
+
+<div class="card accent-left">
+  <strong>What gets replicated:</strong>
+  <ul style="padding-left:1.3rem;margin:0.3rem 0 0;">
+    <li>✅ Queues, topics, subscriptions, filters</li>
+    <li>✅ Message data (both active and dead-lettered)</li>
+    <li>✅ Message state changes (locks, settlements)</li>
+    <li>✅ Namespace configuration</li>
+    <li>❌ SAS keys / RBAC assignments (these are regional)</li>
+  </ul>
+</div>
+
+<pre># Create geo-replication pairing (Premium only)
+az servicebus namespace geo-replication-configuration set \
+  --resource-group myrg \
+  --namespace-name mysb-primary \
+  --alias myalias \
+  --partner-namespace /subscriptions/.../namespaces/mysb-secondary
+
+# In a disaster: promote secondary to primary
+az servicebus namespace geo-replication-configuration break-pairing \
+  --resource-group myrg \
+  --namespace-name mysb-secondary
+
+# Your clients should use the alias, not the namespace directly
+# Connection string: sb://myalias.servicebus.windows.net/</pre>
+
+<h2>Part 5: Decision Quick Reference</h2>
+
+<table>
+  <thead>
+    <tr><th>Scenario</th><th>Configuration</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Low throughput (&lt;10 msg/sec), dev/test</td><td>Standard tier, no prefetch, default settings</td></tr>
+    <tr><td>Moderate throughput (10–100 msg/sec), production</td><td>Premium, 1 MU, prefetch=20×rate, maxConcurrentCalls=5–10</td></tr>
+    <tr><td>High throughput (100–1,000 msg/sec)</td><td>Premium, 2–4 MUs, prefetch=200–500, maxConcurrentCalls=20, consider partitioning</td></tr>
+    <tr><td>Very high throughput (&gt;1,000 msg/sec)</td><td>Premium, 4–16 MUs, partitioning, shard across multiple namespaces</td></tr>
+    <tr><td>Messages &gt; 256 KB</td><td>Premium tier (required), AMQP protocol only</td></tr>
+    <tr><td>Need VNet isolation</td><td>Premium tier (required), private endpoints</td></tr>
+    <tr><td>Regional disaster recovery</td><td>Premium, geo-replication with alias</td></tr>
+  </tbody>
+</table>
+
+<h2>Check Your Understanding</h2>
+
+<div class="quiz" id="quiz">
+
+  <div class="question" id="q1">
+    <span class="q-label">Q1. Your Premium namespace CPU usage is consistently 85%. Throughput is dropping and you see throttled requests. What do you do?</span>
+    <label><input type="radio" name="q1" value="a"> Increase prefetch count on receivers</label>
+    <label><input type="radio" name="q1" value="b"> Scale up the number of messaging units</label>
+    <label><input type="radio" name="q1" value="c"> Switch from AMQP to HTTP for faster sends</label>
+    <div class="feedback" id="q1-fb"></div>
+    <button class="check-btn" onclick="checkQ1()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q2">
+    <span class="q-label">Q2. You set prefetchCount=1000 but messages take 2 minutes to process each. What problem will you likely encounter?</span>
+    <label><input type="radio" name="q2" value="a"> Nothing — prefetch just improves throughput</label>
+    <label><input type="radio" name="q2" value="b"> Message locks expire while messages sit in the local cache, causing redelivery and duplication</label>
+    <label><input type="radio" name="q2" value="c"> Messages are processed faster because they're preloaded</label>
+    <div class="feedback" id="q2-fb"></div>
+    <button class="check-btn" onclick="checkQ2()">Check Answer</button>
+  </div>
+
+  <div class="question" id="q3">
+    <span class="q-label">Q3. What's the difference between geo-replication and the older geo-disaster recovery (Geo-DR) feature?</span>
+    <label><input type="radio" name="q3" value="a"> They're the same thing — just renamed</label>
+    <label><input type="radio" name="q3" value="b"> Geo-replication replicates BOTH metadata and data continuously; older Geo-DR only replicated metadata</label>
+    <label><input type="radio" name="q3" value="c"> Geo-replication is for Standard tier; Geo-DR is for Premium</label>
+    <div class="feedback" id="q3-fb"></div>
+    <button class="check-btn" onclick="checkQ3()">Check Answer</button>
+  </div>
+
+</div>
+
+<script>
+function showFeedback(qId, isCorrect, correctMsg, incorrectMsg) {
+  const fb = document.getElementById(qId + '-fb');
+  fb.style.display = 'block';
+  if (isCorrect) {
+    fb.textContent = '✅ Correct! ' + correctMsg;
+    fb.className = 'feedback correct';
+  } else {
+    fb.textContent = '❌ ' + incorrectMsg;
+    fb.className = 'feedback incorrect';
+  }
+}
+
+function checkQ1() {
+  const sel = document.querySelector('input[name="q1"]:checked');
+  if (!sel) return;
+  showFeedback('q1', sel.value === 'b',
+    'Correct. CPU > 70% is the signal to scale up messaging units. Each MU adds dedicated CPU and memory. Prefetch helps with round-trip reduction but doesn\'t solve CPU saturation. HTTP is slower than AMQP.',
+    sel.value === 'a' ? 'Prefetch reduces round trips but doesn\'t solve CPU saturation on the broker. When CPU is consistently above 70%, you need more MUs.' : 'HTTP is significantly slower than AMQP and has no batching/pipelining. It would make the problem worse.'
+  );
+}
+
+function checkQ2() {
+  const sel = document.querySelector('input[name="q2"]:checked');
+  if (!sel) return;
+  showFeedback('q2', sel.value === 'b',
+    'Correct. The default lock duration is 60 seconds. If messages sit in cache for 2 minutes, locks expire. Other consumers can then receive and process the same messages — causing duplicate processing. Prefetch count should be ≤ (lock_duration / avg_processing_time).',
+    sel.value === 'a' ? 'Prefetch locks messages immediately. If processing is slow, locks expire before messages are handled. Other consumers then process duplicates.' : 'Prefetch doesn\'t speed up individual processing — it just reduces the wait time for the next message. Processing time per message is unchanged.'
+  );
+}
+
+function checkQ3() {
+  const sel = document.querySelector('input[name="q3"]:checked');
+  if (!sel) return;
+  showFeedback('q3', sel.value === 'b',
+    'Correct. Geo-replication (newer) continuously replicates both metadata AND message data to secondary regions. Geo-DR (older) only replicated metadata (entity definitions) — message data was not replicated. Geo-replication provides true disaster recovery with data preservation.',
+    sel.value === 'a' ? 'No, they\'re different. The older Geo-DR feature (still available) only replicates metadata. Geo-replication is newer and replicates both metadata and message data.' : 'Geo-replication is a Premium feature. It provides full data replication, unlike the older Geo-DR metadata-only approach.'
+  );
+}
+</script>
+
+<h2>Key Takeaways</h2>
+
+<div class="card success-left">
+  <ul style="padding-left:1.3rem;">
+    <li><strong>Prefetch is your biggest throughput lever.</strong> Start at 20× processing rate. Don't exceed (lock_duration / processing_time) or you'll get lock expiry and duplicates.</li>
+    <li><strong>CPU > 70% → scale up MUs.</strong> This is the primary signal. Auto-scale can be configured via Azure Monitor.</li>
+    <li><strong>Reuse clients.</strong> One <code>ServiceBusClient</code> per namespace, one sender/receiver per entity. Spring singletons.</li>
+    <li><strong>Monitor DLQ count, throttled requests, and server errors.</strong> These are leading indicators of problems.</li>
+    <li><strong>Geo-replication replicates data too.</strong> Unlike the old Geo-DR (metadata only), the modern geo-replication preserves your messages across regions.</li>
+    <li><strong>Partition for extreme scale.</strong> But be aware of ordering tradeoffs and partition key requirements for dedup/sessions.</li>
+  </ul>
+</div>
+
+<div class="lesson-footer">
+  <p><strong>📚 References:</strong>
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-performance-improvements" target="_blank">Performance Best Practices</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-premium-messaging" target="_blank">Premium Tier</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-geo-replication" target="_blank">Geo-Replication</a> ·
+    <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-partitioning" target="_blank">Partitioning</a> ·
+    <a href="https://techcommunity.microsoft.com/t5/Service-Bus-blog/Premium-Messaging-How-fast-is-it/ba-p/370722" target="_blank">Premium Throughput Benchmarks</a> ·
+    <a href="../reference/glossary.html" target="_blank">Glossary</a>
+  </p>
+
+  <p><strong>🏁 This is the final lesson!</strong> You now have a complete foundation in Azure Service Bus — from core concepts through production operations. Return to earlier lessons anytime for review, or ask me questions about anything that's still unclear.</p>
+
+  <p><strong>💻 Final practice:</strong> Put it all together — create a Premium namespace with geo-replication, deploy a Spring Boot reactive app with senders and session processors, configure alerts on DLQ depth and throttling, and run a load test to validate your MU sizing.</p>
+</div>
+
+</body>
+</html>
