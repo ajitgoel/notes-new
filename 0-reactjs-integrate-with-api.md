@@ -231,6 +231,7 @@ Your browser opens to `http://localhost:3000`. You should see 20 posts loaded fr
 |**Click “Create”**|New post appears at top of list|`POST /posts`|
 |**Click “Edit”**|Form fills with post data; submit updates it|`PUT /posts/:id`|
 |**Click “Delete”**|Post disappears from the list|`DELETE /posts/:id`|
+
   --------------
   
   ##### `src/api.js`
